@@ -1,0 +1,69 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# CustomRecipe remastered by MehBoss                                                                #
+# Version v1.4                                                                                      #
+#                                                                                                   #        
+# If you find a bug, send me a PM and it will be fixed! :)                                          #
+#                                                                                                   #              
+#    Enchant Strings:                                                                               #
+# http://pastebin.com/AWtKQ5UH                                                                      #
+#    Effects:                                                                                       #
+# https://hub.spigotmc.org/javadocs/spigot/org/bukkit/potion/PotionEffect.html                      #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+Messages:
+  Invalid-Args: '&cInvalid args! (use: /crecipe give <player> <recipename>)'
+  Player-Not-Found: '&cERROR: player not found!'
+  Recipe-Not-Found: '&cERROR: recipe not found!'
+  Inventory-Full: '&cERROR: target''s inventory is full!'
+  Give-Recipe: '&aSuccessfully given player item!'
+  Reload: '&aSuccessfully reloaded Custom Recipes!'
+GUI:
+  Open-Sound: CLICK
+  Open-Message: '&aOpening menu..'
+  Displayname: '&cRecipe Manager'
+ADD:
+  Add-Recipe: '&cPlease type the display name of the recipe you would like to add!'
+  Recipe-Capture: '&cCaptured desired new recipe name! Opening menu..'
+  Menu-Title: '&e%recipe% (ADDING RECIPE)'
+Items:
+  CursedPick:
+      # This must match the item name minus "&" or spaces. Without doing so, your item effects will NOT work!
+    Item: 278
+      # Item ID
+    Permission: 'customrecipe.recipe.cursedpick'
+      # Give a player this permission to allow them to craft this item. Remove section if no permission wanted.
+    Item-Damage: 'none'
+      # Used for when you need a specific type of item with a "19/00" or "13:4". leave to none if non exists.
+    Amount: 1
+      # When you craft this item, this is the amount you will get from it.
+    Name: '&4&lCursed Pick'
+      # Name of the Item, you can use Color Codes!
+      # Remove section if no custom name wanted.
+    Lore:
+     - '&c&lThe Cursed Pickaxe'
+      # The lore of the item, it can be multiple lines.
+      # Remove section if no lore wanted.
+    Effects:
+     - 'POISON:20:2'
+      # This is for potion effects, remove section if not needed.
+      # The format for this should be "POTION EFFECT:DURATION:AMPLIFIER"
+    Hide-Enchants: true
+    Enchantments:
+     - 'DURABILITY:300'
+      # All the Enchantments are listed at the Top. You can also add as many as you want
+      # Remove section if no enchant wanted.
+    ItemCrafting:
+      # X Stands for Air, do NOT include X in the 'ingredients' below.
+     - 'EEE' #First row in the crafting table
+     - 'XIX' #Second row in the crafting table
+     - 'XIX' #Third row in the crafting table
+    Ingredients:
+      # Format: LETTER:ITEMID:AMOUNT:DISPLAYNAME (Color Codes Included)
+      # REMOVE LAST PART IF NO CUSTOM NAME WANTED.
+     - 'E:388:1:Emerald Essence'
+      # E Stands for Emerald because 388 is the ItemID for emerald.
+      # Format: LETTER:ITEMID:DISPLAYNAME (Color Codes Included)
+      # REMOVE LAST PART IF NO CUSTOM NAME WANTED.
+     - 'I:265:1:Iron Essence'
+      # I Stands for Iron because 265 is the ItemID for iron ingot.
+      # Format: LETTER:ITEMID:DISPLAYNAME (Color Codes Included)
+      # REMOVE LAST PART IF NO CUSTOM NAME WANTED.

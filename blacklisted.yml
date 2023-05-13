@@ -1,0 +1,33 @@
+########################################################################
+# THIS CONFIG IS USED FOR DISABLING RECIPES                            #
+# YOU MAY BLACKLIST ANY VANILLA OR CUSTOM RECIPE OF YOUR CHOICE        #
+# YOU MAY MAKE IT SO THEY MUST HAVE THE REQUIRED PERMISSION TO CRAFT   #
+#                                                                      #
+# MADE BY MEHBOSS                                                      #
+# GUI MADE FOR ENHANCED USER FRIENDLINESS                              #
+#   /crecipe gui                                                       #
+#                                                                      #
+########################################################################
+blacklist-recipes: false
+no-permission-message: 
+  close-inventory: 'true'
+  chat-message: 
+    enabled: 'true'
+    message: '&cYou must be a donor to craft this recipe!'
+  actionbar-message: 
+    enabled: 'false'
+    message: '&cYou are not allowed to craft this recipe!'
+recipe-disabled-message:
+  close-inventory: 'true'
+  chat-message:
+    enabled: 'true'
+    message: '&cThat recipe has been disabled on this server!'
+  actionbar-message:
+    enabled: 'false'
+    message: '&cYou cannot craft this recipe!'
+vanilla-recipes:
+  'BEETROOT_SOUP': # item ID for soup
+    permission: 'soup' # permission will then be crecipe.soup in order to craft this vanilla recipe. set to 'none' if not needed.
+custom-recipes:
+  'THIS_CUSTOM_IDENTIFIER': # disable custom recipes from other plugins
+    permission: 'none'

@@ -1,53 +1,45 @@
 package me.mehboss.recipe;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public class Effects implements Listener {
 
-	private Main plugin;
-
-	public Effects(Main plugin) {
-		this.plugin = plugin;
-	}
-
+	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void oneffect(EntityDamageByEntityEvent p) {
-		Plugin config = Bukkit.getPluginManager().getPlugin("CustomRecipes");
 
 		if (p.getDamager() instanceof Player) {
 
 			Player pl = (Player) p.getDamager();
 			ItemStack item = pl.getItemInHand();
+			String displayname = null;
 
 			if (pl.getItemInHand() == null || item.getItemMeta() == null
 					|| item.getItemMeta().getDisplayName() == null) {
 				return;
 			}
 
-			String displayname = item.getItemMeta().getDisplayName().replaceAll(" ", "").replaceAll("&", "");
+			if (Main.getInstance().giveRecipe.containsValue(pl.getItemInHand()))
+				displayname = Main.getInstance().configName.get(pl.getItemInHand());
 
-			if (p.getCause() == DamageCause.ENTITY_ATTACK && (!(p.getEntity().isDead())) && item.getItemMeta().hasLore()
-					&& plugin.isItemforEffect.contains(displayname)
-					&& plugin.getConfig().getStringList("Items." + displayname + ".Effects") != null) {
+			if (displayname == null)
+				return;
 
-				for (String e : config.getConfig()
-						.getStringList("Items." + displayname.replaceAll("(§([a-fk-o0-9]))", "") + ".Effects")) {
+			if (p.getCause() == DamageCause.ENTITY_ATTACK && (!(p.getEntity().isDead()))
+					&& Main.getInstance().getConfig().getStringList("Items." + displayname + ".Effects") != null) {
 
-					if (e == null) {
+				for (String e : Main.getInstance().getConfig().getStringList("Items." + displayname + ".Effects")) {
+
+					if (e == null)
 						return;
-					}
 
 					String[] effectSplit = e.split(":");
 

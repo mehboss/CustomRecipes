@@ -1,7 +1,6 @@
 package me.mehboss.recipe;
 
 import java.util.HashMap;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -10,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -22,11 +22,10 @@ public class addMenu implements Listener {
 	private Inventory inv;
 
 	HashMap<String, String> recipeName = new HashMap<String, String>();
-	Plugin config = Bukkit.getPluginManager().getPlugin("CustomRecipes");
 
 	public addMenu(Plugin p, String item) {
 		inv = Bukkit.getServer().createInventory(null, 45,
-				ChatColor.translateAlternateColorCodes('&', config.getConfig().getString("ADD.Menu-Title")));
+				ChatColor.translateAlternateColorCodes('&', Main.getInstance().messagesConfig.getString("add.Title")));
 		setItems(inv);
 		Bukkit.getServer().getPluginManager().registerEvents(this, p);
 	}
@@ -41,16 +40,13 @@ public class addMenu implements Listener {
 
 	@EventHandler
 	public void onChat(AsyncPlayerChatEvent e) {
-		if (Main.addRecipe.contains(e.getPlayer().getName())) {
+		if (Main.getInstance().addRecipe.contains(e.getPlayer().getName())) {
+			Main.getInstance().addRecipe.remove(e.getPlayer().getName());
 
-			Main.addRecipe.remove(e.getPlayer().getName());
-			recipeName.put(e.getPlayer().getName(), e.getMessage());
+			inv = Bukkit.getServer().createInventory(null, 45, ChatColor.translateAlternateColorCodes('&',
+					Main.getInstance().messagesConfig.getString("add.Title").replace("%recipe%", e.getMessage())));
 
 			e.setCancelled(true);
-
-			inv = Bukkit.getServer().createInventory(null, 45,
-					ChatColor.translateAlternateColorCodes('&', config.getConfig().getString("ADD.Menu-Title")
-							.replaceAll("%recipe%", recipeName.get(e.getPlayer().getName()).toUpperCase())));
 			setItems(inv);
 			showadd(e.getPlayer());
 		}
@@ -58,19 +54,12 @@ public class addMenu implements Listener {
 
 	public void setItems(Inventory i) {
 
-		ItemStack stained = null;
-		try {
-			// Minecraft 1.9
-			stained = new ItemStack(Material.matchMaterial("WHITE_STAINED_GLASS_PANE"));
-		} catch (Exception e) {
-			// Minecraft 1.8.8
-			stained = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
-		}
+		Material stained = XMaterial.WHITE_STAINED_GLASS_PANE.parseMaterial();
 
 		for (int j = 0; j < 45; j++) {
 			if (j != 11 && j != 12 && j != 13 && j != 20 && j != 21 && j != 22 && j != 29 && j != 30 && j != 31
 					&& j != 24) {
-				i.setItem(j, stained);
+				i.setItem(j, new ItemStack(stained));
 			}
 		}
 	}
@@ -80,38 +69,46 @@ public class addMenu implements Listener {
 
 		Player p = (Player) e.getWhoClicked();
 
-		if (e.getInventory() != null && e.getInventory().getName() != null) {
-			if (recipeName.get(p.getName()) != null) {
+		if (e.getClickedInventory() == null || e.getClickedInventory().getType() != InventoryType.PLAYER
+				|| recipeName.get(p.getName()) == null) {
+			return;
+		}
 
-				String RecipeN = ChatColor.translateAlternateColorCodes('&', config.getConfig()
-						.getString("ADD.Menu-Title").replaceAll("%recipe%", recipeName.get(p.getName()).toUpperCase()));
+		String RecipeN = ChatColor.translateAlternateColorCodes('&', Main.getInstance().getConfig()
+				.getString("add.Title").replaceAll("%recipe%", recipeName.get(p.getName()).toUpperCase()));
 
-				if (e.getClickedInventory().getName().equals(RecipeN)) {
-					if (e.getRawSlot() != 11 && e.getRawSlot() != 12 && e.getRawSlot() != 13 && e.getRawSlot() != 20
-							&& e.getRawSlot() != 21 && e.getRawSlot() != 22 && e.getRawSlot() != 29
-							&& e.getRawSlot() != 30 && e.getRawSlot() != 31 && e.getRawSlot() != 24) {
-						e.setCancelled(true);
-					}
-				}
+		if (e.getView().getTitle() != null && e.getView().getTitle().equals(RecipeN)
+				&& recipeName.get(p.getName()) != null) {
+
+			if (e.getRawSlot() != 11 && e.getRawSlot() != 12 && e.getRawSlot() != 13 && e.getRawSlot() != 20
+					&& e.getRawSlot() != 21 && e.getRawSlot() != 22 && e.getRawSlot() != 29 && e.getRawSlot() != 30
+					&& e.getRawSlot() != 31 && e.getRawSlot() != 24) {
+				e.setCancelled(true);
 			}
 		}
 	}
 
 	@EventHandler
 	public void onClose(InventoryCloseEvent e) {
-		if (e.getInventory() != null && e.getInventory().getName() != null
-				&& recipeName.get(e.getPlayer().getName()) != null) {
 
-			String RecipeN = ChatColor.translateAlternateColorCodes('&', config.getConfig().getString("ADD.Menu-Title")
-					.replaceAll("%recipe%", recipeName.get(e.getPlayer().getName()).toUpperCase()));
+		if (e.getInventory() == null || e.getInventory().getType() != InventoryType.PLAYER
+				|| recipeName.get(e.getPlayer().getName()) == null) {
+			return;
+		}
 
-			if (e.getInventory().getName().equals(RecipeN)) {
+		if (recipeName.get(e.getPlayer().getName()) != null && e.getView().getTitle() != null) {
+
+			String RecipeN = ChatColor.translateAlternateColorCodes('&',
+					Main.getInstance().messagesConfig.getString("add.Title").replaceAll("%recipe%",
+							recipeName.get(e.getPlayer().getName()).toUpperCase()));
+
+			if (e.getView().getTitle().equals(RecipeN)) {
 
 				if (hasSomething(e.getInventory()) == true) {
 
 					System.out.print("it does match!");
 					System.out.print(recipeName.get(e.getPlayer().getName()));
-					System.out.print(e.getInventory().getName());
+					System.out.print(e.getView().getTitle());
 					System.out.print(e.getPlayer().getName());
 				}
 			}

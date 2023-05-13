@@ -1,0 +1,32 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# CustomRecipe remastered by MehBoss                                                                #
+# MESSAGES CONFIG                                                                                   #
+#                                                                                                   #        
+# If you find a bug, send me a PM and it will be fixed! :)                                          #
+#                                                                                                   #              
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+Debug: false
+Update-Check: true
+Messages:
+  Invalid-Args: '&cInvalid args! (use: /crecipe give <player> <recipename> [amount])'
+  Invalid-Perms: '&cYou are not allowed to use this command!'
+  Player-Not-Found: '&cERROR: player not found!'
+  Recipe-Not-Found: '&cERROR: recipe not found!'
+  Inventory-Full: '&cERROR: target''s inventory is full!'
+  Give-Recipe: '&aSuccessfully given player item!'
+  Reloading: '&cReloading.. please wait'
+  Reload: '&aSuccessfully reloaded Custom Recipes!'
+action-bar:
+  enabled: 'true'
+  message: '&4You are not allowed to craft this item!'
+chat-message: 
+  enabled: 'true'
+  message: '&cYou must be a donor to craft this recipe!'  
+add:
+  Add-Recipe: '&cPlease type the display name of the recipe you would like to add!'
+  Recipe-Capture: '&cCaptured desired new recipe name! Opening menu..'
+  Title: '&e%recipe% (ADDING RECIPE)'
+gui:
+  Open-Sound: CLICK
+  Open-Message: '&aOpening menu..'
+  Displayname: '&cRecipe Manager - Page %page%'

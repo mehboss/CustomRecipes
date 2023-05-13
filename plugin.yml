@@ -1,8 +1,19 @@
 name: CustomRecipes
-version: 1.2
+version: 1.6
+api-version: 1.13
 main: me.mehboss.recipe.Main
 author: mehboss
 description: An easy-to-use remastered custom recipe plugin!
 commands:
   crecipe:
-    description: Syntax is give [recipe] or simply reload
+    description: Displays the custom recipe help page.
+    aliases: [crecipes, customrecipe, customrecipes, customr, cr]
+    permissions:
+      crecipe.*:
+        default: op
+  edititem:
+    description: NBT Editor for items!
+    aliases: [ei, edit]
+    permissions:
+      crecipe.*:
+        default: op

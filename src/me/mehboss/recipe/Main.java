@@ -675,17 +675,20 @@ public class Main extends JavaPlugin implements Listener {
 				if (inv.getItem(i) != null) {
 					ItemMeta meta = inv.getItem(i).getItemMeta();
 
+					// checks for custom tag
 					if (meta.hasDisplayName() && !(NBTEditor.contains(inv.getItem(i), "CUSTOM_ITEM_IDENTIFIER"))) {
 						passedCheck = false;
 						break;
 					}
 
+					// checks if displayname is null
 					if ((!(meta.hasDisplayName()) && !(ingredient.hasDisplayName(null)))
 							|| (meta.hasDisplayName() && !(ingredient.hasDisplayName(meta.getDisplayName())))) {
 						passedCheck = false;
 						break;
 					}
 
+					// checks amounts
 					if (!(ingredient.hasAmount(inv.getItem(i).getAmount()))) {
 						passedCheck = false;
 						break;

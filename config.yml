@@ -43,9 +43,11 @@ Items:
       # REMOVE LAST PART IF NO CUSTOM NAME WANTED.
      - 'E:EMERALD:1:Emerald Essence' # E Stands for emerald.
      - 'I:IRON_INGOT:1:Iron Essence' # I Stands for iron ingot.
-#    Attribute:
-# Adds a given amount of a specified attribute to the custom item.
-#     - ATTRIBUTE:AMOUNT:SLOT
+   # Attribute:
+      # Adds a given amount of a specified attribute to the custom item.
+    # - ATTRIBUTE:AMOUNT:SLOT
+   # Custom-Model-Data: none
+      # Custom model data for texture packs. Only on MC 1.14+!
   CursedSword: 
     Enabled: true
     Item: 'DIAMOND_SWORD'
@@ -69,3 +71,6 @@ Items:
     Ingredients:
      - 'D:DIAMOND:1:Diamond Shrine'
      - 'P:OAK_PLANKS:1:Wooden Board'
+   # Attribute:
+    # - ATTRIBUTE:AMOUNT:SLOT
+   # Custom-Model-Data: none

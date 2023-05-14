@@ -28,9 +28,9 @@ public class Main extends JavaPlugin implements Listener {
 	public Main(ItemManager plugin) {
 		this.plugin = plugin;
 	}
-	Recipes recipes;
-	addMenu addItem;
-	editMenu editItem;
+	ManageGUI recipes;
+	AddGUI addItem;
+	EditGUI editItem;
 
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
@@ -132,17 +132,17 @@ public class Main extends JavaPlugin implements Listener {
 
 		plugin.addItems();
 
-		Bukkit.getPluginManager().registerEvents(new Recipes(this, null), this);
-		Bukkit.getPluginManager().registerEvents(new Effects(), this);
+		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
+		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(new RecipeManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 		
-		recipes = new Recipes(this, null);
-		editItem = new editMenu(Main.getInstance(), null);
+		recipes = new ManageGUI(this, null);
+		editItem = new EditGUI(Main.getInstance(), null);
 
 		getCommand("crecipe").setExecutor(new GiveRecipe(this));
-		getCommand("edititem").setExecutor(new Manager());
-		addItem = new addMenu(this, null);
+		getCommand("edititem").setExecutor(new NBTCommands());
+		addItem = new AddGUI(this, null);
 
 	}
 
@@ -183,9 +183,9 @@ public class Main extends JavaPlugin implements Listener {
 
 		plugin.addItems();
 
-		recipes = new Recipes(this, null);
-		editItem = new editMenu(Main.getInstance(), null);
-		addItem = new addMenu(this, null);
+		recipes = new ManageGUI(this, null);
+		editItem = new EditGUI(Main.getInstance(), null);
+		addItem = new AddGUI(this, null);
 	}
 
 	public void disableRecipes() {

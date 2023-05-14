@@ -23,7 +23,7 @@ Items:
     Amount: 1 # When you craft this item, this is the amount you will get from it.
     Durability: '100' # 1-100. Remove section if not needed.
     Shapeless: false # Whether or not you want it to have specific order in crafting
-    Identifier: 'CURSED_PICKAXE' # Give your new recipe an identifier :). Remove if not needed. Tags item with NBT tag.
+    Identifier: 'CURSED_PICKAXE' # Give your new recipe an identifier :).
     Permission: 'crecipe.recipe.cursedpick' # Give a player this permission to allow them to craft this item. Remove section if no permission wanted.
     Name: '&4&lCursed Pick' # Name of the item, you can use color codes. Remove if not needed
     Lore:

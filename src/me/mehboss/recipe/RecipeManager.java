@@ -200,7 +200,7 @@ public class RecipeManager implements Listener {
 			return;
 
 		if (getConfig().getBoolean("Items." + recipeName + ".Enabled") == false
-				|| ((getConfig().isString("Items." + recipeName + ".Permission")
+				|| ((getConfig().isSet("Items." + recipeName + ".Permission")
 						&& (!(p.hasPermission(getConfig().getString("Items." + recipeName + ".Permission"))))))) {
 			inv.setResult(new ItemStack(Material.AIR));
 			return;

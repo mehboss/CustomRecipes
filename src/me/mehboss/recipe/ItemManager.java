@@ -69,7 +69,7 @@ public class ItemManager {
 				return;
 			}
 
-			if (damage.equalsIgnoreCase("none")) {
+			if (getConfig().isSet("Items." + item + ".Item-Damage") && damage.equalsIgnoreCase("none")) {
 				i = new ItemStack(type.get().parseMaterial(), amount);
 			} else {
 				i = new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));

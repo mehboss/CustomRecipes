@@ -51,6 +51,8 @@ Items:
   CursedSword: 
     Enabled: true
     Item: 'DIAMOND_SWORD'
+    Ignore-Data: false
+    Custom-Tagged: true
     Item-Damage: 'none'
     Amount: 1
     Shapeless: true

@@ -17,7 +17,7 @@ Items:
   CursedPick:
     Enabled: true # Whether or not this recipe is enabled
     Item: 'DIAMOND_PICKAXE' # Item ID
-    Ignore-Data: false # Whether or not metadata should be considered
+    Ignore-Data: false # Whether or not metadata should be considered as a requirement for crafting
     Custom-Tagged: true # Whether or not you want this item to be tagged with a custom item tag.
     Item-Damage: 'none' # Used for when you need a specific type of item with a "19/00" or "13:4". leave to none if non exists.
     Amount: 1 # When you craft this item, this is the amount you will get from it.

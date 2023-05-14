@@ -207,23 +207,23 @@ public class ItemManager {
 			String[] newsplit2 = line2.split("");
 			String[] newsplit3 = line3.split("");
 
-			ingredients.add(api().new Ingredient(details.get(newsplit1[0]).split(":")[0], 1,
+			ingredients.add(api().new Ingredient(details.get(newsplit1[0]).split(":")[0],
 					Integer.parseInt(details.get(newsplit1[0]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit1[1]).split(":")[0], 2,
+			ingredients.add(api().new Ingredient(details.get(newsplit1[1]).split(":")[0],
 					Integer.parseInt(details.get(newsplit1[1]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit1[2]).split(":")[0], 3,
+			ingredients.add(api().new Ingredient(details.get(newsplit1[2]).split(":")[0],
 					Integer.parseInt(details.get(newsplit1[2]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit2[0]).split(":")[0], 4,
+			ingredients.add(api().new Ingredient(details.get(newsplit2[0]).split(":")[0],
 					Integer.parseInt(details.get(newsplit2[0]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit2[1]).split(":")[0], 5,
+			ingredients.add(api().new Ingredient(details.get(newsplit2[1]).split(":")[0],
 					Integer.parseInt(details.get(newsplit2[1]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit2[2]).split(":")[0], 6,
+			ingredients.add(api().new Ingredient(details.get(newsplit2[2]).split(":")[0],
 					Integer.parseInt(details.get(newsplit2[2]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit3[0]).split(":")[0], 7,
+			ingredients.add(api().new Ingredient(details.get(newsplit3[0]).split(":")[0],
 					Integer.parseInt(details.get(newsplit3[0]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit3[1]).split(":")[0], 8,
+			ingredients.add(api().new Ingredient(details.get(newsplit3[1]).split(":")[0],
 					Integer.parseInt(details.get(newsplit3[1]).split(":")[1]), false));
-			ingredients.add(api().new Ingredient(details.get(newsplit3[2]).split(":")[0], 9,
+			ingredients.add(api().new Ingredient(details.get(newsplit3[2]).split(":")[0],
 					Integer.parseInt(details.get(newsplit3[2]).split(":")[1]), false));
 
 			if (getConfig().getBoolean("Items." + item + ".Shapeless") == true) {

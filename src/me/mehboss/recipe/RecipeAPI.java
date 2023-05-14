@@ -27,9 +27,8 @@ public class RecipeAPI {
 		private int slot;
 		private int amount;
 
-		public Ingredient(String displayName, int slot, int amount, boolean isEmpty) {
+		public Ingredient(String displayName, int amount, boolean isEmpty) {
 			this.displayName = displayName;
-			this.slot = slot;
 			this.amount = amount;
 			this.isEmpty = isEmpty;
 		}

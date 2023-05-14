@@ -186,11 +186,15 @@ public class RecipeManager implements Listener {
 			return;
 
 		if (getConfig().getBoolean("Items." + recipeName + ".Enabled") == false
-				|| (getConfig().isString("Items." + recipeName + ".Permission")
-						&& (!(p.hasPermission(getConfig().getString("Items." + recipeName + ".Permission")))))) {
+				|| ((getConfig().isString("Items." + recipeName + ".Permission")
+						&& (!(p.hasPermission(getConfig().getString("Items." + recipeName + ".Permission"))))))) {
 			inv.setResult(new ItemStack(Material.AIR));
 			return;
 		}
+
+		if (getConfig().isBoolean("Items." + recipeName + ".Ignore-Data")
+				&& getConfig().getBoolean("Items." + recipeName + ".Ignore-Data") == false)
+			return;
 
 		List<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
 
@@ -206,6 +210,10 @@ public class RecipeManager implements Listener {
 					slotNames.add("false");
 					continue;
 				}
+				
+				if (!(NBTEditor.contains(inv.getItem(slot), "CUSTOM_ITEM_IDENTIFIER")))
+					continue;
+				
 				slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
 			}
 

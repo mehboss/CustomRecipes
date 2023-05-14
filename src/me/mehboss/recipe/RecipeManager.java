@@ -193,7 +193,7 @@ public class RecipeManager implements Listener {
 		}
 
 		if (getConfig().isBoolean("Items." + recipeName + ".Ignore-Data")
-				&& getConfig().getBoolean("Items." + recipeName + ".Ignore-Data") == false)
+				&& getConfig().getBoolean("Items." + recipeName + ".Ignore-Data") == true)
 			return;
 
 		List<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);

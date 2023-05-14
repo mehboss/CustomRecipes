@@ -208,7 +208,7 @@ public class Main extends JavaPlugin implements Listener {
 			send = "no-permission-message.";
 		}
 
-		if (customConfig.getString(send + "actionbar-message.enabled").equalsIgnoreCase("true")) {
+		if (customConfig.getBoolean(send + "actionbar-message.enabled") == true) {
 
 			try {
 				String message = ChatColor.translateAlternateColorCodes('&',
@@ -219,7 +219,7 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}
 
-		if (customConfig.getString(send + "chat-message.enabled").equalsIgnoreCase("true")) {
+		if (customConfig.getBoolean(send + "chat-message.enabled") == true) {
 
 			String message = ChatColor.translateAlternateColorCodes('&',
 					customConfig.getString(send + "chat-message.message"));
@@ -227,13 +227,13 @@ public class Main extends JavaPlugin implements Listener {
 			p.sendMessage(message);
 		}
 
-		if (customConfig.getString(send + "close-inventory").equalsIgnoreCase("true"))
+		if (customConfig.getBoolean(send + "close-inventory") == true)
 			p.closeInventory();
 	}
 
 	public void sendmessage(Player p) {
 
-		if (messagesConfig.getString("action-bar.enabled").equalsIgnoreCase("true")) {
+		if (messagesConfig.getBoolean("action-bar.enabled") == true) {
 			try {
 				String message = ChatColor.translateAlternateColorCodes('&',
 						messagesConfig.getString("action-bar.message"));
@@ -244,7 +244,7 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}
 
-		if (messagesConfig.getString("chat-message.enabled").equalsIgnoreCase("true")) {
+		if (messagesConfig.getBoolean("chat-message.enabled") == true) {
 
 			String message = ChatColor.translateAlternateColorCodes('&',
 					messagesConfig.getString("chat-message.message"));

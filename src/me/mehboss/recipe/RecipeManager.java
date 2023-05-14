@@ -11,6 +11,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
@@ -19,9 +20,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 public class RecipeManager implements Listener {
 
-	public Boolean matchedRecipe(CraftingInventory inv) {
+	boolean matchedRecipe(CraftingInventory inv) {
 		if (inv.getResult() == null || inv.getResult() == new ItemStack(Material.AIR)) {
-			if (debug == true) {
+			if (debug) {
 				getLogger().log(Level.WARNING,
 						"[CRECIPE DEBUG] [2] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
 				getLogger().log(Level.WARNING, "COULD NOT FIND A RECIPE FOR THIS!!!");
@@ -31,7 +32,38 @@ public class RecipeManager implements Listener {
 		return true;
 	}
 
-	public boolean isBlacklisted(CraftingInventory inv, Player p) {
+	HashMap<Material, Integer> countItemsByMaterial(CraftingInventory inv) {
+		HashMap<Material, Integer> counts = new HashMap<>();
+		for (ItemStack item : inv.getContents()) {
+			if (item != null) {
+				Material material = item.getType();
+				int amount = item.getAmount();
+				counts.put(material, counts.getOrDefault(material, 0) + amount);
+			}
+		}
+		return counts;
+	}
+
+	boolean amountsMatch(CraftingInventory inv, String configName) {
+		if (!(getConfig().isSet("Items." + configName + ".Ingredients")))
+			return true;
+
+		HashMap<Material, Integer> countedAmount = countItemsByMaterial(inv);
+
+		for (String ingredient : getConfig().getStringList("Items." + configName + ".Ingredients")) {
+			String[] split = ingredient.split(":");
+			Material material = XMaterial.matchXMaterial(split[1]).get().parseMaterial();
+			Integer amountRequired = Integer.parseInt(split[2]);
+
+			if (countedAmount.containsKey(material) && countedAmount.get(material) >= amountRequired)
+				continue;
+
+			return false;
+		}
+		return true;
+	}
+
+	boolean isBlacklisted(CraftingInventory inv, Player p) {
 		if (customConfig().getBoolean("blacklist-recipes") == true) {
 			for (String item : disabledrecipe()) {
 
@@ -52,7 +84,7 @@ public class RecipeManager implements Listener {
 				if (split.length == 2)
 					i.setDurability(Short.valueOf(split[1]));
 
-				if (debug == true) {
+				if (debug) {
 					getLogger().log(Level.WARNING,
 							"[CRECIPE DEBUG] [3] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
 					getLogger().log(Level.WARNING,
@@ -75,16 +107,16 @@ public class RecipeManager implements Listener {
 
 					if (getPerm != null && !(getPerm.equalsIgnoreCase("none"))) {
 						if (p.hasPermission("crecipe." + getPerm)) {
-							if (debug == true) {
+							if (debug) {
 								getLogger().log(Level.WARNING,
 										"[CRECIPE DEBUG] [3.25] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
 								getLogger().log(Level.WARNING, "CRECIPE DEBUG - USER DOES HAVE PERMISSION");
 							}
-							break;
+							return false;
 						}
 					}
 
-					if (debug == true) {
+					if (debug) {
 						getLogger().log(Level.WARNING,
 								"[CRECIPE DEBUG] [3.5] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
 						getLogger().log(Level.WARNING, "CRECIPE DEBUG - RECIPE SET TO AIR");
@@ -101,7 +133,30 @@ public class RecipeManager implements Listener {
 	}
 
 	@EventHandler
-	public void check(PrepareItemCraftEvent e) {
+	void onCraft(CraftItemEvent e) {
+		CraftingInventory inv = e.getInventory();
+
+		if (inv.getType() != InventoryType.WORKBENCH || !(matchedRecipe(inv)))
+			return;
+
+		if (!(configName().containsKey(inv.getResult())))
+			return;
+
+		if (!(inv.getResult().equals(e.getCurrentItem())))
+			return;
+
+		HashMap<Material, Integer> countedAmount = countItemsByMaterial(inv);
+		for (Material material : countedAmount.keySet()) {
+			int amount = countedAmount.get(material);
+			if (amount == 1)
+				continue;
+
+			inv.removeItem(new ItemStack(material, (amount - 1)));
+		}
+	}
+
+	@EventHandler
+	void check(PrepareItemCraftEvent e) {
 
 		CraftingInventory inv = e.getInventory();
 
@@ -121,7 +176,7 @@ public class RecipeManager implements Listener {
 			recipeName = configName().get(inv.getResult());
 		}
 
-		if (debug == true) {
+		if (debug) {
 			getLogger().log(Level.WARNING,
 					"[CRECIPE DEBUG] [5] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
 			getLogger().log(Level.WARNING, "CRECIPE DEBUG - 'recipeName' is set to " + recipeName);
@@ -141,6 +196,7 @@ public class RecipeManager implements Listener {
 
 		if (getConfig().isBoolean("Items." + configName() + ".Shapeless")
 				&& getConfig().getBoolean("Items." + configName() + ".Shapeless") == true) {
+			// runs checks if recipe is shapeless
 
 			ArrayList<String> slotNames = new ArrayList<String>();
 			ArrayList<String> recipeNames = new ArrayList<String>();
@@ -157,10 +213,12 @@ public class RecipeManager implements Listener {
 				recipeNames.add(names.getDisplayName());
 			}
 
-			if (!(slotNames.containsAll(recipeNames)))
+			if (!(slotNames.containsAll(recipeNames)) || !(amountsMatch(inv, recipeName)))
 				passedCheck = false;
+
 		} else {
 
+			// runs check for non-shapeless recipes
 			int i = 0;
 			for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
 				i++;
@@ -195,10 +253,10 @@ public class RecipeManager implements Listener {
 			}
 		}
 
-		if (passedCheck == false)
+		if (!(passedCheck))
 			inv.setResult(new ItemStack(Material.AIR));
 
-		if (debug == true) {
+		if (debug) {
 			getLogger().log(Level.WARNING,
 					"[CRECIPE DEBUG] [10] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
 			getLogger().log(Level.WARNING, "CRECIPE DEBUG - END CHECK. FINAL RECIPE MATCH: " + passedCheck);

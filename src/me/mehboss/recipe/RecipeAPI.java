@@ -59,7 +59,7 @@ public class RecipeAPI {
 		}
 
 		public boolean hasDisplayName(String displayName) {
-			if (displayName.equals(false))
+			if (displayName.equals("false"))
 				return false;
 			return this.displayName.equals(displayName);
 		}

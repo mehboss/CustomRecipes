@@ -10,20 +10,20 @@
 ########################################################################
 blacklist-recipes: false
 no-permission-message: 
-  close-inventory: 'true'
+  close-inventory: true
   chat-message: 
-    enabled: 'true'
+    enabled: true
     message: '&cYou must be a donor to craft this recipe!'
   actionbar-message: 
-    enabled: 'false'
+    enabled: false
     message: '&cYou are not allowed to craft this recipe!'
 recipe-disabled-message:
-  close-inventory: 'true'
+  close-inventory: true
   chat-message:
-    enabled: 'true'
+    enabled: true
     message: '&cThat recipe has been disabled on this server!'
   actionbar-message:
-    enabled: 'false'
+    enabled: false
     message: '&cYou cannot craft this recipe!'
 vanilla-recipes:
   'BEETROOT_SOUP': # item ID for soup

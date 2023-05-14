@@ -17,10 +17,10 @@ Messages:
   Reloading: '&cReloading.. please wait'
   Reload: '&aSuccessfully reloaded Custom Recipes!'
 action-bar:
-  enabled: 'true'
+  enabled: true
   message: '&4You are not allowed to craft this item!'
 chat-message: 
-  enabled: 'true'
+  enabled: true
   message: '&cYou must be a donor to craft this recipe!'  
 add:
   Add-Recipe: '&cPlease type the display name of the recipe you would like to add!'

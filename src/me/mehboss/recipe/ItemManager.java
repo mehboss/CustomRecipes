@@ -38,7 +38,7 @@ import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class ItemManager {
-	
+
 	@SuppressWarnings("deprecation")
 	public void addItems() {
 		disableRecipes();
@@ -48,7 +48,7 @@ public class ItemManager {
 			ItemStack i = null;
 			ShapedRecipe R = null;
 			ShapelessRecipe S = null;
-			
+
 			HashMap<String, String> details = new HashMap<String, String>();
 			ArrayList<RecipeAPI.Ingredient> ingredients = new ArrayList<>();
 
@@ -176,7 +176,8 @@ public class ItemManager {
 
 			if (!version.contains("1_7") && !version.contains("1_8") && !version.contains("1_9")
 					&& !version.contains("1_10") && !version.contains("1_11")) {
-				NamespacedKey key = new NamespacedKey(Main.getInstance(), getConfig().getString("Items." + item + ".Identifier"));
+				NamespacedKey key = new NamespacedKey(Main.getInstance(),
+						getConfig().getString("Items." + item + ".Identifier"));
 				R = new ShapedRecipe(key, i);
 				S = new ShapelessRecipe(key, i);
 			} else {
@@ -185,6 +186,7 @@ public class ItemManager {
 			}
 
 			R.shape(line1, line2, line3);
+			details.put("X", "false:1");
 
 			for (String I : getConfig().getStringList("Items." + item + ".Ingredients")) {
 
@@ -221,24 +223,41 @@ public class ItemManager {
 			String[] newsplit2 = line2.split("");
 			String[] newsplit3 = line3.split("");
 
+			// slot 1
 			ingredients.add(api().new Ingredient(details.get(newsplit1[0]).split(":")[0],
-					Integer.parseInt(details.get(newsplit1[0]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit1[0]).split(":")[1]), checkAbsent(newsplit1[0])));
+
+			// slot 2
 			ingredients.add(api().new Ingredient(details.get(newsplit1[1]).split(":")[0],
-					Integer.parseInt(details.get(newsplit1[1]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit1[1]).split(":")[1]), checkAbsent(newsplit1[1])));
+
+			// slot 3
 			ingredients.add(api().new Ingredient(details.get(newsplit1[2]).split(":")[0],
-					Integer.parseInt(details.get(newsplit1[2]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit1[2]).split(":")[1]), checkAbsent(newsplit1[2])));
+
+			// slot 4
 			ingredients.add(api().new Ingredient(details.get(newsplit2[0]).split(":")[0],
-					Integer.parseInt(details.get(newsplit2[0]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit2[0]).split(":")[1]), checkAbsent(newsplit2[0])));
+
+			// slot 5
 			ingredients.add(api().new Ingredient(details.get(newsplit2[1]).split(":")[0],
-					Integer.parseInt(details.get(newsplit2[1]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit2[1]).split(":")[1]), checkAbsent(newsplit2[1])));
+
+			// slot 6
 			ingredients.add(api().new Ingredient(details.get(newsplit2[2]).split(":")[0],
-					Integer.parseInt(details.get(newsplit2[2]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit2[2]).split(":")[1]), checkAbsent(newsplit2[2])));
+
+			// slot 7
 			ingredients.add(api().new Ingredient(details.get(newsplit3[0]).split(":")[0],
-					Integer.parseInt(details.get(newsplit3[0]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit3[0]).split(":")[1]), checkAbsent(newsplit3[0])));
+
+			// slot 8
 			ingredients.add(api().new Ingredient(details.get(newsplit3[1]).split(":")[0],
-					Integer.parseInt(details.get(newsplit3[1]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit3[1]).split(":")[1]), checkAbsent(newsplit3[1])));
+
+			// slot 9
 			ingredients.add(api().new Ingredient(details.get(newsplit3[2]).split(":")[0],
-					Integer.parseInt(details.get(newsplit3[2]).split(":")[1]), false));
+					Integer.parseInt(details.get(newsplit3[2]).split(":")[1]), checkAbsent(newsplit3[2])));
 
 			if (getConfig().getBoolean("Items." + item + ".Shapeless") == true) {
 
@@ -274,7 +293,13 @@ public class ItemManager {
 		}
 	}
 
-	public static boolean isInt(String s) {
+	boolean checkAbsent(String letterIngredient) {
+		if (letterIngredient.equals("X"))
+			return true;
+		return false;
+	}
+
+	static boolean isInt(String s) {
 		try {
 			Integer.parseInt(s);
 		} catch (NumberFormatException nfe) {
@@ -282,44 +307,44 @@ public class ItemManager {
 		}
 		return true;
 	}
-	
-	public void disableRecipes() {
+
+	void disableRecipes() {
 		Main.getInstance().disableRecipes();
 	}
-	
-	public FileConfiguration getConfig() {
+
+	FileConfiguration getConfig() {
 		return Main.getInstance().getConfig();
 	}
-	
-	public Logger getLogger() {
+
+	Logger getLogger() {
 		return Main.getInstance().getLogger();
 	}
-	
-	public ArrayList<String> identifier() {
+
+	ArrayList<String> identifier() {
 		return Main.getInstance().identifier;
 	}
-	
-	public ArrayList<ItemStack> menui() {
+
+	ArrayList<ItemStack> menui() {
 		return Main.getInstance().menui;
 	}
-	
-	public ArrayList<ShapedRecipe> recipe() {
+
+	ArrayList<ShapedRecipe> recipe() {
 		return Main.getInstance().recipe;
 	}
-	
-	public HashMap<String, ItemStack> giveRecipe() {
+
+	HashMap<String, ItemStack> giveRecipe() {
 		return Main.getInstance().giveRecipe;
 	}
-	
-	public HashMap<ItemStack, String> configName() {
+
+	HashMap<ItemStack, String> configName() {
 		return Main.getInstance().configName;
 	}
-	
-	public RecipeAPI api() {
+
+	RecipeAPI api() {
 		return Main.getInstance().api;
 	}
-	
-	public Boolean debug() {
+
+	Boolean debug() {
 		return Main.getInstance().debug;
 	}
 }

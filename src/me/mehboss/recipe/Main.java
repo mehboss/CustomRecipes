@@ -24,10 +24,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
 	private ItemManager plugin;
-
-	public Main(ItemManager plugin) {
-		this.plugin = plugin;
-	}
+	
 	ManageGUI recipes;
 	AddGUI addItem;
 	EditGUI editItem;
@@ -88,6 +85,7 @@ public class Main extends JavaPlugin implements Listener {
 		instance = this;
 		api = new RecipeAPI();
 
+		this.plugin = new ItemManager();
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 		reloadConfig();

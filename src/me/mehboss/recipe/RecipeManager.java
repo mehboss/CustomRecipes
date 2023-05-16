@@ -46,14 +46,22 @@ public class RecipeManager implements Listener {
 		return true;
 	}
 
-	HashMap<Material, Integer> countItemsByMaterial(CraftingInventory inv) {
-		HashMap<Material, Integer> counts = new HashMap<>();
+	HashMap<String, Integer> countItemsByMaterial(CraftingInventory inv) {
+		HashMap<String, Integer> counts = new HashMap<>();
 		for (ItemStack item : inv.getContents()) {
 			if (item != null && item.getType() != Material.AIR && !(item.isSimilar(inv.getResult()))) {
 				Material material = item.getType();
+				String displayName = null; // Default to null if no display name is present
+
+				if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+					displayName = item.getItemMeta().getDisplayName();
+				}
+
+				// Generate a unique key for the material and display name combination
+				String key = material.toString() + "-" + displayName;
 
 				int amount = item.getAmount();
-				counts.put(material, counts.getOrDefault(material, 0) + amount);
+				counts.put(key, counts.getOrDefault(key, 0) + amount);
 			}
 		}
 		return counts;
@@ -63,14 +71,18 @@ public class RecipeManager implements Listener {
 		if (!(getConfig().isSet("Items." + configName + ".Ingredients")))
 			return true;
 
-		HashMap<Material, Integer> countedAmount = countItemsByMaterial(inv);
+		HashMap<String, Integer> countedAmount = countItemsByMaterial(inv);
 
 		for (String ingredient : getConfig().getStringList("Items." + configName + ".Ingredients")) {
 			String[] split = ingredient.split(":");
 			Material material = XMaterial.matchXMaterial(split[1]).get().parseMaterial();
+			String displayName = split.length > 3 ? split[3] : null; // Get the expected display name or default to null
 			Integer amountRequired = Integer.parseInt(split[2]);
 
-			if (countedAmount.containsKey(material) && countedAmount.get(material) >= amountRequired)
+			// Generate a unique key for the material and display name combination
+			String key = material.toString() + "-" + displayName;
+
+			if (countedAmount.containsKey(key) && countedAmount.get(key) >= amountRequired)
 				continue;
 
 			return false;
@@ -160,9 +172,12 @@ public class RecipeManager implements Listener {
 		if (e.getCurrentItem() != null && !(inv.getResult().equals(e.getCurrentItem())))
 			return;
 
-		HashMap<Material, Integer> countedAmount = countItemsByMaterial(inv);
+		HashMap<String, Integer> countedAmount = countItemsByMaterial(inv);
 		String recipeName = configName().get(inv.getResult());
 		final ItemStack result = inv.getResult();
+
+		if (e.getCursor() != null && e.getCursor().equals(result) && result.getMaxStackSize() <= 1)
+			return;
 
 		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
 
@@ -174,8 +189,13 @@ public class RecipeManager implements Listener {
 				continue;
 
 			Material material = ingredient.getMaterial();
+			String displayName = null;
+			
+			if (ingredient.hasDisplayName())
+				displayName = ingredient.getDisplayName();
+			
 			int requiredAmount = ingredient.getAmount();
-			int availableAmount = countedAmount.getOrDefault(material, 0);
+			int availableAmount = countedAmount.getOrDefault(material.toString() + "-" + displayName, 0);
 
 			if (requiredAmount > 0) {
 				int multiplier = availableAmount / requiredAmount;
@@ -188,15 +208,24 @@ public class RecipeManager implements Listener {
 			if (ingredient.isEmpty())
 				continue;
 
-			Material material = ingredient.getMaterial();
+			ItemStack removeItem = new ItemStack(ingredient.getMaterial());
+			ItemMeta removeItemMeta = removeItem.getItemMeta();
+
+			if (ingredient.hasDisplayName()) {
+				removeItemMeta.setDisplayName(ingredient.getDisplayName());
+				removeItem.setItemMeta(removeItemMeta);
+				removeItem = NBTEditor.set(removeItem, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
+			}
+
 			int requiredAmount = ingredient.getAmount() * shiftClickMultiplier;
 
 			if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY && requiredAmount > 0) {
-				ItemStack removeItem = new ItemStack(material, requiredAmount);
+				removeItem.setAmount(requiredAmount);
 				inv.removeItem(removeItem);
 				continue;
 			}
-			inv.removeItem(new ItemStack(material, ingredient.getAmount()));
+			removeItem.setAmount(ingredient.getAmount());
+			inv.removeItem(removeItem);
 		}
 
 		// Add the result items to the player's inventory
@@ -317,7 +346,7 @@ public class RecipeManager implements Listener {
 					}
 
 					// checks amounts
-					if (!(ingredient.hasAmount(inv.getItem(i).getAmount()))) {
+					if (!(amountsMatch(inv, recipeName))) {
 						passedCheck = false;
 						break;
 					}

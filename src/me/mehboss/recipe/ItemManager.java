@@ -79,7 +79,7 @@ public class ItemManager {
 
 			if (getConfig().isSet("Items." + item + ".Identifier")
 					&& (getConfig().getBoolean("Items." + item + ".Custom-Tagged") == true)) {
-				i = NBTEditor.set(i, getConfig().getString("Items." + item + ".Identifier"), "CUSTOM_ITEM_IDENTIFIER");
+				i = NBTEditor.set(i, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
 			}
 
 			ItemMeta m = i.getItemMeta();

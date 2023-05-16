@@ -46,7 +46,7 @@ public class Main extends JavaPlugin implements Listener {
 	File messagesYml = new File(getDataFolder() + "/messages.yml");
 	FileConfiguration messagesConfig = null;
 
-	Boolean debug = null;
+	Boolean debug = false;
 	Boolean uptodate = true;
 	String newupdate = null;
 

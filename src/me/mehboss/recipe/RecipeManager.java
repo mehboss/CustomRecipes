@@ -16,7 +16,6 @@ package me.mehboss.recipe;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,6 +25,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
@@ -49,8 +49,9 @@ public class RecipeManager implements Listener {
 	HashMap<Material, Integer> countItemsByMaterial(CraftingInventory inv) {
 		HashMap<Material, Integer> counts = new HashMap<>();
 		for (ItemStack item : inv.getContents()) {
-			if (item != null) {
+			if (item != null && item.getType() != Material.AIR && !(item.isSimilar(inv.getResult()))) {
 				Material material = item.getType();
+
 				int amount = item.getAmount();
 				counts.put(material, counts.getOrDefault(material, 0) + amount);
 			}
@@ -147,7 +148,7 @@ public class RecipeManager implements Listener {
 	}
 
 	@EventHandler
-	void onCraft(CraftItemEvent e) {
+	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 
 		if (inv.getType() != InventoryType.WORKBENCH || !(matchedRecipe(inv)))
@@ -156,21 +157,65 @@ public class RecipeManager implements Listener {
 		if (!(configName().containsKey(inv.getResult())))
 			return;
 
-		if (!(inv.getResult().equals(e.getCurrentItem())))
+		if (e.getCurrentItem() != null && !(inv.getResult().equals(e.getCurrentItem())))
 			return;
 
 		HashMap<Material, Integer> countedAmount = countItemsByMaterial(inv);
-		for (Material material : countedAmount.keySet()) {
-			int amount = countedAmount.get(material);
-			if (amount == 1)
+		String recipeName = configName().get(inv.getResult());
+		final ItemStack result = inv.getResult();
+
+		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
+
+		// Calculate the number of times the shift-click should produce the item
+		int shiftClickMultiplier = Integer.MAX_VALUE;
+
+		for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
+			if (ingredient.isEmpty())
 				continue;
 
-			inv.removeItem(new ItemStack(material, (amount - 1)));
+			Material material = ingredient.getMaterial();
+			int requiredAmount = ingredient.getAmount();
+			int availableAmount = countedAmount.getOrDefault(material, 0);
+
+			if (requiredAmount > 0) {
+				int multiplier = availableAmount / requiredAmount;
+				shiftClickMultiplier = Math.min(shiftClickMultiplier, multiplier);
+			}
 		}
+
+		// Remove the required items from the inventory
+		for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
+			if (ingredient.isEmpty())
+				continue;
+
+			Material material = ingredient.getMaterial();
+			int requiredAmount = ingredient.getAmount() * shiftClickMultiplier;
+
+			if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY && requiredAmount > 0) {
+				ItemStack removeItem = new ItemStack(material, requiredAmount);
+				inv.removeItem(removeItem);
+				continue;
+			}
+			inv.removeItem(new ItemStack(material, ingredient.getAmount()));
+		}
+
+		// Add the result items to the player's inventory
+		Player player = (Player) e.getWhoClicked();
+
+		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+			e.setCursor(result);
+			return;
+		}
+
+		for (int i = 0; i < shiftClickMultiplier; i++)
+			player.getInventory().addItem(result);
+
+		// Set the cursor item to null (to prevent duplication)
+		e.setCursor(null);
 	}
 
 	@EventHandler
-	void check(PrepareItemCraftEvent e) {
+	void handleCrafting(PrepareItemCraftEvent e) {
 
 		CraftingInventory inv = e.getInventory();
 
@@ -210,10 +255,10 @@ public class RecipeManager implements Listener {
 				&& getConfig().getBoolean("Items." + recipeName + ".Ignore-Data") == true)
 			return;
 
-		List<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
+		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
 
-		if (getConfig().isBoolean("Items." + configName() + ".Shapeless")
-				&& getConfig().getBoolean("Items." + configName() + ".Shapeless") == true) {
+		if (getConfig().isBoolean("Items." + recipeName + ".Shapeless")
+				&& getConfig().getBoolean("Items." + recipeName + ".Shapeless") == true) {
 			// runs checks if recipe is shapeless
 
 			ArrayList<String> slotNames = new ArrayList<String>();
@@ -224,16 +269,20 @@ public class RecipeManager implements Listener {
 					slotNames.add("false");
 					continue;
 				}
-				
+
 				if (!(NBTEditor.contains(inv.getItem(slot), "CUSTOM_ITEM_IDENTIFIER")))
 					continue;
-				
+
 				slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
 			}
 
 			for (RecipeAPI.Ingredient names : recipeIngredients) {
 				recipeNames.add(names.getDisplayName());
 			}
+
+			if (debug)
+				getLogger().log(Level.WARNING, "ContainsAll: " + slotNames.containsAll(recipeNames)
+						+ " | AmountsMatch: " + amountsMatch(inv, recipeName));
 
 			if (!(slotNames.containsAll(recipeNames)) || !(amountsMatch(inv, recipeName)))
 				passedCheck = false;
@@ -260,8 +309,9 @@ public class RecipeManager implements Listener {
 					}
 
 					// checks if displayname is null
-					if ((!(meta.hasDisplayName()) && !(ingredient.hasDisplayName(null)))
-							|| (meta.hasDisplayName() && !(ingredient.hasDisplayName(meta.getDisplayName())))) {
+					if ((!(meta.hasDisplayName()) && (ingredient.hasDisplayName()))
+							|| (meta.hasDisplayName() && !(ingredient.hasDisplayName()))
+							|| !(ingredient.getDisplayName().equals(meta.getDisplayName()))) {
 						passedCheck = false;
 						break;
 					}

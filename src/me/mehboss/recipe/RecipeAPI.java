@@ -17,6 +17,8 @@ package me.mehboss.recipe;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.bukkit.Material;
+
 public class RecipeAPI {
 	private HashMap<String, ArrayList<Ingredient>> recipeIngredients = new HashMap<>();
 
@@ -36,19 +38,25 @@ public class RecipeAPI {
 	}
 
 	public class Ingredient {
+		private Material material;
 		private String displayName;
 		private boolean isEmpty;
 		private int slot;
 		private int amount;
 
-		public Ingredient(String displayName, int amount, boolean isEmpty) {
+		public Ingredient(Material material, String displayName, int amount, int slot, boolean isEmpty) {
 			this.displayName = displayName;
 			this.amount = amount;
 			this.isEmpty = isEmpty;
+			this.material = material;
 		}
 
 		public String getDisplayName() {
 			return displayName;
+		}
+
+		public Material getMaterial() {
+			return material;
 		}
 
 		public int getSlot() {
@@ -71,10 +79,11 @@ public class RecipeAPI {
 			return this.slot == slot;
 		}
 
-		public boolean hasDisplayName(String displayName) {
-			if (displayName.equals("false"))
+		public boolean hasDisplayName() {
+			if (this.displayName == null || this.displayName.equals("false"))
 				return false;
-			return this.displayName.equals(displayName);
+			
+			return true;
 		}
 	}
 }

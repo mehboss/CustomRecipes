@@ -186,7 +186,7 @@ public class ItemManager {
 			}
 
 			R.shape(line1, line2, line3);
-			details.put("X", "false:1");
+			details.put("X", "null:false:1");
 
 			for (String I : getConfig().getStringList("Items." + item + ".Ingredients")) {
 
@@ -211,9 +211,9 @@ public class ItemManager {
 				shape.put(b[0], mi.get().parseMaterial());
 
 				if (b.length != 4) {
-					details.put(b[0], "false" + ":" + inAmount);
+					details.put(b[0], mi.get().parseMaterial().toString() + ":false:" + inAmount);
 				} else {
-					details.put(b[0], b[3] + ":" + inAmount);
+					details.put(b[0], mi.get().parseMaterial().toString() + ":" + b[3] + ":" + inAmount);
 				}
 			}
 
@@ -224,40 +224,49 @@ public class ItemManager {
 			String[] newsplit3 = line3.split("");
 
 			// slot 1
-			ingredients.add(api().new Ingredient(details.get(newsplit1[0]).split(":")[0],
-					Integer.parseInt(details.get(newsplit1[0]).split(":")[1]), checkAbsent(newsplit1[0])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit1[0]).split(":")[0]),
+					details.get(newsplit1[0]).split(":")[1], Integer.parseInt(details.get(newsplit1[0]).split(":")[2]),
+					0, checkAbsent(newsplit1[0])));
 
 			// slot 2
-			ingredients.add(api().new Ingredient(details.get(newsplit1[1]).split(":")[0],
-					Integer.parseInt(details.get(newsplit1[1]).split(":")[1]), checkAbsent(newsplit1[1])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit1[1]).split(":")[0]),
+					details.get(newsplit1[1]).split(":")[1], Integer.parseInt(details.get(newsplit1[1]).split(":")[2]),
+					1, checkAbsent(newsplit1[1])));
 
 			// slot 3
-			ingredients.add(api().new Ingredient(details.get(newsplit1[2]).split(":")[0],
-					Integer.parseInt(details.get(newsplit1[2]).split(":")[1]), checkAbsent(newsplit1[2])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit1[2]).split(":")[0]),
+					details.get(newsplit1[2]).split(":")[1], Integer.parseInt(details.get(newsplit1[2]).split(":")[2]),
+					2, checkAbsent(newsplit1[2])));
 
 			// slot 4
-			ingredients.add(api().new Ingredient(details.get(newsplit2[0]).split(":")[0],
-					Integer.parseInt(details.get(newsplit2[0]).split(":")[1]), checkAbsent(newsplit2[0])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit2[0]).split(":")[0]),
+					details.get(newsplit2[0]).split(":")[1], Integer.parseInt(details.get(newsplit2[0]).split(":")[2]),
+					3, checkAbsent(newsplit2[0])));
 
 			// slot 5
-			ingredients.add(api().new Ingredient(details.get(newsplit2[1]).split(":")[0],
-					Integer.parseInt(details.get(newsplit2[1]).split(":")[1]), checkAbsent(newsplit2[1])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit2[1]).split(":")[0]),
+					details.get(newsplit2[1]).split(":")[1], Integer.parseInt(details.get(newsplit2[1]).split(":")[2]),
+					4, checkAbsent(newsplit2[1])));
 
 			// slot 6
-			ingredients.add(api().new Ingredient(details.get(newsplit2[2]).split(":")[0],
-					Integer.parseInt(details.get(newsplit2[2]).split(":")[1]), checkAbsent(newsplit2[2])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit2[2]).split(":")[0]),
+					details.get(newsplit2[2]).split(":")[1], Integer.parseInt(details.get(newsplit2[2]).split(":")[2]),
+					5, checkAbsent(newsplit2[2])));
 
 			// slot 7
-			ingredients.add(api().new Ingredient(details.get(newsplit3[0]).split(":")[0],
-					Integer.parseInt(details.get(newsplit3[0]).split(":")[1]), checkAbsent(newsplit3[0])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit3[0]).split(":")[0]),
+					details.get(newsplit3[0]).split(":")[1], Integer.parseInt(details.get(newsplit3[0]).split(":")[2]),
+					6, checkAbsent(newsplit3[0])));
 
 			// slot 8
-			ingredients.add(api().new Ingredient(details.get(newsplit3[1]).split(":")[0],
-					Integer.parseInt(details.get(newsplit3[1]).split(":")[1]), checkAbsent(newsplit3[1])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit3[1]).split(":")[0]),
+					details.get(newsplit3[1]).split(":")[1], Integer.parseInt(details.get(newsplit3[1]).split(":")[2]),
+					7, checkAbsent(newsplit3[1])));
 
 			// slot 9
-			ingredients.add(api().new Ingredient(details.get(newsplit3[2]).split(":")[0],
-					Integer.parseInt(details.get(newsplit3[2]).split(":")[1]), checkAbsent(newsplit3[2])));
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit3[2]).split(":")[0]),
+					details.get(newsplit3[2]).split(":")[1], Integer.parseInt(details.get(newsplit3[2]).split(":")[2]),
+					8, checkAbsent(newsplit3[2])));
 
 			if (getConfig().getBoolean("Items." + item + ".Shapeless") == true) {
 
@@ -275,7 +284,7 @@ public class ItemManager {
 					if (!(sl.equalsIgnoreCase("X"))) {
 						S.addIngredient(shape.get(sl));
 
-						if (debug() == true) {
+						if (debug) {
 							getLogger().log(Level.WARNING,
 									"[CRECIPE DEBUG] [1] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
 							getLogger().log(Level.WARNING, "SHAPELESS IS SET TO TRUE. VARIABLE: " + sl);
@@ -308,6 +317,9 @@ public class ItemManager {
 		return true;
 	}
 
+
+	boolean debug = Main.getInstance().debug;
+	
 	void disableRecipes() {
 		Main.getInstance().disableRecipes();
 	}
@@ -342,9 +354,5 @@ public class ItemManager {
 
 	RecipeAPI api() {
 		return Main.getInstance().api;
-	}
-
-	Boolean debug() {
-		return Main.getInstance().debug;
 	}
 }

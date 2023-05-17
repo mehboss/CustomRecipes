@@ -133,11 +133,8 @@ public class RecipeManager implements Listener {
 
 					if (getPerm != null && !(getPerm.equalsIgnoreCase("none"))) {
 						if (p.hasPermission("crecipe." + getPerm)) {
-							if (debug) {
-								getLogger().log(Level.WARNING,
-										"[CRECIPE DEBUG] [3.25] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-								getLogger().log(Level.WARNING, "CRECIPE DEBUG - USER DOES HAVE PERMISSION");
-							}
+							if (debug)
+								debug("User DOES have permission!");
 							return false;
 						}
 					}
@@ -265,13 +262,6 @@ public class RecipeManager implements Listener {
 		if (recipeName == null || !(api().hasRecipe(recipeName)))
 			return;
 
-		if (getConfig().getBoolean("Items." + recipeName + ".Enabled") == false
-				|| ((getConfig().isSet("Items." + recipeName + ".Permission")
-						&& (!(p.hasPermission(getConfig().getString("Items." + recipeName + ".Permission"))))))) {
-			inv.setResult(new ItemStack(Material.AIR));
-			return;
-		}
-
 		if (getConfig().isBoolean("Items." + recipeName + ".Ignore-Data")
 				&& getConfig().getBoolean("Items." + recipeName + ".Ignore-Data") == true)
 			return;
@@ -349,6 +339,14 @@ public class RecipeManager implements Listener {
 		if (!(passedCheck))
 			inv.setResult(new ItemStack(Material.AIR));
 
+		if (passedCheck && (getConfig().getBoolean("Items." + recipeName + ".Enabled") == false
+				|| ((getConfig().isSet("Items." + recipeName + ".Permission")
+						&& (!(p.hasPermission(getConfig().getString("Items." + recipeName + ".Permission")))))))) {
+			inv.setResult(new ItemStack(Material.AIR));
+			sendNoPermsMessage(p);
+			return;
+		}
+
 		if (debug)
 			debug("Final Recipe Match: " + passedCheck + "| Recipe Pulled: " + recipeName);
 	}
@@ -363,7 +361,14 @@ public class RecipeManager implements Listener {
 	}
 
 	void sendMessages(Player p, String s) {
-		Main.getInstance().sendmessages(p, s);
+		Main.getInstance().sendMessages(p, s);
+	}
+
+	void sendNoPermsMessage(Player p) {
+		if (debug)
+			debug("Sending noPERMS message now");
+
+		Main.getInstance().sendMessage(p);
 	}
 
 	ArrayList<String> identifier() {

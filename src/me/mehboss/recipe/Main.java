@@ -24,7 +24,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
 	private ItemManager plugin;
-	
+
 	ManageGUI recipes;
 	AddGUI addItem;
 	EditGUI editItem;
@@ -134,7 +134,7 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(new RecipeManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
-		
+
 		recipes = new ManageGUI(this, null);
 		editItem = new EditGUI(Main.getInstance(), null);
 
@@ -196,7 +196,7 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}
 
-	public void sendmessages(Player p, String s) {
+	public void sendMessages(Player p, String s) {
 
 		String send = null;
 
@@ -229,7 +229,7 @@ public class Main extends JavaPlugin implements Listener {
 			p.closeInventory();
 	}
 
-	public void sendmessage(Player p) {
+	public void sendMessage(Player p) {
 
 		if (messagesConfig.getBoolean("action-bar.enabled") == true) {
 			try {
@@ -247,7 +247,9 @@ public class Main extends JavaPlugin implements Listener {
 			String message = ChatColor.translateAlternateColorCodes('&',
 					messagesConfig.getString("chat-message.message"));
 
-			p.closeInventory();
+			if (messagesConfig.getBoolean("chat-message.close-inventory") == true)
+				p.closeInventory();
+			
 			p.sendMessage(message);
 		}
 	}

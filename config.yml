@@ -43,10 +43,12 @@ Items:
       E: # E is the letter I picked for emerald
       # REMOVE NAME SECTION OR SET TO 'none' IF NOT WANTED
         Material: EMERALD # Material ENUM
+        Identifier: none # Set to custom recipe 'identifier' to use a custom item as an ingredient
         Amount: 1 # Amount required in one slot to craft
         Name: 'Emerald Essence' # Supports color codes
       I:
         Material: IRON_INGOT
+        Identifier: none
         Amount: 1
         Name: 'Iron Essence'
     Attribute: []
@@ -79,10 +81,12 @@ Items:
     Ingredients:
       D:
         Material: DIAMOND
+        Identifier: none
         Amount: 1
         Name: 'Diamond Shrine'
       P:
         Material: OAK_PLANKS
+        Identifier: none
         Amount: 1
         Name: 'Wooden Board'
     Attribute: []

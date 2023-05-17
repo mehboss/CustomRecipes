@@ -23,7 +23,7 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
-	private ItemManager plugin;
+	private RecipeManager plugin;
 
 	ManageGUI recipes;
 	AddGUI addItem;
@@ -31,13 +31,13 @@ public class Main extends JavaPlugin implements Listener {
 
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
+	HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
 
 	ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
 	ArrayList<String> addRecipe = new ArrayList<String>();
 	ArrayList<String> disabledrecipe = new ArrayList<String>();
 	// add three more shapelessname, amount, and ID specifically for config.
 
-	ArrayList<String> identifier = new ArrayList<String>();
 	ArrayList<ItemStack> menui = new ArrayList<ItemStack>();
 
 	File customYml = new File(getDataFolder() + "/blacklisted.yml");
@@ -85,7 +85,7 @@ public class Main extends JavaPlugin implements Listener {
 		instance = this;
 		api = new RecipeAPI();
 
-		this.plugin = new ItemManager();
+		this.plugin = new RecipeManager();
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 		reloadConfig();
@@ -132,7 +132,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
-		Bukkit.getPluginManager().registerEvents(new RecipeManager(), this);
+		Bukkit.getPluginManager().registerEvents(new CraftManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
 		recipes = new ManageGUI(this, null);

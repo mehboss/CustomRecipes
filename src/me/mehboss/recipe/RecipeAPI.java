@@ -40,12 +40,14 @@ public class RecipeAPI {
 	public class Ingredient {
 		private Material material;
 		private String displayName;
+		private String identifier;
 		private boolean isEmpty;
 		private int slot;
 		private int amount;
 
-		public Ingredient(Material material, String displayName, int amount, int slot, boolean isEmpty) {
+		public Ingredient(Material material, String displayName, String identifier, int amount, int slot, boolean isEmpty) {
 			this.displayName = displayName;
+			this.identifier = identifier;
 			this.amount = amount;
 			this.isEmpty = isEmpty;
 			this.material = material;
@@ -53,6 +55,10 @@ public class RecipeAPI {
 
 		public String getDisplayName() {
 			return displayName;
+		}
+		
+		public String getIdentifier() {
+			return identifier;
 		}
 
 		public Material getMaterial() {
@@ -81,6 +87,13 @@ public class RecipeAPI {
 
 		public boolean hasDisplayName() {
 			if (this.displayName == null || this.displayName.equals("false"))
+				return false;
+			
+			return true;
+		}
+		
+		public boolean hasIdentifier() {
+			if (this.identifier == null || this.identifier.equals("false"))
 				return false;
 			
 			return true;

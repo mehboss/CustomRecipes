@@ -102,22 +102,22 @@ public class GiveRecipe implements CommandExecutor {
 					return false;
 				}
 
-				if (debug.getBoolean("Debug") == true) {
+				if (Main.getInstance().debug) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							"&c[CustomRecipes] &fDebug mode has been turned &cOFF."));
 					debug.set("Debug", false);
 					Main.getInstance().debug = false;
 					Main.getInstance().saveCustomYml(plugin.messagesConfig, plugin.messagesYml);
-					return false;
+					return true;
 				}
 
-				if (debug.getBoolean("Debug") == false) {
+				if (!(Main.getInstance().debug)) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							"&c[CustomRecipes] &fDebug mode has been turned &aON.&f Check console for INFO."));
 					debug.set("Debug", true);
 					Main.getInstance().debug = true;
 					Main.getInstance().saveCustomYml(plugin.messagesConfig, plugin.messagesYml);
-					return false;
+					return true;
 				}
 			}
 

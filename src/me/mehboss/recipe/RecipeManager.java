@@ -16,342 +16,339 @@ package me.mehboss.recipe;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.CraftItemEvent;
-import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.PrepareItemCraftEvent;
-import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 
-public class RecipeManager implements Listener {
-
-	boolean matchedRecipe(CraftingInventory inv) {
-		if (inv.getResult() == null || inv.getResult() == new ItemStack(Material.AIR)) {
-			if (debug)
-				debug("Could not find a recipe to match with!");
-
-			return false;
-		}
-		return true;
-	}
-
-	HashMap<String, Integer> countItemsByMaterial(CraftingInventory inv) {
-		HashMap<String, Integer> counts = new HashMap<>();
-		for (ItemStack item : inv.getContents()) {
-			if (item != null && item.getType() != Material.AIR && !(item.isSimilar(inv.getResult()))) {
-				Material material = item.getType();
-				String displayName = null; // Default to null if no display name is present
-
-				if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-					displayName = item.getItemMeta().getDisplayName();
-				}
-
-				// Generate a unique key for the material and display name combination
-				String key = material.toString() + "-" + displayName;
-
-				int amount = item.getAmount();
-				counts.put(key, counts.getOrDefault(key, 0) + amount);
-			}
-		}
-		return counts;
-	}
-
-	boolean amountsMatch(CraftingInventory inv, String configName) {
-		if (!getConfig().isSet("Items." + configName + ".Ingredients")) {
-			return true;
-		}
-
-		HashMap<String, Integer> countedAmount = countItemsByMaterial(inv);
-
-		for (String ingredient : getConfig().getConfigurationSection("Items." + configName + ".Ingredients")
-				.getKeys(false)) {
-
-			String[] split = ingredient.split(":");
-			String abbreviation = split[0];
-			ConfigurationSection ingredientSection = getConfig()
-					.getConfigurationSection("Items." + configName + ".Ingredients." + abbreviation);
-
-			String materialString = ingredientSection.getString("Material");
-			int amountRequired = ingredientSection.isSet("Amount") ? ingredientSection.getInt("Amount") : 1;
-			String displayName = ingredientSection.isSet("Name") ? ingredientSection.getString("Name") : null;
-
-			Material material = XMaterial.matchXMaterial(materialString).get().parseMaterial();
-
-			// Generate a unique key for the material and display name combination
-			String key = material.toString() + "-" + displayName;
-
-			if (countedAmount.containsKey(key) && countedAmount.get(key) >= amountRequired) {
-				continue;
-			}
-			return false;
-		}
-		return true;
-	}
-
-	boolean isBlacklisted(CraftingInventory inv, Player p) {
-		if (customConfig().getBoolean("blacklist-recipes") == true) {
-			for (String item : disabledrecipe()) {
-
-				String[] split = item.split(":");
-				String id = split[0];
-				ItemStack i = null;
-
-				if (customConfig().getString("vanilla-recipes." + split[0]) != null
-						&& !XMaterial.matchXMaterial(split[0]).isPresent()) {
-					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + split[0]
-							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
-							+ "ID into the blacklisted config file and try again. If this problem persists please contact Mehboss on Spigot!");
-				}
-
-				if (XMaterial.matchXMaterial(split[0]).isPresent())
-					i = XMaterial.matchXMaterial(split[0]).get().parseItem();
-
-				if (split.length == 2)
-					i.setDurability(Short.valueOf(split[1]));
-
-				if (debug)
-					debug("Blacklisted Array Size: " + disabledrecipe().size());
-
-				String getPerm = customConfig().getString("vanilla-recipes." + item + ".permission");
-
-				if ((NBTEditor.contains(inv.getResult(), id) && !identifier().contains(id))
-						|| inv.getResult().isSimilar(i)) {
-
-					if (i == null) {
-						getPerm = customConfig().getString("custom-recipes." + item + ".permission");
-					}
-
-					if (getPerm != null && !(getPerm.equalsIgnoreCase("none"))) {
-						if (p.hasPermission("crecipe." + getPerm)) {
-							if (debug)
-								debug("User DOES have permission!");
-							return false;
-						}
-					}
-
-					if (debug)
-						debug("Recipe has been set to air");
-
-					sendMessages(p, getPerm);
-					inv.setResult(new ItemStack(Material.AIR));
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	@EventHandler
-	void handleShiftClicks(CraftItemEvent e) {
-		CraftingInventory inv = e.getInventory();
-
-		if (inv.getType() != InventoryType.WORKBENCH || !(matchedRecipe(inv)))
-			return;
-
-		if (!(configName().containsKey(inv.getResult())))
-			return;
-
-		if (e.getCurrentItem() != null && !(inv.getResult().equals(e.getCurrentItem())))
-			return;
-
-		HashMap<String, Integer> countedAmount = countItemsByMaterial(inv);
-		String recipeName = configName().get(inv.getResult());
-		final ItemStack result = inv.getResult();
-
-		if (e.getCursor() != null && e.getCursor().equals(result) && result.getMaxStackSize() <= 1)
-			return;
-
-		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
-
-		// Calculate the number of times the shift-click should produce the item
-		int shiftClickMultiplier = Integer.MAX_VALUE;
-
-		for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
-			if (ingredient.isEmpty())
-				continue;
-
-			Material material = ingredient.getMaterial();
-			String displayName = null;
-
-			if (ingredient.hasDisplayName())
-				displayName = ingredient.getDisplayName();
-
-			int requiredAmount = ingredient.getAmount();
-			int availableAmount = countedAmount.getOrDefault(material.toString() + "-" + displayName, 0);
-
-			if (requiredAmount > 0) {
-				int multiplier = availableAmount / requiredAmount;
-				shiftClickMultiplier = Math.min(shiftClickMultiplier, multiplier);
-			}
-		}
-
-		// Remove the required items from the inventory
-		for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
-			if (ingredient.isEmpty())
-				continue;
-
-			ItemStack removeItem = new ItemStack(ingredient.getMaterial());
-			ItemMeta removeItemMeta = removeItem.getItemMeta();
-
-			if (ingredient.hasDisplayName()) {
-				removeItemMeta.setDisplayName(ingredient.getDisplayName());
-				removeItem.setItemMeta(removeItemMeta);
-				removeItem = NBTEditor.set(removeItem, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
-			}
-
-			int requiredAmount = ingredient.getAmount() * shiftClickMultiplier;
-
-			if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY && requiredAmount > 0) {
-				removeItem.setAmount(requiredAmount);
-				inv.removeItem(removeItem);
-				continue;
-			}
-			removeItem.setAmount(ingredient.getAmount());
-			inv.removeItem(removeItem);
-		}
-
-		// Add the result items to the player's inventory
-		Player player = (Player) e.getWhoClicked();
-
-		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-			e.setCursor(result);
-			return;
-		}
-
-		for (int i = 0; i < shiftClickMultiplier; i++)
-			player.getInventory().addItem(result);
-
-		// Set the cursor item to null (to prevent duplication)
-		e.setCursor(null);
-	}
-
-	@EventHandler
-	void handleCrafting(PrepareItemCraftEvent e) {
-
-		CraftingInventory inv = e.getInventory();
-
-		Boolean passedCheck = true;
-		String recipeName = null;
-
-		if (!(e.getView().getPlayer() instanceof Player)) {
-			return;
-		}
-
-		Player p = (Player) e.getView().getPlayer();
-
-		if (inv.getType() != InventoryType.WORKBENCH || !(matchedRecipe(inv)) || isBlacklisted(inv, p))
-			return;
-
-		if (configName().containsKey(inv.getResult())) {
-			recipeName = configName().get(inv.getResult());
-		}
-
-		if (debug)
-			debug("Recipe Config: " + recipeName);
-
-		if (recipeName == null || !(api().hasRecipe(recipeName)))
-			return;
-
-		if (getConfig().isBoolean("Items." + recipeName + ".Ignore-Data")
-				&& getConfig().getBoolean("Items." + recipeName + ".Ignore-Data") == true)
-			return;
-
-		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
-
-		if (getConfig().isBoolean("Items." + recipeName + ".Shapeless")
-				&& getConfig().getBoolean("Items." + recipeName + ".Shapeless") == true) {
-			// runs checks if recipe is shapeless
-
-			ArrayList<String> slotNames = new ArrayList<String>();
-			ArrayList<String> recipeNames = new ArrayList<String>();
-
-			for (int slot = 0; slot < 9; slot++) {
-				if (inv.getItem(slot) == null || !(inv.getItem(slot).getItemMeta().hasDisplayName())) {
-					slotNames.add("false");
-					continue;
-				}
-
-				if (!(NBTEditor.contains(inv.getItem(slot), "CUSTOM_ITEM_IDENTIFIER")))
-					continue;
-
-				slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
-			}
-
-			for (RecipeAPI.Ingredient names : recipeIngredients) {
-				recipeNames.add(names.getDisplayName());
-			}
-
-			if (debug)
-				debug("ContainsAll: " + slotNames.containsAll(recipeNames) + " | AmountsMatch: "
-						+ amountsMatch(inv, recipeName));
-
-			if (!(slotNames.containsAll(recipeNames)) || !(amountsMatch(inv, recipeName)))
-				passedCheck = false;
-
+public class RecipeManager {
+
+	@SuppressWarnings("deprecation")
+	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
+		if (getConfig().isSet("Items." + item + ".Item-Damage") && damage.equalsIgnoreCase("none")) {
+			return new ItemStack(type.get().parseMaterial(), amount);
 		} else {
+			return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
+		}
+	}
 
-			// runs check for non-shapeless recipes
-			int i = 0;
-			for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
-				i++;
+	ItemStack handleIdentifier(ItemStack i, String item) {
+		if (getConfig().isSet("Items." + item + ".Identifier")) {
+			if (getConfig().getBoolean("Items." + item + ".Custom-Tagged") == true)
+				i = NBTEditor.set(i, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
 
-				if (inv.getItem(i) == null && !(ingredient.isEmpty())) {
-					passedCheck = false;
-					break;
-				}
+			identifier().put(getConfig().getString("Items." + item + ".Identifier"), i);
+		}
+		return i;
+	}
 
-				if (inv.getItem(i) != null) {
-					ItemMeta meta = inv.getItem(i).getItemMeta();
+	@SuppressWarnings("deprecation")
+	ItemStack handleDurability(ItemStack i, String item) {
+		if (getConfig().isSet("Items." + item + ".Durability")) {
+			if (!getConfig().getString("Items." + item + ".Durability").equals("100"))
+				i.setDurability(Short.valueOf(getConfig().getString("Items." + item + ".Durability")));
+		}
+		return i;
+	}
 
-					// checks for custom tag
-					if (meta.hasDisplayName() && !(NBTEditor.contains(inv.getItem(i), "CUSTOM_ITEM_IDENTIFIER"))) {
-						passedCheck = false;
-						break;
-					}
+	ItemStack handleEnchants(ItemStack i, String item) {
+		if (getConfig().isSet("Items." + item + ".Enchantments")) {
 
-					// checks if displayname is null
-					if ((!(meta.hasDisplayName()) && (ingredient.hasDisplayName()))
-							|| (meta.hasDisplayName() && !(ingredient.hasDisplayName()))
-							|| !(ingredient.getDisplayName().equals(meta.getDisplayName()))) {
-						passedCheck = false;
-						break;
-					}
+			for (String e : getConfig().getStringList("Items." + item + ".Enchantments")) {
+				String[] breakdown = e.split(":");
+				String enchantment = breakdown[0];
 
-					// checks amounts
-					if (!(amountsMatch(inv, recipeName))) {
-						passedCheck = false;
-						break;
-					}
+				int lvl = Integer.parseInt(breakdown[1]);
+				i.addUnsafeEnchantment(Enchantment.getByName(enchantment), lvl);
+			}
+		}
+		return i;
+	}
+
+	ItemMeta handleDisplayname(String item, ItemStack recipe) {
+		ItemMeta itemMeta = recipe.getItemMeta();
+		if (getConfig().isSet("Items." + item + ".Name")) {
+			itemMeta.setDisplayName(
+					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Items." + item + ".Name")));
+		}
+		return itemMeta;
+	}
+
+	ItemMeta handleLore(String item, ItemMeta m, List<String> loreList) {
+		if (getConfig().isSet("Items." + item + ".Lore")) {
+
+			for (String Item1Lore : getConfig().getStringList("Items." + item + ".Lore")) {
+				String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
+				loreList.add(crateLore);
+			}
+
+			if (!(loreList.isEmpty())) {
+				m.setLore(loreList);
+			}
+		}
+		return m;
+	}
+
+	ItemMeta handleHideEnchants(String item, ItemMeta m) {
+		if (getConfig().isSet("Items." + item + ".Hide-Enchants")
+				&& getConfig().getBoolean("Items." + item + ".Hide-Enchants") == true) {
+			m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+		}
+		return m;
+	}
+
+	ItemMeta handleCustomModelData(String item, ItemMeta m) {
+		if (getConfig().isSet("Items." + item + ".Custom-Model-Data")
+				&& isInt(getConfig().getString("Items." + item + ".Custom-Model-Data"))) {
+			try {
+				Integer data = Integer.parseInt(getConfig().getString("Items." + item + ".Custom-Model-Data"));
+				m.setCustomModelData(data);
+			} catch (Exception e) {
+				getLogger().log(Level.SEVERE,
+						"Error occured while setting custom model data. This feature is only available for MC 1.14 or newer!");
+			}
+		}
+		return m;
+	}
+
+	ItemMeta handleAttributes(String item, ItemMeta m) {
+		if (getConfig().isSet("Items." + item + ".Attribute")) {
+			for (String split : getConfig().getStringList("Items." + item + ".Attribute")) {
+				String[] st = split.split(":");
+				String attribute = st[0];
+				double attributeAmount = Double.valueOf(st[1]);
+				String equipmentSlot = null;
+
+				if (st.length > 2)
+					equipmentSlot = st[2];
+
+				try {
+					AttributeModifier modifier;
+					if (equipmentSlot == null)
+						modifier = new AttributeModifier(attribute, attributeAmount,
+								AttributeModifier.Operation.ADD_NUMBER);
+					else
+						modifier = new AttributeModifier(UUID.randomUUID(), attribute, attributeAmount,
+								AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.valueOf(equipmentSlot));
+
+					m.addAttributeModifier(Attribute.valueOf(attribute), modifier);
+				} catch (Exception e) {
+					getLogger().log(Level.SEVERE, "Could not add attribute " + attribute + ", " + attributeAmount + ", "
+							+ equipmentSlot + ", to the item " + item + ", skipping for now.");
 				}
 			}
 		}
-
-		if (!(passedCheck))
-			inv.setResult(new ItemStack(Material.AIR));
-
-		if (passedCheck && (getConfig().getBoolean("Items." + recipeName + ".Enabled") == false
-				|| ((getConfig().isSet("Items." + recipeName + ".Permission")
-						&& (!(p.hasPermission(getConfig().getString("Items." + recipeName + ".Permission")))))))) {
-			inv.setResult(new ItemStack(Material.AIR));
-			sendNoPermsMessage(p);
-			return;
-		}
-
-		if (debug)
-			debug("Final Recipe Match: " + passedCheck + "| Recipe Pulled: " + recipeName);
+		return m;
 	}
 
-	boolean debug = Main.getInstance().debug;
+	@SuppressWarnings("deprecation")
+	public void addItems() {
+		disableRecipes();
+
+		for (String item : getConfig().getConfigurationSection("Items").getKeys(false)) {
+
+			ItemStack i = null;
+			ItemMeta m = null;
+
+			ShapedRecipe R = null;
+			ShapelessRecipe S = null;
+
+			HashMap<String, String> details = new HashMap<String, String>();
+			ArrayList<RecipeAPI.Ingredient> ingredients = new ArrayList<>();
+
+			List<String> loreList = new ArrayList<String>();
+			List<String> r = getConfig().getStringList("Items." + item + ".ItemCrafting");
+
+			String damage = getConfig().getString("Items." + item + ".Item-Damage");
+			int amount = getConfig().getInt("Items." + item + ".Amount");
+
+			Optional<XMaterial> type = XMaterial
+					.matchXMaterial(getConfig().getString("Items." + item + ".Item").toUpperCase());
+
+			if (!type.isPresent()) {
+				getLogger().log(Level.SEVERE,
+						"Dear message from Custom-Recipes: We are having trouble matching the material " + type
+								+ " to a minecraft item. Please double check you have inputted the correct material "
+								+ "ID in the config and try again. If this problem persists please contact Mehboss on Spigot!");
+				return;
+			}
+
+			i = handleItemDamage(i, item, damage, type, amount); // handles ItemDamage
+			i = handleDurability(i, item);
+			i = handleEnchants(i, item);
+
+			m = handleDisplayname(item, i); // handle Displayname
+			m = handleLore(item, m, loreList); // handle Lore
+			m = handleHideEnchants(item, m); // handles hiding enchants
+			m = handleCustomModelData(item, m); // handles custom model data
+			m = handleAttributes(item, m);
+
+			i.setItemMeta(m);
+			i = handleIdentifier(i, item); // handles CustomTag
+
+			String line1 = r.get(0);
+			String line2 = r.get(1);
+			String line3 = r.get(2);
+
+			HashMap<String, Material> shape = new HashMap<String, Material>();
+			ArrayList<String> shapeletter = new ArrayList<String>();
+
+			configName().put(i, item);
+			menui().add(i);
+			giveRecipe().put(item.toLowerCase(), i);
+
+			String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+
+			if (!version.contains("1_7") && !version.contains("1_8") && !version.contains("1_9")
+					&& !version.contains("1_10") && !version.contains("1_11")) {
+				NamespacedKey key = new NamespacedKey(Main.getInstance(),
+						getConfig().getString("Items." + item + ".Identifier"));
+				R = new ShapedRecipe(key, i);
+				S = new ShapelessRecipe(key, i);
+			} else {
+				R = new ShapedRecipe(i);
+				S = new ShapelessRecipe(i);
+			}
+
+			R.shape(line1, line2, line3);
+			details.put("X", "null:false:false:1");
+
+			for (String abbreviation : getConfig().getConfigurationSection("Items." + item + ".Ingredients")
+					.getKeys(false)) {
+
+				ConfigurationSection ingredientSection = getConfig()
+						.getConfigurationSection("Items." + item + ".Ingredients." + abbreviation);
+
+				String materialString = ingredientSection.getString("Material");
+				int inAmount = 1;
+
+				if (ingredientSection.isSet("Amount") && isInt(ingredientSection.getString("Amount")))
+					inAmount = Integer.parseInt(ingredientSection.getString("Amount"));
+
+				Optional<XMaterial> ingredientMaterial = XMaterial.matchXMaterial(materialString);
+
+				if (!ingredientMaterial.isPresent()) {
+					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
+							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
+							+ "ID into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
+					return;
+				}
+
+				String identifier = ingredientSection.isSet("Identifier") ? ingredientSection.getString("Identifier")
+						: "false";
+				String name = ingredientSection.isSet("Name") ? ingredientSection.getString("Name") : "false";
+
+				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
+				R.setIngredient(abbreviation.charAt(0), finishedMaterial, inAmount);
+				shape.put(abbreviation, finishedMaterial);
+
+				if (!(ingredientSection.isSet("Name"))) {
+					details.put(abbreviation,
+							finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
+				} else {
+					details.put(abbreviation,
+							finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
+				}
+			}
+
+			recipe().add(R);
+
+			String[] newsplit1 = line1.split("");
+			String[] newsplit2 = line2.split("");
+			String[] newsplit3 = line3.split("");
+
+			// slot 1
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit1[0]).split(":")[0]),
+					details.get(newsplit1[0]).split(":")[1], details.get(newsplit1[0]).split(":")[2],
+					Integer.parseInt(details.get(newsplit1[0]).split(":")[3]), 0, checkAbsent(newsplit1[0])));
+
+			// slot 2
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit1[1]).split(":")[0]),
+					details.get(newsplit1[1]).split(":")[1], details.get(newsplit1[1]).split(":")[2],
+					Integer.parseInt(details.get(newsplit1[1]).split(":")[3]), 1, checkAbsent(newsplit1[1])));
+
+			// slot 3
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit1[2]).split(":")[0]),
+					details.get(newsplit1[2]).split(":")[1], details.get(newsplit1[2]).split(":")[2],
+					Integer.parseInt(details.get(newsplit1[2]).split(":")[3]), 2, checkAbsent(newsplit1[2])));
+
+			// slot 4
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit2[0]).split(":")[0]),
+					details.get(newsplit2[0]).split(":")[1], details.get(newsplit2[0]).split(":")[2],
+					Integer.parseInt(details.get(newsplit2[0]).split(":")[3]), 3, checkAbsent(newsplit2[0])));
+
+			// slot 5
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit2[1]).split(":")[0]),
+					details.get(newsplit2[1]).split(":")[1], details.get(newsplit2[1]).split(":")[2],
+					Integer.parseInt(details.get(newsplit2[1]).split(":")[3]), 4, checkAbsent(newsplit2[1])));
+
+			// slot 6
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit2[2]).split(":")[0]),
+					details.get(newsplit2[2]).split(":")[1], details.get(newsplit2[2]).split(":")[2],
+					Integer.parseInt(details.get(newsplit2[2]).split(":")[3]), 5, checkAbsent(newsplit2[2])));
+
+			// slot 7
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit3[0]).split(":")[0]),
+					details.get(newsplit3[0]).split(":")[1], details.get(newsplit3[0]).split(":")[2],
+					Integer.parseInt(details.get(newsplit3[0]).split(":")[3]), 6, checkAbsent(newsplit3[0])));
+
+			// slot 8
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit3[1]).split(":")[0]),
+					details.get(newsplit3[1]).split(":")[1], details.get(newsplit3[1]).split(":")[2],
+					Integer.parseInt(details.get(newsplit3[1]).split(":")[3]), 7, checkAbsent(newsplit3[1])));
+
+			// slot 9
+			ingredients.add(api().new Ingredient(Material.matchMaterial(details.get(newsplit3[2]).split(":")[0]),
+					details.get(newsplit3[2]).split(":")[1], details.get(newsplit3[2]).split(":")[2],
+					Integer.parseInt(details.get(newsplit3[2]).split(":")[3]), 8, checkAbsent(newsplit3[2])));
+
+			if (getConfig().getBoolean("Items." + item + ".Shapeless") == true) {
+
+				shapeletter.add(newsplit1[0]);
+				shapeletter.add(newsplit1[1]);
+				shapeletter.add(newsplit1[2]);
+				shapeletter.add(newsplit2[0]);
+				shapeletter.add(newsplit2[1]);
+				shapeletter.add(newsplit2[2]);
+				shapeletter.add(newsplit3[0]);
+				shapeletter.add(newsplit3[1]);
+				shapeletter.add(newsplit3[2]);
+
+				for (String sl : shapeletter) {
+					if (!(sl.equalsIgnoreCase("X"))) {
+						S.addIngredient(shape.get(sl));
+
+						if (debug())
+							debug("Shapeless: true | Variable: " + sl);
+					}
+				}
+
+				Bukkit.getServer().addRecipe(S);
+			}
+
+			api().addRecipe(item, ingredients);
+
+			if (getConfig().getBoolean("Items." + item + ".Shapeless") == false)
+				Bukkit.getServer().addRecipe(R);
+		}
+	}
 
 	void debug(String st) {
 		getLogger().log(Level.WARNING, "-----------------");
@@ -360,39 +357,55 @@ public class RecipeManager implements Listener {
 		getLogger().log(Level.WARNING, "-----------------");
 	}
 
-	void sendMessages(Player p, String s) {
-		Main.getInstance().sendMessages(p, s);
+	boolean checkAbsent(String letterIngredient) {
+		if (letterIngredient.equals("X"))
+			return true;
+		return false;
 	}
 
-	void sendNoPermsMessage(Player p) {
-		if (debug)
-			debug("Sending noPERMS message now");
-
-		Main.getInstance().sendMessage(p);
+	boolean isInt(String s) {
+		try {
+			Integer.parseInt(s);
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
 	}
 
-	ArrayList<String> identifier() {
-		return Main.getInstance().identifier;
+	boolean debug() {
+		return Main.getInstance().debug;
+	}
+	
+	void disableRecipes() {
+		Main.getInstance().disableRecipes();
 	}
 
-	ArrayList<String> disabledrecipe() {
-		return Main.getInstance().disabledrecipe;
-	}
-
-	HashMap<ItemStack, String> configName() {
-		return Main.getInstance().configName;
+	FileConfiguration getConfig() {
+		return Main.getInstance().getConfig();
 	}
 
 	Logger getLogger() {
 		return Main.getInstance().getLogger();
 	}
 
-	FileConfiguration customConfig() {
-		return Main.getInstance().customConfig;
+	HashMap<String, ItemStack> identifier() {
+		return Main.getInstance().identifier;
 	}
 
-	FileConfiguration getConfig() {
-		return Main.getInstance().getConfig();
+	ArrayList<ItemStack> menui() {
+		return Main.getInstance().menui;
+	}
+
+	ArrayList<ShapedRecipe> recipe() {
+		return Main.getInstance().recipe;
+	}
+
+	HashMap<String, ItemStack> giveRecipe() {
+		return Main.getInstance().giveRecipe;
+	}
+
+	HashMap<ItemStack, String> configName() {
+		return Main.getInstance().configName;
 	}
 
 	RecipeAPI api() {

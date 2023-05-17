@@ -40,12 +40,130 @@ import org.bukkit.inventory.meta.ItemMeta;
 public class ItemManager {
 
 	@SuppressWarnings("deprecation")
+	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
+		if (getConfig().isSet("Items." + item + ".Item-Damage") && damage.equalsIgnoreCase("none")) {
+			return new ItemStack(type.get().parseMaterial(), amount);
+		} else {
+			return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
+		}
+	}
+
+	ItemStack handleIdentifier(ItemStack i, String item) {
+		if (getConfig().isSet("Items." + item + ".Identifier")
+				&& (getConfig().getBoolean("Items." + item + ".Custom-Tagged") == true)) {
+			return NBTEditor.set(i, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
+		}
+		return i;
+	}
+
+	@SuppressWarnings("deprecation")
+	ItemStack handleDurability(ItemStack i, String item) {
+		if (getConfig().isSet("Items." + item + ".Durability")) {
+			if (!getConfig().getString("Items." + item + ".Durability").equals("100"))
+				i.setDurability(Short.valueOf(getConfig().getString("Items." + item + ".Durability")));
+		}
+		return i;
+	}
+
+	ItemStack handleEnchants(ItemStack i, String item) {
+		if (getConfig().isSet("Items." + item + ".Enchantments")) {
+
+			for (String e : getConfig().getStringList("Items." + item + ".Enchantments")) {
+				String[] breakdown = e.split(":");
+				String enchantment = breakdown[0];
+
+				int lvl = Integer.parseInt(breakdown[1]);
+				i.addUnsafeEnchantment(Enchantment.getByName(enchantment), lvl);
+			}
+		}
+		return i;
+	}
+
+	ItemMeta handleDisplayname(String item, ItemStack recipe) {
+		ItemMeta itemMeta = recipe.getItemMeta();
+		if (getConfig().isSet("Items." + item + ".Name")) {
+			itemMeta.setDisplayName(
+					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Items." + item + ".Name")));
+		}
+		return itemMeta;
+	}
+
+	ItemMeta handleLore(String item, ItemMeta m, List<String> loreList) {
+		if (getConfig().isSet("Items." + item + ".Lore")) {
+
+			for (String Item1Lore : getConfig().getStringList("Items." + item + ".Lore")) {
+				String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
+				loreList.add(crateLore);
+			}
+
+			if (!(loreList.isEmpty())) {
+				m.setLore(loreList);
+			}
+		}
+		return m;
+	}
+
+	ItemMeta handleHideEnchants(String item, ItemMeta m) {
+		if (getConfig().isSet("Items." + item + ".Hide-Enchants")
+				&& getConfig().getBoolean("Items." + item + ".Hide-Enchants") == true) {
+			m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+		}
+		return m;
+	}
+
+	ItemMeta handleCustomModelData(String item, ItemMeta m) {
+		if (getConfig().isSet("Items." + item + ".Custom-Model-Data")
+				&& isInt(getConfig().getString("Items." + item + ".Custom-Model-Data"))) {
+			try {
+				Integer data = Integer.parseInt(getConfig().getString("Items." + item + ".Custom-Model-Data"));
+				m.setCustomModelData(data);
+			} catch (Exception e) {
+				getLogger().log(Level.SEVERE,
+						"Error occured while setting custom model data. This feature is only available for MC 1.14 or newer!");
+			}
+		}
+		return m;
+	}
+
+	ItemMeta handleAttributes(String item, ItemMeta m) {
+		if (getConfig().isSet("Items." + item + ".Attribute")) {
+			for (String split : getConfig().getStringList("Items." + item + ".Attribute")) {
+				String[] st = split.split(":");
+				String attribute = st[0];
+				double attributeAmount = Double.valueOf(st[1]);
+				String equipmentSlot = null;
+
+				if (st.length > 2)
+					equipmentSlot = st[2];
+
+				try {
+					AttributeModifier modifier;
+					if (equipmentSlot == null)
+						modifier = new AttributeModifier(attribute, attributeAmount,
+								AttributeModifier.Operation.ADD_NUMBER);
+					else
+						modifier = new AttributeModifier(UUID.randomUUID(), attribute, attributeAmount,
+								AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.valueOf(equipmentSlot));
+
+					m.addAttributeModifier(Attribute.valueOf(attribute), modifier);
+				} catch (Exception e) {
+					getLogger().log(Level.SEVERE, "Could not add attribute " + attribute + ", " + attributeAmount + ", "
+							+ equipmentSlot + ", to the item " + item + ", skipping for now.");
+				}
+			}
+		}
+		return m;
+	}
+
+	@SuppressWarnings("deprecation")
 	public void addItems() {
 		disableRecipes();
 
 		for (String item : getConfig().getConfigurationSection("Items").getKeys(false)) {
 
 			ItemStack i = null;
+			ItemMeta m = null;
+
 			ShapedRecipe R = null;
 			ShapelessRecipe S = null;
 
@@ -69,97 +187,19 @@ public class ItemManager {
 				return;
 			}
 
-			if (getConfig().isSet("Items." + item + ".Item-Damage") && damage.equalsIgnoreCase("none")) {
-				i = new ItemStack(type.get().parseMaterial(), amount);
-			} else {
-				i = new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
-			}
-
 			identifier().add(getConfig().getString("Items." + item + ".Identifier"));
+			i = handleItemDamage(i, item, damage, type, amount); // handles ItemDamage
+			i = handleIdentifier(i, item); // handles CustomTag
+			i = handleDurability(i, item);
+			i = handleEnchants(i, item);
 
-			if (getConfig().isSet("Items." + item + ".Identifier")
-					&& (getConfig().getBoolean("Items." + item + ".Custom-Tagged") == true)) {
-				i = NBTEditor.set(i, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
-			}
-
-			ItemMeta m = i.getItemMeta();
-
-			if (getConfig().isSet("Items." + item + ".Name")) {
-				m.setDisplayName(
-						ChatColor.translateAlternateColorCodes('&', getConfig().getString("Items." + item + ".Name")));
-			}
-
-			if (getConfig().isSet("Items." + item + ".Lore")) {
-
-				for (String Item1Lore : getConfig().getStringList("Items." + item + ".Lore")) {
-					String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
-					loreList.add(crateLore);
-				}
-				if (!(loreList.isEmpty())) {
-					m.setLore(loreList);
-				}
-			}
-
-			if (getConfig().isSet("Items." + item + ".Durability")) {
-				if (!getConfig().getString("Items." + item + ".Durability").equals("100"))
-					i.setDurability(Short.valueOf(getConfig().getString("Items." + item + ".Durability")));
-			}
-
-			if (getConfig().isSet("Items." + item + ".Hide-Enchants")
-					&& getConfig().getBoolean("Items." + item + ".Hide-Enchants") == true) {
-				m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-			}
-
-			if (getConfig().isSet("Items." + item + ".Custom-Model-Data")
-					&& isInt(getConfig().getString("Items." + item + ".Custom-Model-Data"))) {
-				try {
-					Integer data = Integer.parseInt(getConfig().getString("Items." + item + ".Custom-Model-Data"));
-					m.setCustomModelData(data);
-				} catch (Exception e) {
-					getLogger().log(Level.SEVERE,
-							"Error occured while setting custom model data. This feature is only available for MC 1.14 or newer!");
-				}
-			}
-
-			if (getConfig().isSet("Items." + item + ".Attribute")) {
-				for (String split : getConfig().getStringList("Items." + item + ".Attribute")) {
-					String[] st = split.split(":");
-					String attribute = st[0];
-					double attributeAmount = Double.valueOf(st[1]);
-					String equipmentSlot = null;
-
-					if (st.length > 2)
-						equipmentSlot = st[2];
-
-					try {
-						AttributeModifier modifier;
-						if (equipmentSlot == null)
-							modifier = new AttributeModifier(attribute, attributeAmount,
-									AttributeModifier.Operation.ADD_NUMBER);
-						else
-							modifier = new AttributeModifier(UUID.randomUUID(), attribute, attributeAmount,
-									AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.valueOf(equipmentSlot));
-
-						i.getItemMeta().addAttributeModifier(Attribute.valueOf(attribute), modifier);
-					} catch (Exception e) {
-						getLogger().log(Level.SEVERE, "Could not add attribute " + attribute + ", " + attributeAmount
-								+ ", " + equipmentSlot + ", to the item " + item + ", skipping for now.");
-					}
-				}
-			}
+			m = handleDisplayname(item, i); // handle Displayname
+			m = handleLore(item, m, loreList); // handle Lore
+			m = handleHideEnchants(item, m); // handles hiding enchants
+			m = handleCustomModelData(item, m); // handles custom model data
+			m = handleAttributes(item, m);
 
 			i.setItemMeta(m);
-
-			if (getConfig().isSet("Items." + item + ".Enchantments")) {
-
-				for (String e : getConfig().getStringList("Items." + item + ".Enchantments")) {
-					String[] breakdown = e.split(":");
-					String enchantment = breakdown[0];
-
-					int lvl = Integer.parseInt(breakdown[1]);
-					i.addUnsafeEnchantment(Enchantment.getByName(enchantment), lvl);
-				}
-			}
 
 			String line1 = r.get(0);
 			String line2 = r.get(1);
@@ -284,11 +324,8 @@ public class ItemManager {
 					if (!(sl.equalsIgnoreCase("X"))) {
 						S.addIngredient(shape.get(sl));
 
-						if (debug) {
-							getLogger().log(Level.WARNING,
-									"[CRECIPE DEBUG] [1] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-							getLogger().log(Level.WARNING, "SHAPELESS IS SET TO TRUE. VARIABLE: " + sl);
-						}
+						if (debug)
+							debug("Shapeless: true | Variable: " + sl);
 					}
 				}
 
@@ -302,13 +339,20 @@ public class ItemManager {
 		}
 	}
 
+	void debug(String st) {
+		getLogger().log(Level.WARNING, "-----------------");
+		getLogger().log(Level.WARNING, "DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
+		getLogger().log(Level.WARNING, st);
+		getLogger().log(Level.WARNING, "-----------------");
+	}
+
 	boolean checkAbsent(String letterIngredient) {
 		if (letterIngredient.equals("X"))
 			return true;
 		return false;
 	}
 
-	static boolean isInt(String s) {
+	boolean isInt(String s) {
 		try {
 			Integer.parseInt(s);
 		} catch (NumberFormatException nfe) {
@@ -317,9 +361,8 @@ public class ItemManager {
 		return true;
 	}
 
-
 	boolean debug = Main.getInstance().debug;
-	
+
 	void disableRecipes() {
 		Main.getInstance().disableRecipes();
 	}

@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -36,11 +37,9 @@ public class RecipeManager implements Listener {
 
 	boolean matchedRecipe(CraftingInventory inv) {
 		if (inv.getResult() == null || inv.getResult() == new ItemStack(Material.AIR)) {
-			if (debug) {
-				getLogger().log(Level.WARNING,
-						"[CRECIPE DEBUG] [2] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-				getLogger().log(Level.WARNING, "COULD NOT FIND A RECIPE FOR THIS!!!");
-			}
+			if (debug)
+				debug("Could not find a recipe to match with!");
+
 			return false;
 		}
 		return true;
@@ -68,23 +67,32 @@ public class RecipeManager implements Listener {
 	}
 
 	boolean amountsMatch(CraftingInventory inv, String configName) {
-		if (!(getConfig().isSet("Items." + configName + ".Ingredients")))
+		if (!getConfig().isSet("Items." + configName + ".Ingredients")) {
 			return true;
+		}
 
 		HashMap<String, Integer> countedAmount = countItemsByMaterial(inv);
 
-		for (String ingredient : getConfig().getStringList("Items." + configName + ".Ingredients")) {
+		for (String ingredient : getConfig().getConfigurationSection("Items." + configName + ".Ingredients")
+				.getKeys(false)) {
+
 			String[] split = ingredient.split(":");
-			Material material = XMaterial.matchXMaterial(split[1]).get().parseMaterial();
-			String displayName = split.length > 3 ? split[3] : null; // Get the expected display name or default to null
-			Integer amountRequired = Integer.parseInt(split[2]);
+			String abbreviation = split[0];
+			ConfigurationSection ingredientSection = getConfig()
+					.getConfigurationSection("Items." + configName + ".Ingredients." + abbreviation);
+
+			String materialString = ingredientSection.getString("Material");
+			int amountRequired = ingredientSection.isSet("Amount") ? ingredientSection.getInt("Amount") : 1;
+			String displayName = ingredientSection.isSet("Name") ? ingredientSection.getString("Name") : null;
+
+			Material material = XMaterial.matchXMaterial(materialString).get().parseMaterial();
 
 			// Generate a unique key for the material and display name combination
 			String key = material.toString() + "-" + displayName;
 
-			if (countedAmount.containsKey(key) && countedAmount.get(key) >= amountRequired)
+			if (countedAmount.containsKey(key) && countedAmount.get(key) >= amountRequired) {
 				continue;
-
+			}
 			return false;
 		}
 		return true;
@@ -111,17 +119,8 @@ public class RecipeManager implements Listener {
 				if (split.length == 2)
 					i.setDurability(Short.valueOf(split[1]));
 
-				if (debug) {
-					getLogger().log(Level.WARNING,
-							"[CRECIPE DEBUG] [3] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-					getLogger().log(Level.WARNING,
-							"CRECIPE DEBUG - BLACKLISTED RECIPE ARRAY SIZE " + disabledrecipe().size());
-					getLogger().log(Level.WARNING, "CRECIPE DEBUG - BLACKLISTED RECIPE MATERIAL " + item);
-					getLogger().log(Level.SEVERE, "ID: " + id + " BLACKLIST CHECK THIS IS WHAT IT RETURNED: "
-							+ NBTEditor.getString(inv.getResult(), "CUSTOM_ITEM_IDENTIFIER"));
-					getLogger().log(Level.SEVERE, "ID: " + id + " BLACKLIST CHECK THIS IS WHAT IT RETURNED: "
-							+ NBTEditor.getString(inv.getResult(), id));
-				}
+				if (debug)
+					debug("Blacklisted Array Size: " + disabledrecipe().size());
 
 				String getPerm = customConfig().getString("vanilla-recipes." + item + ".permission");
 
@@ -143,12 +142,8 @@ public class RecipeManager implements Listener {
 						}
 					}
 
-					if (debug) {
-						getLogger().log(Level.WARNING,
-								"[CRECIPE DEBUG] [3.5] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-						getLogger().log(Level.WARNING, "CRECIPE DEBUG - RECIPE SET TO AIR");
-
-					}
+					if (debug)
+						debug("Recipe has been set to air");
 
 					sendMessages(p, getPerm);
 					inv.setResult(new ItemStack(Material.AIR));
@@ -190,10 +185,10 @@ public class RecipeManager implements Listener {
 
 			Material material = ingredient.getMaterial();
 			String displayName = null;
-			
+
 			if (ingredient.hasDisplayName())
 				displayName = ingredient.getDisplayName();
-			
+
 			int requiredAmount = ingredient.getAmount();
 			int availableAmount = countedAmount.getOrDefault(material.toString() + "-" + displayName, 0);
 
@@ -264,11 +259,8 @@ public class RecipeManager implements Listener {
 			recipeName = configName().get(inv.getResult());
 		}
 
-		if (debug) {
-			getLogger().log(Level.WARNING,
-					"[CRECIPE DEBUG] [5] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-			getLogger().log(Level.WARNING, "CRECIPE DEBUG - 'recipeName' is set to " + recipeName);
-		}
+		if (debug)
+			debug("Recipe Config: " + recipeName);
 
 		if (recipeName == null || !(api().hasRecipe(recipeName)))
 			return;
@@ -310,8 +302,8 @@ public class RecipeManager implements Listener {
 			}
 
 			if (debug)
-				getLogger().log(Level.WARNING, "ContainsAll: " + slotNames.containsAll(recipeNames)
-						+ " | AmountsMatch: " + amountsMatch(inv, recipeName));
+				debug("ContainsAll: " + slotNames.containsAll(recipeNames) + " | AmountsMatch: "
+						+ amountsMatch(inv, recipeName));
 
 			if (!(slotNames.containsAll(recipeNames)) || !(amountsMatch(inv, recipeName)))
 				passedCheck = false;
@@ -357,15 +349,18 @@ public class RecipeManager implements Listener {
 		if (!(passedCheck))
 			inv.setResult(new ItemStack(Material.AIR));
 
-		if (debug) {
-			getLogger().log(Level.WARNING,
-					"[CRECIPE DEBUG] [10] DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-			getLogger().log(Level.WARNING, "CRECIPE DEBUG - END CHECK. FINAL RECIPE MATCH: " + passedCheck);
-			getLogger().log(Level.WARNING, "THIS IS WHAT RECIPE IT PULLED FROM -----    " + recipeName);
-		}
+		if (debug)
+			debug("Final Recipe Match: " + passedCheck + "| Recipe Pulled: " + recipeName);
 	}
 
 	boolean debug = Main.getInstance().debug;
+
+	void debug(String st) {
+		getLogger().log(Level.WARNING, "-----------------");
+		getLogger().log(Level.WARNING, "DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
+		getLogger().log(Level.WARNING, st);
+		getLogger().log(Level.WARNING, "-----------------");
+	}
 
 	void sendMessages(Player p, String s) {
 		Main.getInstance().sendmessages(p, s);

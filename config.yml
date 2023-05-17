@@ -16,13 +16,13 @@
 Items:
   CursedPick:
     Enabled: true # Whether or not this recipe is enabled
+    Shapeless: false # Whether or not you want it to have specific order in crafting
     Item: 'DIAMOND_PICKAXE' # Item ID
-    Ignore-Data: false # Whether or not metadata should be considered as a requirement for crafting
-    Custom-Tagged: true # Whether or not you want this item to be tagged with a custom item tag.
     Item-Damage: 'none' # Used for when you need a specific type of item with a "19/00" or "13:4". leave to none if non exists.
     Amount: 1 # When you craft this item, this is the amount you will get from it.
+    Ignore-Data: false # Whether or not metadata should be considered as a requirement for crafting
+    Custom-Tagged: true # Whether or not you want this item to be tagged with a custom item tag.
     Durability: '100' # 1-100. Remove section if not needed.
-    Shapeless: false # Whether or not you want it to have specific order in crafting
     Identifier: 'CURSED_PICKAXE' # Give your new recipe an identifier :).
     Permission: 'crecipe.recipe.cursedpick' # Give a player this permission to allow them to craft this item. Remove section if no permission wanted.
     Name: '&4&lCursed Pick' # Name of the item, you can use color codes. Remove if not needed
@@ -34,28 +34,34 @@ Items:
     Enchantments:
      - 'DURABILITY:300' # All the Enchantments are listed at the Top. You can also add as many as you want. Replace with [] if not wanted.
     ItemCrafting:
-      # X Stands for Air, do NOT include X in the 'ingredients' below.
+      # X STANDS FOR AIR, DO NOT INCLUDE X IN 'ingredients' BELOW
      - 'EEE' #First row in the crafting table
      - 'XIX' #Second row in the crafting table
      - 'XIX' #Third row in the crafting table
     Ingredients:
-      # Format: LETTER:ITEMID:AMOUNT:DISPLAYNAME (Color Codes Included)
-      # REMOVE LAST PART IF NO CUSTOM NAME WANTED.
-     - 'E:EMERALD:1:Emerald Essence' # E Stands for emerald.
-     - 'I:IRON_INGOT:1:Iron Essence' # I Stands for iron ingot.
-   # Attribute:
+    # DO NOT INCLUDE VARIABLE X AS AN INGREDIENT. THIS IS DEFAULTED TO AIR **
+      E: # E is the letter I picked for emerald
+      # REMOVE NAME SECTION OR SET TO 'none' IF NOT WANTED
+        Material: EMERALD # Material ENUM
+        Amount: 1 # Amount required in one slot to craft
+        Name: 'Emerald Essence' # Supports color codes
+      I:
+        Material: IRON_INGOT
+        Amount: 1
+        Name: 'Iron Essence'
+    Attribute: []
       # Adds a given amount of a specified attribute to the custom item.
-    # - ATTRIBUTE:AMOUNT:SLOT
-   # Custom-Model-Data: none
+      # Format: ATTRIBUTE:AMOUNT:SLOT
+    Custom-Model-Data: none
       # Custom model data for texture packs. Only on MC 1.14+!
   CursedSword: 
     Enabled: true
+    Shapeless: true
     Item: 'DIAMOND_SWORD'
-    Ignore-Data: false
-    Custom-Tagged: true
     Item-Damage: 'none'
     Amount: 1
-    Shapeless: true
+    Ignore-Data: false
+    Custom-Tagged: true
     Identifier: 'CURSED_SWORD'
     Permission: 'crecipe.recipe.cursedsword'
     Name: '&eCursed Sword'
@@ -71,8 +77,13 @@ Items:
      - 'XPX'
      - 'XPX'
     Ingredients:
-     - 'D:DIAMOND:1:Diamond Shrine'
-     - 'P:OAK_PLANKS:1:Wooden Board'
-   # Attribute:
-    # - ATTRIBUTE:AMOUNT:SLOT
-   # Custom-Model-Data: none
+      D:
+        Material: DIAMOND
+        Amount: 1
+        Name: 'Diamond Shrine'
+      P:
+        Material: OAK_PLANKS
+        Amount: 1
+        Name: 'Wooden Board'
+    Attribute: []
+    Custom-Model-Data: none

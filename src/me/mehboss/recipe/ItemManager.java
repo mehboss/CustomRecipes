@@ -28,6 +28,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.EquipmentSlot;
@@ -228,32 +229,36 @@ public class ItemManager {
 			R.shape(line1, line2, line3);
 			details.put("X", "null:false:1");
 
-			for (String I : getConfig().getStringList("Items." + item + ".Ingredients")) {
+			for (String abbreviation : getConfig().getConfigurationSection("Items." + item + ".Ingredients")
+					.getKeys(false)) {
 
-				String[] b = I.split(":");
-				char lin1 = b[0].charAt(0);
+				ConfigurationSection ingredientSection = getConfig()
+						.getConfigurationSection("Items." + item + ".Ingredients." + abbreviation);
 
-				String lin2 = b[1];
+				String materialString = ingredientSection.getString("Material");
 				int inAmount = 1;
 
-				if (b.length > 2 && isInt(b[2]))
-					inAmount = Integer.parseInt(b[2]);
+				if (ingredientSection.isSet("Amount") && isInt(ingredientSection.getString("Amount")))
+					inAmount = Integer.parseInt(ingredientSection.getString("Amount"));
 
-				Optional<XMaterial> mi = XMaterial.matchXMaterial(lin2);
+				Optional<XMaterial> ingredientMaterial = XMaterial.matchXMaterial(materialString);
 
-				if (!mi.isPresent()) {
-					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + lin2
+				if (!ingredientMaterial.isPresent()) {
+					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
 							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
 							+ "ID into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
 					return;
 				}
-				R.setIngredient(lin1, mi.get().parseMaterial(), inAmount);
-				shape.put(b[0], mi.get().parseMaterial());
 
-				if (b.length != 4) {
-					details.put(b[0], mi.get().parseMaterial().toString() + ":false:" + inAmount);
+				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
+				R.setIngredient(abbreviation.charAt(0), finishedMaterial, inAmount);
+				shape.put(abbreviation, finishedMaterial);
+
+				if (!(ingredientSection.isSet("Name"))) {
+					details.put(abbreviation, finishedMaterial.toString() + ":false:" + inAmount);
 				} else {
-					details.put(b[0], mi.get().parseMaterial().toString() + ":" + b[3] + ":" + inAmount);
+					details.put(abbreviation,
+							finishedMaterial.toString() + ":" + ingredientSection.getString("Name") + ":" + inAmount);
 				}
 			}
 

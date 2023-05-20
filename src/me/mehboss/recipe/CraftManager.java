@@ -162,26 +162,21 @@ public class CraftManager implements Listener {
 		if (inv.getType() != InventoryType.WORKBENCH || !(matchedRecipe(inv)))
 			return;
 
-		debug("[1] fired handleshiftclick");
 		if (!(configName().containsKey(inv.getResult())))
 			return;
-
-		debug("[2] fired handleshiftclick");
 
 		if (e.getCurrentItem() == null || !e.getCurrentItem().equals(inv.getResult()))
 			return;
 
-		debug("[3] fired handleshiftclick: " + String.valueOf(e.getCursor() != null) + ": ");
 		String recipeName = configName().get(inv.getResult());
 		final ItemStack result = inv.getResult();
 
 		if ((e.getCursor() != null && !e.getCursor().getType().equals(Material.AIR))
 				|| (e.getCursor().equals(result) && result.getMaxStackSize() <= 1))
 			return;
+		
 		// Remove the required items from the inventory
-		debug("getIngredients SIZE!! " + getIngredients(recipeName).size());
 
-		int newAmount = 1;
 		int itemsToRemove = 0;
 		int itemsToAdd = 0;
 
@@ -191,7 +186,7 @@ public class CraftManager implements Listener {
 
 			Material material = ingredient.getMaterial();
 			String displayName = ingredient.getDisplayName();
-			int requiredAmount = ingredient.getAmount();
+			final int requiredAmount = ingredient.getAmount();
 
 			for (int highest = 1; highest < 10; highest++) {
 				ItemStack slot = inv.getItem(highest);
@@ -209,44 +204,41 @@ public class CraftManager implements Listener {
 
 			for (int i = 1; i < 10; i++) {
 				ItemStack item = inv.getItem(i);
-				debug("RAN FOR LOOP AND I IS " + i);
-				debug(String.valueOf("display: " + displayName));
-				debug(String.valueOf(item != null));
-				debug(String.valueOf(item != inv.getResult()));
 
 				if (item != null && item.getType() == material && hasMatchingDisplayName(item, displayName)) {
 					int itemAmount = item.getAmount();
-
-					debug("slot: " + i + "| newAmount: " + newAmount);
-					debug("slot: " + i + "| itemAmount: " + itemAmount + "| requiredAmount: " + requiredAmount);
-					debug("slot: " + i + "| divided:" + itemAmount / requiredAmount);
 
 					if (itemAmount < requiredAmount)
 						break;
 
 					if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-						item.setAmount(item.getAmount() - requiredAmount);
+						Bukkit.getScheduler().runTaskLater(Main.getInstance(),
+								() -> item.setAmount((item.getAmount() + 1) - requiredAmount), 1L);
 					} else {
-
 						item.setAmount(item.getAmount() - itemsToRemove);
-						debug("fired remove: " + itemsToRemove + " items");
 					}
 				}
 			}
 		}
 
-		debug("NEW: " + newAmount);
 		// Add the result items to the player's inventory
 		Player player = (Player) e.getWhoClicked();
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 
-			if (!(amountsMatch(inv, recipeName)))
-				inv.setResult(new ItemStack(Material.AIR));
+			Bukkit.getScheduler().runTaskLater(Main.getInstance(), new Runnable() {
+				@Override
+				public void run() {
+					if (!(amountsMatch(inv, recipeName))) {
+						inv.setResult(new ItemStack(Material.AIR));
+					}
 
-			if (inv.getResult().equals(result)) {
-				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 2);
-			}
+				}
+			}, 10L);
+
+			if (inv.getResult() != null && inv.getResult().equals(result))
+				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 10L);
+			
 			return;
 		}
 

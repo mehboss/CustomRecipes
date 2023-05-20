@@ -32,6 +32,7 @@ import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitScheduler;
 
 import me.mehboss.recipe.RecipeAPI.Ingredient;
 
@@ -174,7 +175,7 @@ public class CraftManager implements Listener {
 		if ((e.getCursor() != null && !e.getCursor().getType().equals(Material.AIR))
 				|| (e.getCursor().equals(result) && result.getMaxStackSize() <= 1))
 			return;
-		
+
 		// Remove the required items from the inventory
 
 		int itemsToRemove = 0;
@@ -212,8 +213,10 @@ public class CraftManager implements Listener {
 						break;
 
 					if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-						Bukkit.getScheduler().runTaskLater(Main.getInstance(),
-								() -> item.setAmount((item.getAmount() + 1) - requiredAmount), 1L);
+						BukkitScheduler scheduler = Bukkit.getScheduler();
+						scheduler.runTask(Main.getInstance(), () -> {
+							item.setAmount((item.getAmount() + 1) - requiredAmount);
+						});
 					} else {
 						item.setAmount(item.getAmount() - itemsToRemove);
 					}
@@ -226,19 +229,15 @@ public class CraftManager implements Listener {
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 
-			Bukkit.getScheduler().runTaskLater(Main.getInstance(), new Runnable() {
-				@Override
-				public void run() {
-					if (!(amountsMatch(inv, recipeName))) {
-						inv.setResult(new ItemStack(Material.AIR));
-					}
-
-				}
-			}, 10L);
+			BukkitScheduler scheduler = Bukkit.getScheduler();
+			scheduler.runTask(Main.getInstance(), () -> {
+				if (!(amountsMatch(inv, recipeName)))
+					inv.setResult(new ItemStack(Material.AIR));
+			});
 
 			if (inv.getResult() != null && inv.getResult().equals(result))
 				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 10L);
-			
+
 			return;
 		}
 

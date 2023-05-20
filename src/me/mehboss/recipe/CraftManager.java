@@ -1,5 +1,7 @@
 package me.mehboss.recipe;
 
+import java.io.File;
+
 /*
  * Mozilla Public License v2.0
  * 
@@ -22,6 +24,7 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -320,8 +323,8 @@ public class CraftManager implements Listener {
 		if (debug())
 			debug("Recipe Config: " + recipeName);
 
-		if (getConfig().isSet("Items." + recipeName + ".Ignore-Data")
-				&& getConfig().getBoolean("Items." + recipeName + ".Ignore-Data") == true)
+		if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
+				&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
 			return;
 
 		for (String recipes : api().getRecipes()) {
@@ -330,8 +333,8 @@ public class CraftManager implements Listener {
 			recipeName = recipes;
 			passedCheck = true;
 
-			if (getConfig().isBoolean("Items." + recipeName + ".Shapeless")
-					&& getConfig().getBoolean("Items." + recipeName + ".Shapeless") == true) {
+			if (getConfig(recipeName).isBoolean(recipeName + ".Shapeless")
+					&& getConfig(recipeName).getBoolean(recipeName + ".Shapeless") == true) {
 				// runs checks if recipe is shapeless
 
 				ArrayList<String> slotNames = new ArrayList<String>();
@@ -460,9 +463,9 @@ public class CraftManager implements Listener {
 			}
 		}
 
-		if (passedCheck && (getConfig().getBoolean("Items." + recipeName + ".Enabled") == false
-				|| ((getConfig().isSet("Items." + recipeName + ".Permission")
-						&& (!(p.hasPermission(getConfig().getString("Items." + recipeName + ".Permission")))))))) {
+		if (passedCheck && (getConfig(recipeName).getBoolean(recipeName + ".Enabled") == false
+				|| ((getConfig(recipeName).isSet(recipeName + ".Permission")
+						&& (!(p.hasPermission(getConfig(recipeName).getString(recipeName + ".Permission")))))))) {
 			inv.setResult(new ItemStack(Material.AIR));
 			sendNoPermsMessage(p);
 			return;
@@ -521,8 +524,12 @@ public class CraftManager implements Listener {
 		return Main.getInstance().customConfig;
 	}
 
-	FileConfiguration getConfig() {
-		return Main.getInstance().getConfig();
+	FileConfiguration getConfig(String recipeName) {
+		File dataFolder = Main.getInstance().getDataFolder();
+		File recipesFolder = new File(dataFolder, "recipes");
+		File recipeFile = new File(recipesFolder, recipeName + ".yml");
+
+		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
 	RecipeAPI api() {

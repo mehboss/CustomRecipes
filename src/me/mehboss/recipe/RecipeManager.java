@@ -1,5 +1,7 @@
 package me.mehboss.recipe;
 
+import java.io.File;
+
 /*
  * Mozilla Public License v2.0
  * 
@@ -30,6 +32,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
@@ -42,7 +45,7 @@ public class RecipeManager {
 
 	@SuppressWarnings("deprecation")
 	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
-		if (getConfig().isSet("Items." + item + ".Item-Damage") && damage.equalsIgnoreCase("none")) {
+		if (getConfig().isSet(item + ".Item-Damage") && damage.equalsIgnoreCase("none")) {
 			return new ItemStack(type.get().parseMaterial(), amount);
 		} else {
 			return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
@@ -50,28 +53,28 @@ public class RecipeManager {
 	}
 
 	ItemStack handleIdentifier(ItemStack i, String item) {
-		if (getConfig().isSet("Items." + item + ".Identifier")) {
-			if (getConfig().getBoolean("Items." + item + ".Custom-Tagged") == true)
+		if (getConfig().isSet(item + ".Identifier")) {
+			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
 				i = NBTEditor.set(i, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
 
-			identifier().put(getConfig().getString("Items." + item + ".Identifier"), i);
+			identifier().put(getConfig().getString(item + ".Identifier"), i);
 		}
 		return i;
 	}
 
 	@SuppressWarnings("deprecation")
 	ItemStack handleDurability(ItemStack i, String item) {
-		if (getConfig().isSet("Items." + item + ".Durability")) {
-			if (!getConfig().getString("Items." + item + ".Durability").equals("100"))
-				i.setDurability(Short.valueOf(getConfig().getString("Items." + item + ".Durability")));
+		if (getConfig().isSet(item + ".Durability")) {
+			if (!getConfig().getString(item + ".Durability").equals("100"))
+				i.setDurability(Short.valueOf(getConfig().getString(item + ".Durability")));
 		}
 		return i;
 	}
 
 	ItemStack handleEnchants(ItemStack i, String item) {
-		if (getConfig().isSet("Items." + item + ".Enchantments")) {
+		if (getConfig().isSet(item + ".Enchantments")) {
 
-			for (String e : getConfig().getStringList("Items." + item + ".Enchantments")) {
+			for (String e : getConfig().getStringList(item + ".Enchantments")) {
 				String[] breakdown = e.split(":");
 				String enchantment = breakdown[0];
 
@@ -84,17 +87,16 @@ public class RecipeManager {
 
 	ItemMeta handleDisplayname(String item, ItemStack recipe) {
 		ItemMeta itemMeta = recipe.getItemMeta();
-		if (getConfig().isSet("Items." + item + ".Name")) {
-			itemMeta.setDisplayName(
-					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Items." + item + ".Name")));
+		if (getConfig().isSet(item + ".Name")) {
+			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', getConfig().getString(item + ".Name")));
 		}
 		return itemMeta;
 	}
 
 	ItemMeta handleLore(String item, ItemMeta m, List<String> loreList) {
-		if (getConfig().isSet("Items." + item + ".Lore")) {
+		if (getConfig().isSet(item + ".Lore")) {
 
-			for (String Item1Lore : getConfig().getStringList("Items." + item + ".Lore")) {
+			for (String Item1Lore : getConfig().getStringList(item + ".Lore")) {
 				String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
 				loreList.add(crateLore);
 			}
@@ -107,18 +109,17 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleHideEnchants(String item, ItemMeta m) {
-		if (getConfig().isSet("Items." + item + ".Hide-Enchants")
-				&& getConfig().getBoolean("Items." + item + ".Hide-Enchants") == true) {
+		if (getConfig().isSet(item + ".Hide-Enchants") && getConfig().getBoolean(item + ".Hide-Enchants") == true) {
 			m.addItemFlags(ItemFlag.HIDE_ENCHANTS);
 		}
 		return m;
 	}
 
 	ItemMeta handleCustomModelData(String item, ItemMeta m) {
-		if (getConfig().isSet("Items." + item + ".Custom-Model-Data")
-				&& isInt(getConfig().getString("Items." + item + ".Custom-Model-Data"))) {
+		if (getConfig().isSet(item + ".Custom-Model-Data")
+				&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
 			try {
-				Integer data = Integer.parseInt(getConfig().getString("Items." + item + ".Custom-Model-Data"));
+				Integer data = Integer.parseInt(getConfig().getString(item + ".Custom-Model-Data"));
 				m.setCustomModelData(data);
 			} catch (Exception e) {
 				getLogger().log(Level.SEVERE,
@@ -129,8 +130,8 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleAttributes(String item, ItemMeta m) {
-		if (getConfig().isSet("Items." + item + ".Attribute")) {
-			for (String split : getConfig().getStringList("Items." + item + ".Attribute")) {
+		if (getConfig().isSet(item + ".Attribute")) {
+			for (String split : getConfig().getStringList(item + ".Attribute")) {
 				String[] st = split.split(":");
 				String attribute = st[0];
 				double attributeAmount = Double.valueOf(st[1]);
@@ -158,11 +159,29 @@ public class RecipeManager {
 		return m;
 	}
 
+	FileConfiguration recipeConfig = null;
+
 	@SuppressWarnings("deprecation")
 	public void addItems() {
 		disableRecipes();
 
-		for (String item : getConfig().getConfigurationSection("Items").getKeys(false)) {
+		File recipeFolder = new File(Main.getInstance().getDataFolder(), "recipes");
+		if (!recipeFolder.exists()) {
+			recipeFolder.mkdirs();
+		}
+
+		File[] recipeFiles = recipeFolder.listFiles();
+		if (recipeFiles == null) {
+			return;
+		}
+
+		for (File recipeFile : recipeFiles) {
+			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
+
+			String item = recipeFile.getName().replace(".yml", "");
+			
+			if (!(recipeConfig.isConfigurationSection(item)))
+				return;
 
 			ItemStack i = null;
 			ItemMeta m = null;
@@ -174,13 +193,12 @@ public class RecipeManager {
 			ArrayList<RecipeAPI.Ingredient> ingredients = new ArrayList<>();
 
 			List<String> loreList = new ArrayList<String>();
-			List<String> r = getConfig().getStringList("Items." + item + ".ItemCrafting");
+			List<String> r = getConfig().getStringList(item + ".ItemCrafting");
 
-			String damage = getConfig().getString("Items." + item + ".Item-Damage");
-			int amount = getConfig().getInt("Items." + item + ".Amount");
+			String damage = getConfig().getString(item + ".Item-Damage");
+			int amount = getConfig().getInt(item + ".Amount");
 
-			Optional<XMaterial> type = XMaterial
-					.matchXMaterial(getConfig().getString("Items." + item + ".Item").toUpperCase());
+			Optional<XMaterial> type = XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase());
 
 			if (!type.isPresent()) {
 				getLogger().log(Level.SEVERE,
@@ -218,8 +236,7 @@ public class RecipeManager {
 
 			if (!version.contains("1_7") && !version.contains("1_8") && !version.contains("1_9")
 					&& !version.contains("1_10") && !version.contains("1_11")) {
-				NamespacedKey key = new NamespacedKey(Main.getInstance(),
-						getConfig().getString("Items." + item + ".Identifier"));
+				NamespacedKey key = new NamespacedKey(Main.getInstance(), getConfig().getString(item + ".Identifier"));
 				R = new ShapedRecipe(key, i);
 				S = new ShapelessRecipe(key, i);
 			} else {
@@ -230,11 +247,10 @@ public class RecipeManager {
 			R.shape(line1, line2, line3);
 			details.put("X", "null:false:false:1");
 
-			for (String abbreviation : getConfig().getConfigurationSection("Items." + item + ".Ingredients")
-					.getKeys(false)) {
+			for (String abbreviation : getConfig().getConfigurationSection(item + ".Ingredients").getKeys(false)) {
 
 				ConfigurationSection ingredientSection = getConfig()
-						.getConfigurationSection("Items." + item + ".Ingredients." + abbreviation);
+						.getConfigurationSection(item + ".Ingredients." + abbreviation);
 
 				String materialString = ingredientSection.getString("Material");
 				int inAmount = 1;
@@ -306,7 +322,7 @@ public class RecipeManager {
 						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
 			}
 
-			if (getConfig().getBoolean("Items." + item + ".Shapeless") == true) {
+			if (getConfig().getBoolean(item + ".Shapeless") == true) {
 
 				shapeletter.add(newsplit1[0]);
 				shapeletter.add(newsplit1[1]);
@@ -332,7 +348,7 @@ public class RecipeManager {
 
 			api().addRecipe(item, ingredients);
 
-			if (getConfig().getBoolean("Items." + item + ".Shapeless") == false)
+			if (getConfig().getBoolean(item + ".Shapeless") == false)
 				Bukkit.getServer().addRecipe(R);
 
 			if (debug())
@@ -371,7 +387,7 @@ public class RecipeManager {
 	}
 
 	FileConfiguration getConfig() {
-		return Main.getInstance().getConfig();
+		return recipeConfig;
 	}
 
 	Logger getLogger() {

@@ -46,6 +46,12 @@ public class Main extends JavaPlugin implements Listener {
 	File messagesYml = new File(getDataFolder() + "/messages.yml");
 	FileConfiguration messagesConfig = null;
 
+	File cursedYml = new File(getDataFolder() + "/recipes/CursedPick.yml");
+	FileConfiguration cursedConfig = null;
+
+	File swordYml = new File(getDataFolder() + "/recipes/CursedSword.yml");
+	FileConfiguration swordConfig = null;
+
 	Boolean debug = false;
 	Boolean uptodate = true;
 	String newupdate = null;
@@ -61,6 +67,14 @@ public class Main extends JavaPlugin implements Listener {
 			saveResource("messages.yml", false);
 		}
 
+		if (!cursedYml.exists()) {
+			saveResource("recipes/CursedPick.yml", false);
+		}
+
+		if (!swordYml.exists()) {
+			saveResource("recipes/CursedSword.yml", false);
+		}
+
 		if (ymlFile.exists() && ymlConfig != null) {
 			try {
 				ymlConfig.save(ymlFile);
@@ -72,7 +86,6 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	public void initCustomYml() {
-
 		messagesConfig = YamlConfiguration.loadConfiguration(messagesYml);
 		customConfig = YamlConfiguration.loadConfiguration(customYml);
 	}
@@ -124,6 +137,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		saveCustomYml(customConfig, customYml);
 		saveCustomYml(messagesConfig, messagesYml);
+		saveCustomYml(cursedConfig, cursedYml);
 		initCustomYml();
 
 		debug = messagesConfig.getBoolean("Debug");
@@ -162,9 +176,6 @@ public class Main extends JavaPlugin implements Listener {
 		identifier.clear();
 		addItem = null;
 		recipes = null;
-
-		debug = messagesConfig.getBoolean("Debug");
-
 	}
 
 	@Override
@@ -178,6 +189,8 @@ public class Main extends JavaPlugin implements Listener {
 		saveCustomYml(customConfig, customYml);
 		saveCustomYml(messagesConfig, messagesYml);
 		initCustomYml();
+
+		debug = messagesConfig.getBoolean("Debug");
 
 		plugin.addItems();
 
@@ -249,7 +262,7 @@ public class Main extends JavaPlugin implements Listener {
 
 			if (messagesConfig.getBoolean("chat-message.close-inventory") == true)
 				p.closeInventory();
-			
+
 			p.sendMessage(message);
 		}
 	}

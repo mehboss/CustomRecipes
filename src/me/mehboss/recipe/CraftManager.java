@@ -376,7 +376,8 @@ public class CraftManager implements Listener {
 						getLogger().log(Level.SEVERE, names);
 				}
 
-				if (!(slotNames.containsAll(recipeNames)) || !(amountsMatch(inv, recipeName))) {
+				if (slotNames.size() != 9 || recipeNames.size() != 9 || !(slotNames.containsAll(recipeNames))
+						|| !(amountsMatch(inv, recipeName))) {
 					passedCheck = false;
 					continue;
 				}

@@ -16,8 +16,12 @@ package me.mehboss.recipe;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
+import java.util.Set;
 
 import org.bukkit.Material;
+
+import net.md_5.bungee.api.ChatColor;
 
 public class RecipeAPI {
 	private HashMap<String, ArrayList<Ingredient>> recipeIngredients = new HashMap<>();
@@ -33,6 +37,10 @@ public class RecipeAPI {
 		return false;
 	}
 
+	public Set<String> getRecipes() {
+		return recipeIngredients.keySet();
+	}
+
 	public ArrayList<Ingredient> getIngredients(String recipeName) {
 		return recipeIngredients.get(recipeName);
 	}
@@ -45,18 +53,42 @@ public class RecipeAPI {
 		private int slot;
 		private int amount;
 
-		public Ingredient(Material material, String displayName, String identifier, int amount, int slot, boolean isEmpty) {
+		public Ingredient(Material material, String displayName, String identifier, int amount, int slot,
+				boolean isEmpty) {
 			this.displayName = displayName;
 			this.identifier = identifier;
 			this.amount = amount;
 			this.isEmpty = isEmpty;
 			this.material = material;
+			this.slot = slot;
 		}
 
+	    @Override
+	    public boolean equals(Object obj) {
+	        if (this == obj) {
+	            return true;
+	        }
+	        if (obj == null || getClass() != obj.getClass()) {
+	            return false;
+	        }
+	        Ingredient other = (Ingredient) obj;
+	        return material == other.material &&
+	                amount == other.amount &&
+	                slot == other.slot;
+	    }
+
+	    @Override
+	    public int hashCode() {
+	        return Objects.hash(material, amount, slot);
+	    }
+	    
 		public String getDisplayName() {
-			return displayName;
+			if (displayName.equals("none"))
+				return "false";
+			
+			return ChatColor.translateAlternateColorCodes('&', displayName);
 		}
-		
+
 		public String getIdentifier() {
 			return identifier;
 		}
@@ -86,16 +118,16 @@ public class RecipeAPI {
 		}
 
 		public boolean hasDisplayName() {
-			if (this.displayName == null || this.displayName.equals("false"))
+			if (this.displayName == null || this.displayName.equals("false") || this.displayName.equals("none"))
 				return false;
-			
+
 			return true;
 		}
-		
+
 		public boolean hasIdentifier() {
 			if (this.identifier == null || this.identifier.equals("false"))
 				return false;
-			
+
 			return true;
 		}
 	}

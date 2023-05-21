@@ -77,7 +77,7 @@ public class Main extends JavaPlugin implements Listener {
 	        getConfig().set("firstLoad", false);
 	        saveConfig();
 
-	        getLogger().log(Level.SEVERE, "Successfully copied messages.yml to config.yml.");
+	        getLogger().log(Level.INFO, "Successfully copied messages.yml to config.yml.");
 	        
 	        // Delete the messages.yml file
 	        messagesFile.delete();
@@ -157,7 +157,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Save the updated config.ym
 		saveConfig();
-        getLogger().log(Level.SEVERE, "Successfully transfered recipes into their own files.");
+        getLogger().log(Level.INFO, "Successfully transfered recipes into their own files.");
 	}
 
 	void convertRecipeFormat(ConfigurationSection recipeConfig) {

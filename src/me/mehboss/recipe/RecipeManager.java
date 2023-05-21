@@ -116,6 +116,11 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleCustomModelData(String item, ItemMeta m) {
+		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
+				|| version.contains("1_11") || version.contains("1_12") || version.contains("1_13"))
+			return m;
+
 		if (getConfig().isSet(item + ".Custom-Model-Data")
 				&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
 			try {
@@ -130,6 +135,11 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleAttributes(String item, ItemMeta m) {
+		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
+				|| version.contains("1_11"))
+			return m;
+
 		if (getConfig().isSet(item + ".Attribute")) {
 			for (String split : getConfig().getStringList(item + ".Attribute")) {
 				String[] st = split.split(":");
@@ -179,7 +189,7 @@ public class RecipeManager {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
 
 			String item = recipeFile.getName().replace(".yml", "");
-			
+
 			if (!(recipeConfig.isConfigurationSection(item)))
 				return;
 
@@ -260,18 +270,19 @@ public class RecipeManager {
 
 				Optional<XMaterial> ingredientMaterial = XMaterial.matchXMaterial(materialString);
 
-				if (!ingredientMaterial.isPresent()) {
-					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
-							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
-							+ "ID into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
-					return;
-				}
-
 				String identifier = ingredientSection.isSet("Identifier") ? ingredientSection.getString("Identifier")
 						: "false";
 				String name = ingredientSection.isSet("Name") ? ingredientSection.getString("Name") : "false";
 
 				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
+
+				if (!ingredientMaterial.isPresent() || finishedMaterial == null) {
+					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
+							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
+							+ "ID into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
+					return;
+				}
+				
 				R.setIngredient(abbreviation.charAt(0), finishedMaterial);
 				shape.put(abbreviation, finishedMaterial);
 

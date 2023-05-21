@@ -299,11 +299,6 @@ public class Main extends JavaPlugin implements Listener {
 			isFirstLoad = getConfig().getBoolean("firstLoad");
 
 		saveCustomYml(customConfig, customYml);
-
-		if (isFirstLoad)
-			getConfig().set("firstLoad", false);
-
-		saveConfig();
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 		reloadConfig();
@@ -313,6 +308,10 @@ public class Main extends JavaPlugin implements Listener {
 		saveAllCustomYml();
 		transferRecipesFromConfig();
 
+		if (isFirstLoad && getConfig().isSet("firstLoad"))
+			getConfig().set("firstLoad", false);
+		saveConfig();
+		
 		debug = getConfig().getBoolean("Debug");
 
 		plugin.addItems();

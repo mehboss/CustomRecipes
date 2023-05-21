@@ -1,10 +1,11 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v1.6.1                                                                                    #
+# Version v1.7                                                                                      #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
 # For MC 1.14+ add 'Custom-Model-Data: INT' to your recipe for utilization                          #
+# For MC 1.12+ you can use attribute modifiers                                                      #
 #                                                                                                   #               
 #    Enchant Strings:                                                                               #
 # http://pastebin.com/AWtKQ5UH                                                                      #

@@ -2,9 +2,6 @@ package me.mehboss.recipe;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -301,7 +298,6 @@ public class Main extends JavaPlugin implements Listener {
 		saveCustomYml(customConfig, customYml);
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
-		reloadConfig();
 		saveCustomYml(cursedConfig, cursedYml);
 		initCustomYml();
 

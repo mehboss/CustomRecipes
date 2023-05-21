@@ -32,7 +32,7 @@ public class ManageGUI implements Listener {
 	ArrayList<ItemStack> recipe = new ArrayList<ItemStack>();
 
 	public FileConfiguration getConfig() {
-		return Main.getInstance().messagesConfig;
+		return Main.getInstance().getConfig();
 	}
 
 	public ManageGUI(Plugin p, String item) {

@@ -2,13 +2,18 @@ package me.mehboss.recipe;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -43,9 +48,6 @@ public class Main extends JavaPlugin implements Listener {
 	File customYml = new File(getDataFolder() + "/blacklisted.yml");
 	FileConfiguration customConfig = null;
 
-	File messagesYml = new File(getDataFolder() + "/messages.yml");
-	FileConfiguration messagesConfig = null;
-
 	File cursedYml = new File(getDataFolder() + "/recipes/CursedPick.yml");
 	FileConfiguration cursedConfig = null;
 
@@ -54,24 +56,155 @@ public class Main extends JavaPlugin implements Listener {
 
 	Boolean debug = false;
 	Boolean uptodate = true;
+	Boolean isFirstLoad = true;
 	String newupdate = null;
 
 	RecipeAPI api;
+	
+	public void copyMessagesToConfig() {
+	    File messagesFile = new File(getDataFolder() + "/messages.yml");
+	    
+	    if (messagesFile.exists()) {
+	        YamlConfiguration messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+
+	        // Copy the values from messages.yml to config.yml
+	        getConfig().set("Debug", messagesConfig.getBoolean("Debug"));
+	        getConfig().set("Update-Check", messagesConfig.getBoolean("Update-Check"));
+	        getConfig().set("Messages", messagesConfig.getConfigurationSection("Messages"));
+	        getConfig().set("action-bar", messagesConfig.getConfigurationSection("action-bar"));
+	        getConfig().set("chat-message", messagesConfig.getConfigurationSection("chat-message"));
+	        getConfig().set("add", messagesConfig.getConfigurationSection("add"));
+	        getConfig().set("gui", messagesConfig.getConfigurationSection("gui"));
+
+	        // Set the firstLoad value to false
+	        getConfig().set("firstLoad", false);
+	        saveConfig();
+
+	        getLogger().log(Level.SEVERE, "Successfully copied messages.yml to config.yml.");
+	        
+	        // Delete the messages.yml file
+	        messagesFile.delete();
+	    }
+	}
+
+	void transferRecipesFromConfig() {
+		// Get the configuration section containing the recipes in the config.yml
+		copyMessagesToConfig();
+		
+		ConfigurationSection recipeSection = getConfig().getConfigurationSection("Items");
+
+		// Check if the section exists and contains any recipes
+		if (recipeSection == null || recipeSection.getKeys(false).isEmpty()) {
+			return;
+		}
+
+		// Get the directory for the "recipes" folder
+		File recipesFolder = new File(getDataFolder(), "recipes");
+
+		// Check if the folder exists, create it if necessary
+		if (!recipesFolder.exists() || !recipesFolder.isDirectory()) {
+			recipesFolder.mkdirs();
+		}
+
+		// Iterate over each recipe in the config.yml
+		for (String recipeKey : recipeSection.getKeys(false)) {
+			// Get the recipe configuration from the config.yml
+			ConfigurationSection recipeConfig = recipeSection.getConfigurationSection(recipeKey);
+
+			if (recipeConfig.isList("Ingredients"))
+				convertRecipeFormat(recipeConfig);
+
+			// Create a new file for the recipe in the "recipes" folder
+			File recipeFile = new File(recipesFolder, recipeKey + ".yml");
+
+			// Create a new YamlConfiguration for the recipe
+			YamlConfiguration ymlConfig = new YamlConfiguration();
+
+			// Set the recipe values in the YamlConfiguration
+			ymlConfig.set(recipeKey + ".Enabled", recipeConfig.getBoolean("Enabled"));
+			ymlConfig.set(recipeKey + ".Shapeless", recipeConfig.getBoolean("Shapeless"));
+			ymlConfig.set(recipeKey + ".Item", recipeConfig.getString("Item"));
+			ymlConfig.set(recipeKey + ".Item-Damage", recipeConfig.getString("Item-Damage"));
+			ymlConfig.set(recipeKey + ".Amount", recipeConfig.getInt("Amount"));
+			ymlConfig.set(recipeKey + ".Ignore-Data", recipeConfig.getBoolean("Ignore-Data"));
+			ymlConfig.set(recipeKey + ".Custom-Tagged", recipeConfig.getBoolean("Custom-Tagged"));
+			ymlConfig.set(recipeKey + ".Identifier", recipeConfig.getString("Identifier"));
+			ymlConfig.set(recipeKey + ".Permission", recipeConfig.getString("Permission"));
+			ymlConfig.set(recipeKey + ".Name", recipeConfig.getString("Name"));
+			ymlConfig.set(recipeKey + ".Lore", recipeConfig.getStringList("Lore"));
+			ymlConfig.set(recipeKey + ".Effects", recipeConfig.getStringList("Effects"));
+			ymlConfig.set(recipeKey + ".Hide-Enchants", recipeConfig.getBoolean("Hide-Enchants"));
+			ymlConfig.set(recipeKey + ".Enchantments", recipeConfig.getStringList("Enchantments"));
+			ymlConfig.set(recipeKey + ".ItemCrafting", recipeConfig.getStringList("ItemCrafting"));
+			ymlConfig.set(recipeKey + ".Attribute", recipeConfig.getStringList("Attribute"));
+			ymlConfig.set(recipeKey + ".Custom-Model-Data", recipeConfig.getString("Custom-Model-Data"));
+
+			// Get the ingredients configuration section
+			ConfigurationSection ingredientsSection = recipeConfig.getConfigurationSection("Ingredients");
+			if (ingredientsSection != null) {
+				// Set the ingredients values in the YamlConfiguration
+				ymlConfig.set(recipeKey + ".Ingredients", ingredientsSection);
+			}
+
+			// Save the recipe configuration to the file
+			try {
+				ymlConfig.save(recipeFile);
+			} catch (IOException e) {
+				// Handle any errors that occur during saving
+				e.printStackTrace();
+			}
+
+			// Remove the transferred recipe from the config.yml
+			recipeSection.set(recipeKey, null);
+		}
+
+		// Save the updated config.ym
+		saveConfig();
+        getLogger().log(Level.SEVERE, "Successfully transfered recipes into their own files.");
+	}
+
+	void convertRecipeFormat(ConfigurationSection recipeConfig) {
+		// Check if the recipe is in the old format
+		if (recipeConfig.contains("Ingredients")) {
+			// Get the old ingredients list
+			final List<String> oldIngredients = recipeConfig.getStringList("Ingredients");
+
+			// Remove the old "Ingredients" key from the recipe configuration
+			recipeConfig.set("Ingredients", null);
+
+			// Create a new "Ingredients" configuration section
+			ConfigurationSection newIngredients = recipeConfig.createSection("Ingredients");
+
+			// Convert each old ingredient to the new format
+			for (String lists : oldIngredients) {
+				String[] parts = lists.split(":");
+				if (parts.length >= 2) {
+					String ingredientKey = parts[0];
+					String material = parts[1];
+					int amount = parts.length >= 3 ? Integer.parseInt(parts[2]) : 1;
+					String name = parts.length > 3 ? parts[3] : null;
+
+					ConfigurationSection ingredient = newIngredients.createSection(ingredientKey);
+					ingredient.set("Material", material);
+					ingredient.set("Identifier", "none");
+					ingredient.set("Amount", amount);
+					ingredient.set("Name", name);
+				}
+			}
+			saveConfig();
+		}
+	}
 
 	public void saveCustomYml(FileConfiguration ymlConfig, File ymlFile) {
 		if (!customYml.exists()) {
 			saveResource("blacklisted.yml", false);
 		}
 
-		if (!messagesYml.exists()) {
-			saveResource("messages.yml", false);
-		}
-
-		if (!cursedYml.exists()) {
+		if (isFirstLoad && !cursedYml.exists()) {
 			saveResource("recipes/CursedPick.yml", false);
 		}
 
-		if (!swordYml.exists()) {
+		if (isFirstLoad && !swordYml.exists()) {
 			saveResource("recipes/CursedSword.yml", false);
 		}
 
@@ -85,8 +218,38 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}
 
+	public void saveAllCustomYml() {
+		// Get the directory for the "recipes" folder
+		File recipesFolder = new File(getDataFolder(), "recipes");
+
+		// Check if the folder exists
+		if (!recipesFolder.exists() || !recipesFolder.isDirectory()) {
+			return;
+		}
+
+		// Get all files in the "recipes" folder
+		File[] recipeFiles = recipesFolder.listFiles();
+
+		// Iterate over each file
+		for (File recipeFile : recipeFiles) {
+			// Check if it's a file (not a directory)
+			if (recipeFile.isFile()) {
+				// Get the file name and extension
+				String fileName = recipeFile.getName();
+				String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1);
+
+				if (fileExtension.equalsIgnoreCase("yml")) {
+					// Load the file configuration
+					FileConfiguration recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
+
+					// Save the file
+					saveCustomYml(recipeConfig, recipeFile);
+				}
+			}
+		}
+	}
+
 	public void initCustomYml() {
-		messagesConfig = YamlConfiguration.loadConfiguration(messagesYml);
 		customConfig = YamlConfiguration.loadConfiguration(customYml);
 	}
 
@@ -97,11 +260,8 @@ public class Main extends JavaPlugin implements Listener {
 
 		instance = this;
 		api = new RecipeAPI();
+		plugin = new RecipeManager();
 
-		this.plugin = new RecipeManager();
-		getConfig().options().copyDefaults(true);
-		saveDefaultConfig();
-		reloadConfig();
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
 
@@ -135,12 +295,25 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}));
 
+		if (getConfig().isSet("firstLoad"))
+			isFirstLoad = getConfig().getBoolean("firstLoad");
+
 		saveCustomYml(customConfig, customYml);
-		saveCustomYml(messagesConfig, messagesYml);
+
+		if (isFirstLoad)
+			getConfig().set("firstLoad", false);
+
+		saveConfig();
+		getConfig().options().copyDefaults(true);
+		saveDefaultConfig();
+		reloadConfig();
 		saveCustomYml(cursedConfig, cursedYml);
 		initCustomYml();
 
-		debug = messagesConfig.getBoolean("Debug");
+		saveAllCustomYml();
+		transferRecipesFromConfig();
+
+		debug = getConfig().getBoolean("Debug");
 
 		plugin.addItems();
 
@@ -187,10 +360,11 @@ public class Main extends JavaPlugin implements Listener {
 		clear();
 
 		saveCustomYml(customConfig, customYml);
-		saveCustomYml(messagesConfig, messagesYml);
 		initCustomYml();
 
-		debug = messagesConfig.getBoolean("Debug");
+		saveAllCustomYml();
+
+		debug = getConfig().getBoolean("Debug");
 
 		plugin.addItems();
 
@@ -244,10 +418,10 @@ public class Main extends JavaPlugin implements Listener {
 
 	public void sendMessage(Player p) {
 
-		if (messagesConfig.getBoolean("action-bar.enabled") == true) {
+		if (getConfig().getBoolean("action-bar.enabled") == true) {
 			try {
 				String message = ChatColor.translateAlternateColorCodes('&',
-						messagesConfig.getString("action-bar.message"));
+						getConfig().getString("action-bar.message"));
 
 				p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
 			} catch (Exception e) {
@@ -255,12 +429,11 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}
 
-		if (messagesConfig.getBoolean("chat-message.enabled") == true) {
+		if (getConfig().getBoolean("chat-message.enabled") == true) {
 
-			String message = ChatColor.translateAlternateColorCodes('&',
-					messagesConfig.getString("chat-message.message"));
+			String message = ChatColor.translateAlternateColorCodes('&', getConfig().getString("chat-message.message"));
 
-			if (messagesConfig.getBoolean("chat-message.close-inventory") == true)
+			if (getConfig().getBoolean("chat-message.close-inventory") == true)
 				p.closeInventory();
 
 			p.sendMessage(message);
@@ -269,7 +442,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	@EventHandler
 	public void update(PlayerJoinEvent e) {
-		if (messagesConfig.getBoolean("Update-Check") == true && e.getPlayer().hasPermission("crecipe.reload")
+		if (getConfig().getBoolean("Update-Check") == true && e.getPlayer().hasPermission("crecipe.reload")
 				&& !getDescription().getVersion().equals(newupdate)) {
 			e.getPlayer()
 					.sendMessage(ChatColor.translateAlternateColorCodes('&',

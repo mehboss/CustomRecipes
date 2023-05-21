@@ -25,7 +25,7 @@ public class AddGUI implements Listener {
 
 	public AddGUI(Plugin p, String item) {
 		inv = Bukkit.getServer().createInventory(null, 45,
-				ChatColor.translateAlternateColorCodes('&', Main.getInstance().messagesConfig.getString("add.Title")));
+				ChatColor.translateAlternateColorCodes('&', Main.getInstance().getConfig().getString("add.Title")));
 		setItems(inv);
 		Bukkit.getServer().getPluginManager().registerEvents(this, p);
 	}
@@ -44,7 +44,7 @@ public class AddGUI implements Listener {
 			Main.getInstance().addRecipe.remove(e.getPlayer().getName());
 
 			inv = Bukkit.getServer().createInventory(null, 45, ChatColor.translateAlternateColorCodes('&',
-					Main.getInstance().messagesConfig.getString("add.Title").replace("%recipe%", e.getMessage())));
+					Main.getInstance().getConfig().getString("add.Title").replace("%recipe%", e.getMessage())));
 
 			e.setCancelled(true);
 			setItems(inv);
@@ -99,7 +99,7 @@ public class AddGUI implements Listener {
 		if (recipeName.get(e.getPlayer().getName()) != null && e.getView().getTitle() != null) {
 
 			String RecipeN = ChatColor.translateAlternateColorCodes('&',
-					Main.getInstance().messagesConfig.getString("add.Title").replaceAll("%recipe%",
+					Main.getInstance().getConfig().getString("add.Title").replaceAll("%recipe%",
 							recipeName.get(e.getPlayer().getName()).toUpperCase()));
 
 			if (e.getView().getTitle().equals(RecipeN)) {

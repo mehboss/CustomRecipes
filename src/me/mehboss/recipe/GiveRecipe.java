@@ -1,5 +1,9 @@
 package me.mehboss.recipe;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -18,7 +22,7 @@ public class GiveRecipe implements CommandExecutor {
 	}
 
 	Boolean underDev = true;
-	FileConfiguration debug = Main.getInstance().messagesConfig;
+	FileConfiguration debug = Main.getInstance().getConfig();
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String arg2, String[] args) {
@@ -107,7 +111,7 @@ public class GiveRecipe implements CommandExecutor {
 							"&c[CustomRecipes] &fDebug mode has been turned &cOFF."));
 					debug.set("Debug", false);
 					Main.getInstance().debug = false;
-					Main.getInstance().saveCustomYml(plugin.messagesConfig, plugin.messagesYml);
+					Main.getInstance().reloadConfig();
 					return true;
 				}
 
@@ -116,29 +120,56 @@ public class GiveRecipe implements CommandExecutor {
 							"&c[CustomRecipes] &fDebug mode has been turned &aON.&f Check console for INFO."));
 					debug.set("Debug", true);
 					Main.getInstance().debug = true;
-					Main.getInstance().saveCustomYml(plugin.messagesConfig, plugin.messagesYml);
+					Main.getInstance().reloadConfig();
 					return true;
 				}
 			}
 
-			if (args.length == 1 && args[0].equalsIgnoreCase("list")) {
-				if (!sender.hasPermission("crecipe.list")) {
-					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
-					return false;
-				}
+			if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
+			    if (!sender.hasPermission("crecipe.list")) {
+			        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
+			        return false;
+			    }
+			    int page = 1;
+			    if (args.length == 2) {
+			        try {
+			            page = Integer.parseInt(args[1]);
+			        } catch (NumberFormatException e) {
+			            sender.sendMessage(ChatColor.RED + "Invalid page number.");
+			            return false;
+			        }
+			    }
 
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-						"&8-------------------------------------------------"));
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cCurrent Recipes:"));
+			    List<String> recipes = new ArrayList<>(Main.getInstance().configName.values());
 
-				for (String recipe : Main.getInstance().configName.values()) {
-					sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "   &f" + recipe));
-				}
+			    // Sort the recipes alphabetically
+			    Collections.sort(recipes, String.CASE_INSENSITIVE_ORDER);
 
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-						"&8-------------------------------------------------"));
-				return false;
+			    int totalRecipes = recipes.size();
+			    int pageSize = 6;
+			    int totalPages = (int) Math.ceil((double) totalRecipes / pageSize);
+
+			    if (page < 1 || page > totalPages) {
+			        sender.sendMessage(ChatColor.RED + "Invalid page number.");
+			        return false;
+			    }
+
+			    int startIndex = (page - 1) * pageSize;
+			    int endIndex = Math.min(startIndex + pageSize, totalRecipes);
+
+			    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+			            "&8-------------------------------------------------"));
+			    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+			            "&cCurrent Recipes (Page " + page + "/" + totalPages + "):"));
+
+			    for (int i = startIndex; i < endIndex; i++) {
+			        String recipe = recipes.get(i);
+			        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "   &f" + recipe));
+			    }
+
+			    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+			            "&8-------------------------------------------------"));
+			    return false;
 			}
 
 			if (args[0].equalsIgnoreCase("give")) {

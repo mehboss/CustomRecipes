@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -34,6 +35,7 @@ public class Main extends JavaPlugin implements Listener {
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
 	HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
+	HashMap<String, List<Material>> ingredients = new HashMap<String, List<Material>>();
 
 	ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
 	ArrayList<String> addRecipe = new ArrayList<String>();
@@ -332,8 +334,8 @@ public class Main extends JavaPlugin implements Listener {
 
 	public void clear() {
 
-		reloadConfig();
 		saveConfig();
+		reloadConfig();
 		getServer().resetRecipes();
 		disabledrecipe.clear();
 		recipe.clear();

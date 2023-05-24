@@ -22,8 +22,11 @@ public class GiveRecipe implements CommandExecutor {
 	}
 
 	Boolean underDev = true;
-	FileConfiguration debug = Main.getInstance().getConfig();
 
+	FileConfiguration debug() {
+		return Main.getInstance().getConfig();
+	}
+	
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String arg2, String[] args) {
 
@@ -37,7 +40,7 @@ public class GiveRecipe implements CommandExecutor {
 		if (args.length == 0) {
 			if (!(p.hasPermission("crecipe.help"))) {
 				sender.sendMessage(
-						ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
+						ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 				return true;
 			}
 
@@ -65,14 +68,14 @@ public class GiveRecipe implements CommandExecutor {
 			if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
 				if (!sender.hasPermission("crecipe.reload")) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 					return false;
 				}
 
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Reloading")));
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reloading")));
 
 				plugin.reload();
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Reload")));
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reload")));
 
 				return false;
 			}
@@ -80,7 +83,7 @@ public class GiveRecipe implements CommandExecutor {
 			if (args.length == 1 && args[0].equalsIgnoreCase("gui")) {
 				if (!sender.hasPermission("crecipe.gui")) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 					return false;
 				}
 
@@ -102,15 +105,16 @@ public class GiveRecipe implements CommandExecutor {
 
 				if (!sender.hasPermission("crecipe.debug")) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 					return false;
 				}
 
 				if (Main.getInstance().debug) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							"&c[CustomRecipes] &fDebug mode has been turned &cOFF."));
-					debug.set("Debug", false);
+					debug().set("Debug", false);
 					Main.getInstance().debug = false;
+					Main.getInstance().saveConfig();
 					Main.getInstance().reloadConfig();
 					return true;
 				}
@@ -118,8 +122,9 @@ public class GiveRecipe implements CommandExecutor {
 				if (!(Main.getInstance().debug)) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							"&c[CustomRecipes] &fDebug mode has been turned &aON.&f Check console for INFO."));
-					debug.set("Debug", true);
+					debug().set("Debug", true);
 					Main.getInstance().debug = true;
+					Main.getInstance().saveConfig();
 					Main.getInstance().reloadConfig();
 					return true;
 				}
@@ -127,7 +132,7 @@ public class GiveRecipe implements CommandExecutor {
 
 			if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
 			    if (!sender.hasPermission("crecipe.list")) {
-			        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
+			        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 			        return false;
 			    }
 			    int page = 1;
@@ -178,13 +183,13 @@ public class GiveRecipe implements CommandExecutor {
 
 				if (!sender.hasPermission("crecipe.give")) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Perms")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 					return true;
 				}
 
 				if (args.length > 4 || args.length < 3) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Invalid-Args")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Args")));
 					return true;
 				}
 
@@ -192,19 +197,19 @@ public class GiveRecipe implements CommandExecutor {
 
 				if (target == null) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Player-Not-Found")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Player-Not-Found")));
 					return true;
 				}
 
 				if (plugin.giveRecipe.get(args[2].toLowerCase()) == null) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Recipe-Not-Found")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Recipe-Not-Found")));
 					return true;
 				}
 
 				if (target.getInventory().firstEmpty() == -1) {
 					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Inventory-Full")));
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Inventory-Full")));
 					return true;
 				}
 
@@ -217,7 +222,7 @@ public class GiveRecipe implements CommandExecutor {
 
 				target.getInventory().addItem(item);
 
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug.getString("Messages.Give-Recipe")
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Give-Recipe")
 						.replaceAll("%itemname%", args[2]).replaceAll("%player%", target.getName())));
 			}
 		}

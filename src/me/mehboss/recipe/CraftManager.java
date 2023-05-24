@@ -18,6 +18,7 @@ import java.io.File;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -95,7 +96,14 @@ public class CraftManager implements Listener {
 			int requiredAmount = ingredient.getAmount();
 
 			for (ItemStack item : inv.getMatrix()) {
-				if (item != null && item.getType() == material && hasMatchingDisplayName(item, displayName)) {
+				if (item != null && item.getType() == material && hasMatchingDisplayName(item, displayName,
+						ingredient.getIdentifier(), ingredient.hasIdentifier())) {
+					
+					if (debug()) {
+						debug("ITEM AMOUNT: " + item.getAmount());
+						debug("REQUIRED AMOUNT: " + requiredAmount);
+					}
+					
 					if (item.getAmount() < requiredAmount)
 						return false;
 				}
@@ -172,8 +180,17 @@ public class CraftManager implements Listener {
 		if (e.getCurrentItem() == null || !e.getCurrentItem().equals(inv.getResult()))
 			return;
 
-		String recipeName = configName().get(inv.getResult());
+		String findName = configName().get(inv.getResult());
 		final ItemStack result = inv.getResult();
+
+		for (String recipes : api().getRecipes()) {
+			if (findIngredients(inv, recipes)) {
+				findName = recipes;
+				break;
+			}
+		}
+
+		final String recipeName = findName;
 
 		if ((e.getCursor() != null && !e.getCursor().getType().equals(Material.AIR))
 				|| (e.getCursor().equals(result) && result.getMaxStackSize() <= 1))
@@ -184,6 +201,9 @@ public class CraftManager implements Listener {
 		int itemsToRemove = 0;
 		int itemsToAdd = 0;
 
+		if (debug())
+			debug("recipeName for amount check:" + recipeName);
+
 		for (RecipeAPI.Ingredient ingredient : getIngredients(recipeName)) {
 			if (ingredient.isEmpty())
 				continue;
@@ -191,6 +211,7 @@ public class CraftManager implements Listener {
 			Material material = ingredient.getMaterial();
 			String displayName = ingredient.getDisplayName();
 			final int requiredAmount = ingredient.getAmount();
+			boolean hasIdentifier = ingredient.hasIdentifier();
 
 			for (int highest = 1; highest < 10; highest++) {
 				ItemStack slot = inv.getItem(highest);
@@ -206,10 +227,20 @@ public class CraftManager implements Listener {
 				}
 			}
 
+			if (debug()) {
+				debug("ItemsToRemove: " + itemsToRemove);
+				debug("RequiredAmount: " + requiredAmount);
+				debug("Identifier: " + ingredient.getIdentifier());
+				debug("HasIdentifier: " + hasIdentifier);
+				debug("Material: " + material.toString());
+				debug("Displayname: " + displayName);
+			}
+
 			for (int i = 1; i < 10; i++) {
 				ItemStack item = inv.getItem(i);
 
-				if (item != null && item.getType() == material && hasMatchingDisplayName(item, displayName)) {
+				if (item != null && item.getType() == material
+						&& hasMatchingDisplayName(item, displayName, ingredient.getIdentifier(), hasIdentifier)) {
 					int itemAmount = item.getAmount();
 
 					if (itemAmount < requiredAmount)
@@ -221,7 +252,11 @@ public class CraftManager implements Listener {
 							item.setAmount((item.getAmount() + 1) - requiredAmount);
 						});
 					} else {
-						item.setAmount(item.getAmount() - itemsToRemove);
+						if (item.getType().toString().contains("_BUCKET")) {
+							item.setType(XMaterial.BUCKET.parseMaterial());
+						} else {
+							item.setAmount(item.getAmount() - itemsToRemove);
+						}
 					}
 				}
 			}
@@ -260,7 +295,7 @@ public class CraftManager implements Listener {
 
 		for (RecipeAPI.Ingredient ingredient : allIngredients) {
 			// Ignore the slot field and only save material, amount, and slot
-			Ingredient newIngr = api().new Ingredient(ingredient.getMaterial(), ingredient.getDisplayName(), null,
+			Ingredient newIngr = api().new Ingredient(ingredient.getMaterial(), ingredient.getDisplayName(), ingredient.getIdentifier(),
 					ingredient.getAmount(), 0, false);
 
 			if (newIngr.getMaterial() != Material.AIR && newIngr.getMaterial() != null) {
@@ -273,28 +308,39 @@ public class CraftManager implements Listener {
 		return newIngredients;
 	}
 
-	private boolean hasMatchingDisplayName(ItemStack item, String displayName) {
+	private boolean hasMatchingDisplayName(ItemStack item, String displayName, String identifier,
+			boolean hasIdentifier) {
+		if (hasIdentifier)
+			return item.isSimilar(identifier().get(identifier));
+		
 		if (displayName == null || displayName.equals("false")) {
+			if (debug())
+				debug("displaynameCheck: " + displayName + " | hasMatchingDisplayName: "
+						+ Boolean.valueOf(!item.hasItemMeta() || !item.getItemMeta().hasDisplayName()));
 			return !item.hasItemMeta() || !item.getItemMeta().hasDisplayName();
 		} else {
+			if (debug())
+				debug("displaynameCheck: " + displayName + " | hasMatchingDisplayName: "
+						+ Boolean.valueOf(item.hasItemMeta() && item.getItemMeta().hasDisplayName()
+								&& item.getItemMeta().getDisplayName().equals(displayName)));
+
 			return item.hasItemMeta() && item.getItemMeta().hasDisplayName()
 					&& item.getItemMeta().getDisplayName().equals(displayName);
 		}
 	}
 
-	boolean compareIngredients(CraftingInventory inv, String recipeName) {
-		ArrayList<Material> materials = new ArrayList<Material>();
-
-		for (Ingredient ingredient : api().getIngredients(recipeName)) {
-			if (!(ingredient.isEmpty()))
-				materials.add(ingredient.getMaterial());
-		}
-
-		for (ItemStack item : inv.getContents()) {
-			if (item == null || item.getType() == Material.AIR)
+	boolean findIngredients(CraftingInventory inv, String recipeName) {
+		for (ItemStack contents : inv.getMatrix()) {
+			if (contents == null)
 				continue;
-			if (!(materials.contains(item.getType())))
+
+			if (!(ingredients().get(getConfig(recipeName).get(recipeName + ".Identifier"))
+					.contains(contents.getType()))) {
+
+				if (debug())
+					debug("Materials did not match, skipping!");
 				return false;
+			}
 		}
 		return true;
 	}
@@ -320,18 +366,25 @@ public class CraftManager implements Listener {
 		if (recipeName == null || !(api().hasRecipe(recipeName)))
 			return;
 
-		if (debug())
-			debug("Recipe Config: " + recipeName);
-
-		if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
-				&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
-			return;
-
 		for (String recipes : api().getRecipes()) {
 			ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipes);
 
 			recipeName = recipes;
 			passedCheck = true;
+
+			if (!(findIngredients(inv, recipeName))) {
+				if (debug())
+					debug("Materials did not match, skipping!");
+				passedCheck = false;
+				continue;
+			}
+
+			if (debug())
+				debug("Recipe Config: " + recipeName);
+
+			if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
+					&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
+				return;
 
 			if (getConfig(recipeName).isBoolean(recipeName + ".Shapeless")
 					&& getConfig(recipeName).getBoolean(recipeName + ".Shapeless") == true) {
@@ -413,7 +466,7 @@ public class CraftManager implements Listener {
 						ItemMeta meta = inv.getItem(i).getItemMeta();
 
 						if (ingredient.hasIdentifier() && identifier().containsKey(ingredient.getIdentifier())
-								&& identifier().get(ingredient.getIdentifier()).equals(inv.getItem(i)))
+								&& identifier().get(ingredient.getIdentifier()).isSimilar(inv.getItem(i)))
 							continue;
 
 						// checks for custom tag
@@ -508,6 +561,10 @@ public class CraftManager implements Listener {
 		return Main.getInstance().disabledrecipe;
 	}
 
+	HashMap<String, List<Material>> ingredients() {
+		return Main.getInstance().ingredients;
+	}
+	
 	HashMap<String, ItemStack> getRecipe() {
 		return Main.getInstance().giveRecipe;
 	}

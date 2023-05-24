@@ -55,7 +55,7 @@ public class RecipeManager {
 	ItemStack handleIdentifier(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Identifier")) {
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
-				i = NBTEditor.set(i, "CUSTOM_ITEM", "CUSTOM_ITEM_IDENTIFIER");
+				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), "CUSTOM_ITEM_IDENTIFIER");
 
 			identifier().put(getConfig().getString(item + ".Identifier"), i);
 		}
@@ -202,6 +202,8 @@ public class RecipeManager {
 			HashMap<String, String> details = new HashMap<String, String>();
 			ArrayList<RecipeAPI.Ingredient> ingredients = new ArrayList<>();
 
+			List<Material> findIngredients = new ArrayList<Material>();
+
 			List<String> loreList = new ArrayList<String>();
 			List<String> r = getConfig().getStringList(item + ".ItemCrafting");
 
@@ -282,13 +284,14 @@ public class RecipeManager {
 							+ "ID into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
 					return;
 				}
-				
+
 				R.setIngredient(abbreviation.charAt(0), finishedMaterial);
 				shape.put(abbreviation, finishedMaterial);
 
 				if (debug()) {
 					debug("Ingredient Amount: " + inAmount);
 					debug("Ingredient Displayname: " + name);
+					debug("Ingredient Identifier: " + identifier);
 				}
 
 				if (!(ingredientSection.isSet("Name"))) {
@@ -298,8 +301,11 @@ public class RecipeManager {
 					details.put(abbreviation,
 							finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
 				}
-			}
 
+				findIngredients.add(finishedMaterial);
+			}
+			
+			ingredients().put(getConfig().getString(item + ".Identifier"), findIngredients);
 			recipe().add(R);
 
 			String[] newsplit1 = line1.split("");
@@ -329,6 +335,9 @@ public class RecipeManager {
 				int itemAmount = Integer.parseInt(details.get(handleIngredients).split(":")[3]);
 				boolean isEmpty = checkAbsent(handleIngredients);
 
+				if (debug())
+					debug("HandlingIngredient: " + itemIdentifier);
+				
 				ingredients
 						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
 			}
@@ -405,6 +414,10 @@ public class RecipeManager {
 		return Main.getInstance().getLogger();
 	}
 
+	HashMap<String, List<Material>> ingredients() {
+		return Main.getInstance().ingredients;
+	}
+	
 	HashMap<String, ItemStack> identifier() {
 		return Main.getInstance().identifier;
 	}

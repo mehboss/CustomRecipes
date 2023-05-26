@@ -304,7 +304,7 @@ public class RecipeManager {
 
 				findIngredients.add(finishedMaterial);
 			}
-			
+
 			ingredients().put(getConfig().getString(item + ".Identifier"), findIngredients);
 			recipe().add(R);
 
@@ -328,7 +328,7 @@ public class RecipeManager {
 			for (String handleIngredients : newSlots) {
 				slot++;
 
-				Material itemMaterial = Material.matchMaterial(details.get(handleIngredients).split(":")[0]);
+				Material itemMaterial = details.get(handleIngredients).split(":")[0].equals("null") ? null : Material.matchMaterial(details.get(handleIngredients).split(":")[0]);
 				String itemName = details.get(handleIngredients).split(":")[1];
 				String itemIdentifier = details.get(handleIngredients).split(":")[2];
 
@@ -337,7 +337,7 @@ public class RecipeManager {
 
 				if (debug())
 					debug("HandlingIngredient: " + itemIdentifier);
-				
+
 				ingredients
 						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
 			}
@@ -417,7 +417,7 @@ public class RecipeManager {
 	HashMap<String, List<Material>> ingredients() {
 		return Main.getInstance().ingredients;
 	}
-	
+
 	HashMap<String, ItemStack> identifier() {
 		return Main.getInstance().identifier;
 	}

@@ -125,7 +125,7 @@ public class RecipeAPI {
 		}
 
 		public boolean hasIdentifier() {
-			if (this.identifier == null || this.identifier.equals("false"))
+			if (this.identifier == null || this.identifier.equals("false") || this.identifier.equals("none"))
 				return false;
 
 			return true;

@@ -19,6 +19,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -32,6 +33,8 @@ public class Main extends JavaPlugin implements Listener {
 	AddGUI addItem;
 	EditGUI editItem;
 
+	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
+	
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
 	HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
@@ -256,7 +259,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	@Override
 	public void onEnable() {
-
+        
 		instance = this;
 		api = new RecipeAPI();
 		plugin = new RecipeManager();

@@ -5,6 +5,7 @@ CursedPick:
   Item-Damage: 'none' # Used for when you need a specific type of item with a "19/00" or "13:4". leave to none if non exists.
   Amount: 1 # When you craft this item, this is the amount you will get from it.
   Ignore-Data: false # Whether or not metadata should be considered as a requirement for crafting
+  Ignore-Model-Data: false # Whether or not you want model data to be considered even if ignore-data is set to true
   Custom-Tagged: true # Whether or not you want this item to be tagged with a custom item tag.
   Durability: '100' # 1-100. Remove section if not needed.
   Identifier: 'CURSED_PICKAXE' # Give your new recipe an identifier :).

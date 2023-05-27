@@ -39,6 +39,8 @@ import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitScheduler;
 
+import com.mysql.cj.x.protobuf.MysqlxExpr.Identifier;
+
 import me.mehboss.recipe.NBTEditor.NBTCompound;
 import me.mehboss.recipe.RecipeAPI.Ingredient;
 
@@ -175,7 +177,7 @@ public class CraftManager implements Listener {
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 
-		if (inv.getType() != InventoryType.WORKBENCH || !(matchedRecipe(inv)))
+		if (!(matchedRecipe(inv)))
 			return;
 
 		if (!(configName().containsKey(inv.getResult())))
@@ -187,9 +189,13 @@ public class CraftManager implements Listener {
 		String findName = configName().get(inv.getResult());
 		boolean found = false;
 		final ItemStack result = inv.getResult();
-
 		for (String recipes : api().getRecipes()) {
-			if (findIngredients(inv, recipes)) {
+			if (hasIngredients(inv, recipes) && getConfig(findName).getBoolean(findName + ".Shapeless") == true) {
+				findName = recipes;
+				found = true;
+				break;
+			} else if (findIngredients(inv, recipes)
+					&& getConfig(findName).getBoolean(findName + ".Shapeless") == false) {
 				findName = recipes;
 				found = true;
 				break;
@@ -198,7 +204,7 @@ public class CraftManager implements Listener {
 
 		if (!found)
 			return;
-		
+
 		final String recipeName = findName;
 
 		if ((e.getCursor() != null && !e.getCursor().getType().equals(Material.AIR))
@@ -247,6 +253,7 @@ public class CraftManager implements Listener {
 
 			for (int i = 1; i < 10; i++) {
 				ItemStack item = inv.getItem(i);
+				int slot = i;
 
 				if (item != null && debug())
 					debug(String.valueOf(hasMatchingDisplayName(recipeName, item, displayName,
@@ -260,12 +267,23 @@ public class CraftManager implements Listener {
 						break;
 
 					if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-						BukkitScheduler scheduler = Bukkit.getScheduler();
-						scheduler.runTask(Main.getInstance(), () -> {
-							item.setAmount((item.getAmount() + 1) - requiredAmount);
-						});
+						if (item.getType().toString().contains("_BUCKET")
+								&& getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
+								&& getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket") == false) {
+							item.setType(XMaterial.BUCKET.parseMaterial());
+						} else {
+							BukkitScheduler scheduler = Bukkit.getScheduler();
+							scheduler.runTask(Main.getInstance(), () -> {
+								if ((item.getAmount() + 1) - requiredAmount == 0)
+									inv.setItem(slot, null);
+								else
+									item.setAmount((item.getAmount() + 1) - requiredAmount);
+							});
+						}
 					} else {
-						if (item.getType().toString().contains("_BUCKET")) {
+						if (item.getType().toString().contains("_BUCKET")
+								&& getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
+								&& getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket") == false) {
 							item.setType(XMaterial.BUCKET.parseMaterial());
 						} else {
 							item.setAmount(item.getAmount() - itemsToRemove);
@@ -287,7 +305,7 @@ public class CraftManager implements Listener {
 			});
 
 			if (inv.getResult() != null && inv.getResult().equals(result))
-				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 10L);
+				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 5L);
 
 			return;
 		}
@@ -321,7 +339,7 @@ public class CraftManager implements Listener {
 		return newIngredients;
 	}
 
-	private boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
+	boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
 			boolean hasIdentifier) {
 		if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
 				&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
@@ -367,13 +385,46 @@ public class CraftManager implements Listener {
 			}
 			if (ingredient.getMaterial() != null && !invMaterials.get(slot).equals(ingredient.getMaterial().toString()))
 				return false;
-			
+
 			slot++;
 		}
 
 		if (invMaterials.size() != 9) {
 			return false;
 		}
+		return true;
+	}
+
+	boolean hasIngredients(CraftingInventory inv, String recipeName) {
+		ArrayList<String> invMaterials = new ArrayList<>();
+		ArrayList<String> ingMaterials = new ArrayList<>();
+
+		for (ItemStack contents : inv.getMatrix()) {
+			if (contents == null || contents.getType() == Material.AIR) {
+				invMaterials.add("null");
+				continue;
+			}
+
+			invMaterials.add(contents.getType().toString());
+		}
+
+		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
+		for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
+			if (ingredient.getMaterial() == null)
+				ingMaterials.add("null");
+
+			if (ingredient.getMaterial() != null)
+				ingMaterials.add(ingredient.getMaterial().toString());
+		}
+
+		if (inv.getType() == InventoryType.WORKBENCH
+				&& (invMaterials.size() != 9 || ingMaterials.size() != 9 || !invMaterials.containsAll(ingMaterials))) {
+			return false;
+		}
+
+		if (inv.getType() == InventoryType.CRAFTING && !invMaterials.containsAll(ingMaterials))
+			return false;
+
 		return true;
 	}
 
@@ -391,8 +442,10 @@ public class CraftManager implements Listener {
 
 		Player p = (Player) e.getView().getPlayer();
 
-		if (inv.getType() != InventoryType.WORKBENCH || !(matchedRecipe(inv)) || isBlacklisted(inv, p))
+		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
+				|| !(matchedRecipe(inv)) || isBlacklisted(inv, p))
 			return;
+
 		recipeName = configName().get(inv.getResult());
 
 		if (recipeName == null || !(api().hasRecipe(recipeName)))
@@ -404,22 +457,19 @@ public class CraftManager implements Listener {
 			passedCheck = true;
 			recipeName = recipes;
 
-			if (!findIngredients(inv, recipes)) {
+			if (!hasIngredients(inv, recipes)) {
 				if (debug())
 					debug("Recipe: " + recipeName + " | Materials did not match, skipping!");
-				found = false;
+				passedCheck = false;
 				continue;
 			}
 
-			found = true;
-			
 			if (debug())
 				debug("[2] Recipe Config: " + recipeName + " | Found Ingredients: "
 						+ Boolean.valueOf(findIngredients(inv, recipeName)));
 
-			if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
-					&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
-				return;
+			passedCheck = true;
+			found = true;
 
 			if (getConfig(recipeName).isBoolean(recipeName + ".Shapeless")
 					&& getConfig(recipeName).getBoolean(recipeName + ".Shapeless") == true) {
@@ -428,17 +478,8 @@ public class CraftManager implements Listener {
 				ArrayList<String> slotNames = new ArrayList<String>();
 				ArrayList<String> recipeNames = new ArrayList<String>();
 
-				for (int slot = 1; slot < 10; slot++) {
-					if (inv.getItem(slot) == null || !(inv.getItem(slot).getItemMeta().hasDisplayName())) {
-						slotNames.add("false");
-						continue;
-					}
-
-					if (!(NBTEditor.contains(inv.getItem(slot), "CUSTOM_ITEM_IDENTIFIER")))
-						break;
-
-					slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
-				}
+				ArrayList<Integer> recipeMD = new ArrayList<Integer>();
+				ArrayList<Integer> inventoryMD = new ArrayList<Integer>();
 
 				for (RecipeAPI.Ingredient names : recipeIngredients) {
 
@@ -446,6 +487,13 @@ public class CraftManager implements Listener {
 						break;
 
 					if (names.hasIdentifier() && identifier().containsKey(names.getIdentifier())) {
+
+						if (identifier().get(names.getIdentifier()).hasItemMeta()
+								&& identifier().get(names.getIdentifier()).getItemMeta().hasCustomModelData()) {
+							recipeMD.add(identifier().get(names.getIdentifier()).getItemMeta().getCustomModelData());
+							// grab ingredient model data
+						}
+
 						if (identifier().get(names.getIdentifier()).getItemMeta().hasDisplayName())
 							recipeNames.add(identifier().get(names.getIdentifier()).getItemMeta().getDisplayName());
 						else
@@ -453,6 +501,22 @@ public class CraftManager implements Listener {
 						continue;
 					}
 					recipeNames.add(names.getDisplayName());
+				}
+
+				for (int slot = 1; slot < 10; slot++) {
+					if (inv.getItem(slot) == null || !(inv.getItem(slot).getItemMeta().hasDisplayName())) {
+						slotNames.add("false");
+						continue;
+					}
+
+					if (inv.getItem(slot).hasItemMeta() && inv.getItem(slot).getItemMeta().hasCustomModelData()) {
+						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
+					}
+
+					if (!(NBTEditor.contains(inv.getItem(slot), "CUSTOM_ITEM_IDENTIFIER")))
+						break;
+
+					slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
 				}
 
 				if (debug()) {
@@ -467,17 +531,38 @@ public class CraftManager implements Listener {
 						getLogger().log(Level.SEVERE, names);
 				}
 
-				if (slotNames.size() != 9 || recipeNames.size() != 9 || !(slotNames.containsAll(recipeNames))
-						|| !(amountsMatch(inv, recipeName))) {
+				if (getConfig(recipeName).isSet(recipeName + ".Ignore-Model-Data")
+						&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Model-Data") == false
+						&& recipeMD.size() != inventoryMD.size()
+						&& (!recipeMD.containsAll(inventoryMD) || !inventoryMD.containsAll(recipeMD))) {
+					passedCheck = false;
+					continue;
+				}
+
+				if ((getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
+						&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == false)
+						&& (slotNames.size() != 9 || recipeNames.size() != 9 || !(slotNames.containsAll(recipeNames))
+								|| !(amountsMatch(inv, recipeName)))) {
 					passedCheck = false;
 					continue;
 				}
 
 			} else {
 
+				if (!findIngredients(inv, recipes)) {
+					if (debug())
+						debug("Recipe: " + recipeName + " | Materials did not match, skipping!");
+					found = false;
+					continue;
+				}
+
 				// runs check for non-shapeless recipes
 				if (debug())
 					debug("Checking for RECIPE: " + recipeName);
+
+				if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
+						&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
+					return;
 
 				int i = 0;
 
@@ -512,6 +597,10 @@ public class CraftManager implements Listener {
 							break;
 						}
 
+						if ((getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
+								&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true))
+							break;
+						
 						// checks if displayname is null
 						if ((!meta.hasDisplayName() && ingredient.hasDisplayName())
 								|| (meta.hasDisplayName() && !ingredient.hasDisplayName())) {
@@ -546,8 +635,10 @@ public class CraftManager implements Listener {
 						}
 					}
 				}
-				if (passedCheck || found)
-					break;
+			}
+
+			if (passedCheck || found) {
+				break;
 			}
 		}
 
@@ -559,11 +650,25 @@ public class CraftManager implements Listener {
 			return;
 		}
 
-		if (!(passedCheck) && (found))
+		if ((!passedCheck) && (found))
 			inv.setResult(new ItemStack(Material.AIR));
+
+		if (passedCheck && found) {
+			debug("FIRED SET RESULT");
+			inv.setResult(new ItemStack(identifier().get(recipeName)));
+		}
 
 		if (debug())
 			debug("Final Recipe Match: " + passedCheck + "| Recipe Pulled: " + recipeName + "| Found: " + found);
+	}
+
+	boolean isInt(String s) {
+		try {
+			Integer.parseInt(s);
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
 	}
 
 	boolean debug() {

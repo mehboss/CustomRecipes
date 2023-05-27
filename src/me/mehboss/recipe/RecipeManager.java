@@ -220,6 +220,11 @@ public class RecipeManager {
 				return;
 			}
 
+			if (!recipeConfig.isSet(item + ".Ignore-Model-Data")) {
+				recipeConfig.set(item + ".Ignore-Model-Data", false);
+				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
+			}
+
 			i = handleItemDamage(i, item, damage, type, amount); // handles ItemDamage
 			i = handleDurability(i, item);
 			i = handleEnchants(i, item);
@@ -328,7 +333,8 @@ public class RecipeManager {
 			for (String handleIngredients : newSlots) {
 				slot++;
 
-				Material itemMaterial = details.get(handleIngredients).split(":")[0].equals("null") ? null : Material.matchMaterial(details.get(handleIngredients).split(":")[0]);
+				Material itemMaterial = details.get(handleIngredients).split(":")[0].equals("null") ? null
+						: Material.matchMaterial(details.get(handleIngredients).split(":")[0]);
 				String itemName = details.get(handleIngredients).split(":")[1];
 				String itemIdentifier = details.get(handleIngredients).split(":")[2];
 

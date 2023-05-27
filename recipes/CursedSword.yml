@@ -5,6 +5,7 @@ CursedSword:
   Item-Damage: 'none'
   Amount: 1
   Ignore-Data: false
+  Ignore-Model-Data: false
   Custom-Tagged: true
   Identifier: 'CURSED_SWORD'
   Permission: 'crecipe.recipe.cursedsword'

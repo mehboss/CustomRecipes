@@ -300,7 +300,7 @@ public class CraftManager implements Listener {
 			});
 
 			if (inv.getResult() != null && inv.getResult().equals(result))
-				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 5L);
+				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 1L);
 
 			return;
 		}
@@ -649,7 +649,6 @@ public class CraftManager implements Listener {
 			inv.setResult(new ItemStack(Material.AIR));
 
 		if (passedCheck && found) {
-			debug("FIRED SET RESULT");
 			inv.setResult(new ItemStack(identifier().get(recipeName)));
 		}
 

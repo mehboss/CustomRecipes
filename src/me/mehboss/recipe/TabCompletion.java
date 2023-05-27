@@ -24,27 +24,32 @@ public class TabCompletion implements TabCompleter {
 			// Tab complete for /customrecipes reload
 			// Tab complete for /customrecipes gui
 			List<String> subCommands = new ArrayList<>();
-			
-			subCommands.add("debug");
-			subCommands.add("list");
-			subCommands.add("give");
-			subCommands.add("reload");
-			subCommands.add("gui");
-			
+
+			if (sender.hasPermission("crecipe.debug"))
+				subCommands.add("debug");
+			if (sender.hasPermission("crecipe.list"))
+				subCommands.add("list");
+			if (sender.hasPermission("crecipe.give"))
+				subCommands.add("give");
+			if (sender.hasPermission("crecipe.reload"))
+				subCommands.add("reload");
+			if (sender.hasPermission("crecipe.gui"))
+				subCommands.add("gui");
+
 			StringUtil.copyPartialMatches(args[0], subCommands, completions);
-		} else if (args.length > 1 && !args[0].equals("give")) {
+		} else if (args.length > 1 && !args[0].equals("give") && sender.hasPermission("crecipe.give")) {
 			return completions;
-			
-		} else if (args.length == 2) {
+
+		} else if (args.length == 2 && sender.hasPermission("crecipe.give")) {
 			// Tab complete for /customrecipes give <player>
-			
+
 			List<String> playerNames = getOnlinePlayerNames();
 			StringUtil.copyPartialMatches(args[1], playerNames, completions);
-			
-		} else if (args.length == 3) {
+
+		} else if (args.length == 3 && sender.hasPermission("crecipe.give")) {
 			// Tab complete for /customrecipes give <player> <recipelist>
 			Collection<String> recipeNames = getRecipes();
-			
+
 			StringUtil.copyPartialMatches(args[2], recipeNames, completions);
 		}
 

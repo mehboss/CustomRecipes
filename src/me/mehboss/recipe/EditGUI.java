@@ -1,5 +1,6 @@
 package me.mehboss.recipe;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -8,6 +9,9 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -42,6 +46,14 @@ public class EditGUI implements Listener {
 		return instance;
 	}
 
+	FileConfiguration getConfig(String recipeName) {
+		File dataFolder = Main.getInstance().getDataFolder();
+		File recipesFolder = new File(dataFolder, "recipes");
+		File recipeFile = new File(recipesFolder, recipeName + ".yml");
+
+		return YamlConfiguration.loadConfiguration(recipeFile);
+	}
+
 	public void setItems(Inventory i, String invname, ItemStack item) {
 
 		String configname = invname;
@@ -61,25 +73,24 @@ public class EditGUI implements Listener {
 		ItemStack identifier = XMaterial.PAPER.parseItem();
 		ItemMeta identifierm = identifier.getItemMeta();
 		identifierm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fIdentifier:&7 "));
-		loreList.add(ChatColor.GRAY + Main.getInstance().getConfig().getString("Items." + configname + ".Identifier"));
+		loreList.add(ChatColor.GRAY + getConfig(configname).getString(configname + ".Identifier"));
 		identifierm.setLore(loreList);
 		identifier.setItemMeta(identifierm);
 		loreList.clear();
 
 		ItemStack lore = XMaterial.BOOK.parseItem();
-		if (item.getItemMeta().hasLore()) {
-			ItemMeta lorem = lore.getItemMeta();
-			lorem.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fLore"));
+		ItemMeta lorem = lore.getItemMeta();
+		lorem.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fLore"));
+
+		if (item.hasItemMeta() && item.getItemMeta().hasLore())
 			lorem.setLore(item.getItemMeta().getLore());
-			lore.setItemMeta(lorem);
-		}
+		lore.setItemMeta(lorem);
 
 		ItemStack effects = XMaterial.GHAST_TEAR.parseItem();
 		ItemMeta effectsm = effects.getItemMeta();
 		effectsm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fEffects"));
-		if (Main.getInstance().getConfig().getStringList("Items." + configname + ".Effects") != null) {
-			for (String effectslore : Main.getInstance().getConfig()
-					.getStringList("Items." + configname + ".Effects")) {
+		if (getConfig(configname).getString(configname + ".Effects") != null) {
+			for (String effectslore : getConfig(configname).getStringList(configname + ".Effects")) {
 				loreList.add(ChatColor.GRAY + effectslore);
 			}
 			effectsm.setLore(loreList);
@@ -90,9 +101,8 @@ public class EditGUI implements Listener {
 		ItemStack enchants = XMaterial.EXPERIENCE_BOTTLE.parseItem();
 		ItemMeta enchantsm = effects.getItemMeta();
 		enchantsm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fEnchantments"));
-		if (Main.getInstance().getConfig().getStringList("Items." + configname + ".Enchantments") != null) {
-			for (String enchantslore : Main.getInstance().getConfig()
-					.getStringList("Items." + configname + ".Enchantments")) {
+		if (getConfig(configname).getStringList(configname + ".Enchantments") != null) {
+			for (String enchantslore : getConfig(configname).getStringList(configname + ".Enchantments")) {
 				loreList.add(ChatColor.GRAY + enchantslore);
 			}
 			enchantsm.setLore(loreList);
@@ -103,14 +113,17 @@ public class EditGUI implements Listener {
 		ItemStack permission = XMaterial.ENDER_PEARL.parseItem();
 		ItemMeta permissionm = permission.getItemMeta();
 		permissionm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fPermission: &7"));
-		loreList.add(ChatColor.GRAY + Main.getInstance().getConfig().getString("Items." + configname + ".Permission"));
+
+		if (getConfig(configname).isSet(configname + ".Permission")
+				&& !getConfig(configname).getString(configname + ".Permission").equals("none"))
+			loreList.add(ChatColor.GRAY + getConfig(configname).getString(configname + ".Permission"));
 		permissionm.setLore(loreList);
 		permission.setItemMeta(permissionm);
 		loreList.clear();
 
 		ItemStack hideenchants = XMaterial.ENCHANTING_TABLE.parseItem();
 		ItemMeta hideenchantsm = hideenchants.getItemMeta();
-		Boolean hc = Main.getInstance().getConfig().getBoolean("Items." + configname + ".Hide-Enchants");
+		Boolean hc = getConfig(configname).getBoolean(configname + ".Hide-Enchants");
 		String ht = "&cfalse";
 
 		if (hc == true)
@@ -121,7 +134,7 @@ public class EditGUI implements Listener {
 
 		ItemStack shapeless = XMaterial.CRAFTING_TABLE.parseItem();
 		ItemMeta shapelessm = shapeless.getItemMeta();
-		Boolean sc = Main.getInstance().getConfig().getBoolean("Items." + configname + ".Shapeless");
+		Boolean sc = getConfig(configname).getBoolean(configname + ".Shapeless");
 		String toggle = "&cfalse";
 
 		if (sc == true)
@@ -133,8 +146,11 @@ public class EditGUI implements Listener {
 		ItemStack name = XMaterial.WRITABLE_BOOK.parseItem();
 		ItemMeta namem = name.getItemMeta();
 		namem.setDisplayName(ChatColor.WHITE + "Recipe Name: ");
-		loreList.add(ChatColor.translateAlternateColorCodes('&',
-				Main.getInstance().getConfig().getString("Items." + configname + ".Name")));
+
+		if (getConfig(configname).isSet(configname + ".Name")
+				&& !getConfig(configname).getString(configname + ".Name").equals("none"))
+			loreList.add(
+					ChatColor.translateAlternateColorCodes('&', getConfig(configname).getString(configname + ".Name")));
 		namem.setLore(loreList);
 		name.setItemMeta(namem);
 		loreList.clear();
@@ -142,7 +158,7 @@ public class EditGUI implements Listener {
 		ItemStack amount = XMaterial.FEATHER.parseItem();
 		ItemMeta amountm = amount.getItemMeta();
 		amountm.setDisplayName(ChatColor.translateAlternateColorCodes('&',
-				"&fAmount: &7" + Main.getInstance().getConfig().getString("Items." + configname + ".Amount")));
+				"&fAmount: &7" + getConfig(configname).getString(configname + ".Amount")));
 		amount.setItemMeta(amountm);
 
 		i.setItem(7, identifier);
@@ -159,14 +175,14 @@ public class EditGUI implements Listener {
 		ItemMeta enabledm = enabled.getItemMeta();
 		enabledm.setDisplayName(ChatColor.GREEN + "Enabled");
 		enabled.setItemMeta(enabledm);
-		if (Main.getInstance().getConfig().getBoolean("Items." + configname + ".Enabled") == false) {
+		if (getConfig(configname).getBoolean(configname + ".Enabled") == false) {
 			enabled = XMaterial.SNOWBALL.parseItem();
 			enabledm.setDisplayName(ChatColor.RED + "Disabled");
 			enabled.setItemMeta(enabledm);
 		}
 		i.setItem(40, enabled);
 
-		ItemStack result = Main.getInstance().giveRecipe.get(configname);
+		ItemStack result = Main.getInstance().giveRecipe.get(configname.toLowerCase());
 		i.setItem(23, result);
 
 		ItemStack cancel = XMaterial.RED_STAINED_GLASS_PANE.parseItem();
@@ -202,8 +218,12 @@ public class EditGUI implements Listener {
 			}
 
 			ItemStack mat = XMaterial.matchXMaterial(materials).get().parseItem();
+			mat.setAmount(getAmounts(configname, slot));
 			ItemMeta matm = mat.getItemMeta();
-			matm.setDisplayName(getNames(configname, slot));
+
+			if (getNames(configname, slot) != null)
+				matm.setDisplayName(getNames(configname, slot));
+
 			mat.setItemMeta(matm);
 
 			if (slot == 1)
@@ -237,16 +257,19 @@ public class EditGUI implements Listener {
 
 		letter.put("X", "false");
 
-		for (String In : Main.getInstance().getConfig().getStringList("Items." + recipename + ".Ingredients")) {
-
-			String[] newsplit = In.split(":");
-
-			if (XMaterial.matchXMaterial(newsplit[1]).isPresent()) {
-				letter.put(newsplit[0], ChatColor.translateAlternateColorCodes('&', newsplit[1]));
+		ConfigurationSection ingredientsSection = getConfig(recipename)
+				.getConfigurationSection(recipename + ".Ingredients");
+		if (ingredientsSection != null) {
+			for (String ingredientKey : ingredientsSection.getKeys(false)) {
+				ConfigurationSection ingredient = ingredientsSection.getConfigurationSection(ingredientKey);
+				if (ingredient != null) {
+					String identifier = ingredient.getString("Material");
+					letter.put(ingredientKey, identifier);
+				}
 			}
 		}
 
-		List<String> r = Main.getInstance().getConfig().getStringList("Items." + recipename + ".ItemCrafting");
+		List<String> r = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
 		String row1 = r.get(0);
 		String row2 = r.get(1);
 		String row3 = r.get(2);
@@ -278,49 +301,100 @@ public class EditGUI implements Listener {
 		return materials;
 	}
 
-	public String getNames(String recipename, int slot) {
-		HashMap<String, String> letter = new HashMap<String, String>();
+	public int getAmounts(String recipename, int slot) {
+		HashMap<String, Integer> letter = new HashMap<String, Integer>();
+		letter.put("X", 0);
 
-		letter.put("X", "false");
-
-		for (String In : Main.getInstance().getConfig().getStringList("Items." + recipename + ".Ingredients")) {
-
-			String[] newsplit = In.split(":");
-
-			if (newsplit.length == 3) {
-				letter.put(newsplit[0], "false");
-			} else if (newsplit.length > 3) {
-				letter.put(newsplit[0], ChatColor.translateAlternateColorCodes('&', newsplit[3]));
+		ConfigurationSection ingredientsSection = getConfig(recipename)
+				.getConfigurationSection(recipename + ".Ingredients");
+		if (ingredientsSection != null) {
+			for (String ingredientKey : ingredientsSection.getKeys(false)) {
+				ConfigurationSection ingredient = ingredientsSection.getConfigurationSection(ingredientKey);
+				if (ingredient != null) {
+					int identifier = ingredient.isSet("Amount") ? ingredient.getInt("Amount") : 1;
+					letter.put(ingredientKey, identifier);
+				}
 			}
 		}
 
-		List<String> r = Main.getInstance().getConfig().getStringList("Items." + recipename + ".ItemCrafting");
-		String row1 = r.get(0);
-		String row2 = r.get(1);
-		String row3 = r.get(2);
+		List<String> craftingRows = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
+		if (craftingRows.size() >= 3) {
+			String row1 = craftingRows.get(0);
+			String row2 = craftingRows.get(1);
+			String row3 = craftingRows.get(2);
 
-		String[] newsplit1 = row1.split("");
-		String[] newsplit2 = row2.split("");
-		String[] newsplit3 = row3.split("");
+			String[] row1Split = row1.split("");
+			String[] row2Split = row2.split("");
+			String[] row3Split = row3.split("");
 
-		if (slot == 1)
-			return letter.get(newsplit1[0]);
-		if (slot == 2)
-			return letter.get(newsplit1[1]);
-		if (slot == 3)
-			return letter.get(newsplit1[2]);
-		if (slot == 4)
-			return letter.get(newsplit2[0]);
-		if (slot == 5)
-			return letter.get(newsplit2[1]);
-		if (slot == 6)
-			return letter.get(newsplit2[2]);
-		if (slot == 7)
-			return letter.get(newsplit3[0]);
-		if (slot == 8)
-			return letter.get(newsplit3[1]);
-		if (slot == 9)
-			return letter.get(newsplit3[2]);
+			if (slot == 1)
+				return letter.get(row1Split[0]);
+			if (slot == 2)
+				return letter.get(row1Split[1]);
+			if (slot == 3)
+				return letter.get(row1Split[2]);
+			if (slot == 4)
+				return letter.get(row2Split[0]);
+			if (slot == 5)
+				return letter.get(row2Split[1]);
+			if (slot == 6)
+				return letter.get(row2Split[2]);
+			if (slot == 7)
+				return letter.get(row3Split[0]);
+			if (slot == 8)
+				return letter.get(row3Split[1]);
+			if (slot == 9)
+				return letter.get(row3Split[2]);
+		}
+
+		return 0;
+	}
+	
+	public String getNames(String recipename, int slot) {
+		HashMap<String, String> letter = new HashMap<String, String>();
+		letter.put("X", "false");
+
+		ConfigurationSection ingredientsSection = getConfig(recipename)
+				.getConfigurationSection(recipename + ".Ingredients");
+		if (ingredientsSection != null) {
+			for (String ingredientKey : ingredientsSection.getKeys(false)) {
+				ConfigurationSection ingredient = ingredientsSection.getConfigurationSection(ingredientKey);
+				if (ingredient != null) {
+					String identifier = ingredient.isSet("Name") ? ingredient.getString("Name") : null;
+					letter.put(ingredientKey, identifier);
+				}
+			}
+		}
+
+		List<String> craftingRows = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
+		if (craftingRows.size() >= 3) {
+			String row1 = craftingRows.get(0);
+			String row2 = craftingRows.get(1);
+			String row3 = craftingRows.get(2);
+
+			String[] row1Split = row1.split("");
+			String[] row2Split = row2.split("");
+			String[] row3Split = row3.split("");
+
+			if (slot == 1)
+				return letter.get(row1Split[0]);
+			if (slot == 2)
+				return letter.get(row1Split[1]);
+			if (slot == 3)
+				return letter.get(row1Split[2]);
+			if (slot == 4)
+				return letter.get(row2Split[0]);
+			if (slot == 5)
+				return letter.get(row2Split[1]);
+			if (slot == 6)
+				return letter.get(row2Split[2]);
+			if (slot == 7)
+				return letter.get(row3Split[0]);
+			if (slot == 8)
+				return letter.get(row3Split[1]);
+			if (slot == 9)
+				return letter.get(row3Split[2]);
+		}
 
 		return null;
 	}

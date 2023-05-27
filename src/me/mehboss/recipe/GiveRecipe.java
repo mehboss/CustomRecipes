@@ -26,7 +26,7 @@ public class GiveRecipe implements CommandExecutor {
 	FileConfiguration debug() {
 		return Main.getInstance().getConfig();
 	}
-	
+
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String arg2, String[] args) {
 
@@ -72,7 +72,8 @@ public class GiveRecipe implements CommandExecutor {
 					return false;
 				}
 
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reloading")));
+				sender.sendMessage(
+						ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reloading")));
 
 				plugin.reload();
 				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reload")));
@@ -86,17 +87,15 @@ public class GiveRecipe implements CommandExecutor {
 							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 					return false;
 				}
-
-				p.sendMessage(ChatColor.RED + "This feature is coming soon and is not fully ready yet!");
+				p.sendMessage(ChatColor.RED + "GUI is currently undergoing maintenance. Come back soon!");
 //				Main.recipes.show(p);
-//				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug.getString("gui.Open-Message"));
+//				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
 //				p.sendMessage(OpenMessage);
-
+//
 //				try {
-//					p.playSound(p.getLocation(), Sound.valueOf(debug.getString("gui.Open-Sound").toUpperCase()), 1, 1);
+//					p.playSound(p.getLocation(), Sound.valueOf(debug().getString("gui.Open-Sound").toUpperCase()), 1,
+//							1);
 //				} catch (IllegalArgumentException e) {
-//					plugin.getLogger().log(Level.SEVERE,
-//							"Error while opening the GUI menu! You must update the sounds in your config to correspond with your server version!");
 //				}
 				return true;
 			}
@@ -131,50 +130,51 @@ public class GiveRecipe implements CommandExecutor {
 			}
 
 			if (args.length >= 1 && args[0].equalsIgnoreCase("list")) {
-			    if (!sender.hasPermission("crecipe.list")) {
-			        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
-			        return false;
-			    }
-			    int page = 1;
-			    if (args.length == 2) {
-			        try {
-			            page = Integer.parseInt(args[1]);
-			        } catch (NumberFormatException e) {
-			            sender.sendMessage(ChatColor.RED + "Invalid page number.");
-			            return false;
-			        }
-			    }
+				if (!sender.hasPermission("crecipe.list")) {
+					sender.sendMessage(
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
+					return false;
+				}
+				int page = 1;
+				if (args.length == 2) {
+					try {
+						page = Integer.parseInt(args[1]);
+					} catch (NumberFormatException e) {
+						sender.sendMessage(ChatColor.RED + "Invalid page number.");
+						return false;
+					}
+				}
 
-			    List<String> recipes = new ArrayList<>(Main.getInstance().configName.values());
+				List<String> recipes = new ArrayList<>(Main.getInstance().configName.values());
 
-			    // Sort the recipes alphabetically
-			    Collections.sort(recipes, String.CASE_INSENSITIVE_ORDER);
+				// Sort the recipes alphabetically
+				Collections.sort(recipes, String.CASE_INSENSITIVE_ORDER);
 
-			    int totalRecipes = recipes.size();
-			    int pageSize = 6;
-			    int totalPages = (int) Math.ceil((double) totalRecipes / pageSize);
+				int totalRecipes = recipes.size();
+				int pageSize = 6;
+				int totalPages = (int) Math.ceil((double) totalRecipes / pageSize);
 
-			    if (page < 1 || page > totalPages) {
-			        sender.sendMessage(ChatColor.RED + "Invalid page number.");
-			        return false;
-			    }
+				if (page < 1 || page > totalPages) {
+					sender.sendMessage(ChatColor.RED + "Invalid page number.");
+					return false;
+				}
 
-			    int startIndex = (page - 1) * pageSize;
-			    int endIndex = Math.min(startIndex + pageSize, totalRecipes);
+				int startIndex = (page - 1) * pageSize;
+				int endIndex = Math.min(startIndex + pageSize, totalRecipes);
 
-			    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-			            "&8-------------------------------------------------"));
-			    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-			            "&cCurrent Recipes (Page " + page + "/" + totalPages + "):"));
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+						"&8-------------------------------------------------"));
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+						"&cCurrent Recipes (Page " + page + "/" + totalPages + "):"));
 
-			    for (int i = startIndex; i < endIndex; i++) {
-			        String recipe = recipes.get(i);
-			        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "   &f" + recipe));
-			    }
+				for (int i = startIndex; i < endIndex; i++) {
+					String recipe = recipes.get(i);
+					sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "   &f" + recipe));
+				}
 
-			    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-			            "&8-------------------------------------------------"));
-			    return false;
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+						"&8-------------------------------------------------"));
+				return false;
 			}
 
 			if (args[0].equalsIgnoreCase("give")) {
@@ -196,14 +196,14 @@ public class GiveRecipe implements CommandExecutor {
 				Player target = Bukkit.getPlayer(args[1]);
 
 				if (target == null) {
-					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Player-Not-Found")));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+							debug().getString("Messages.Player-Not-Found")));
 					return true;
 				}
 
 				if (plugin.giveRecipe.get(args[2].toLowerCase()) == null) {
-					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Recipe-Not-Found")));
+					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
+							debug().getString("Messages.Recipe-Not-Found")));
 					return true;
 				}
 

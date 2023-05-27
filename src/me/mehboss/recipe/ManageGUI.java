@@ -1,6 +1,9 @@
 package me.mehboss.recipe;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -42,6 +45,8 @@ public class ManageGUI implements Listener {
 		items(inv, 0);
 	}
 
+	HashMap<Integer, String> itemMaps = new HashMap<Integer, String>();
+	
 	@EventHandler
 	public void onClick(InventoryClickEvent e) {
 		if (e.getClickedInventory() == null) {
@@ -80,12 +85,13 @@ public class ManageGUI implements Listener {
 					}
 
 					if (e.getRawSlot() == 50) {
+						if (e.getInventory().firstEmpty() != -1) {
+							return;
+						}
+						
 						newpage++;
 					}
 
-					if (e.getInventory().firstEmpty() != -1) {
-						return;
-					}
 
 					String newname = ChatColor.translateAlternateColorCodes('&',
 							original.replaceAll(String.valueOf(currentpage), String.valueOf(newpage)));
@@ -102,11 +108,10 @@ public class ManageGUI implements Listener {
 					return;
 				}
 
-				if (Main.getInstance().configName.containsKey(e.getCurrentItem())) {
-					String name = Main.getInstance().configName.get(e.getCurrentItem());
+				if (Main.getInstance().giveRecipe.containsKey(e.getCurrentItem().getItemMeta().getDisplayName().toLowerCase())) {
+					String name = e.getCurrentItem().getItemMeta().getDisplayName();
 					Inventory edit = Bukkit.getServer().createInventory(null, 54,
-							ChatColor.translateAlternateColorCodes('&',
-									"&cEDITING: " + name));
+							ChatColor.translateAlternateColorCodes('&', "&cEDITING: " + name));
 					EditGUI.getInstance().setItems(edit, name, e.getCurrentItem());
 					p.closeInventory();
 					p.openInventory(edit);
@@ -120,13 +125,24 @@ public class ManageGUI implements Listener {
 	private void items(Inventory inv, int page) {
 
 		int[] slots = { 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34 };
+		ArrayList<String> items = new ArrayList<>(Main.getInstance().configName.values());
+		Collections.sort(items);
 
-		for (int slot = page * slots.length; slot < (page + 1) * slots.length; slot++) {
-			if (slot >= Main.getInstance().menui.size()) {
-				break;
-			}
+		int startSlot = page * slots.length;
 
-			inv.setItem(slots[slot - page * slots.length], Main.getInstance().menui.get(slot));
+		for (int slot = 0; slot < slots.length; slot++) {
+		    int index = startSlot + slot;
+		    if (index >= items.size()) {
+		        break;
+		    }
+		    
+		    ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
+		    ItemMeta itemM = item.getItemMeta();
+
+		    itemM.setDisplayName(items.get(index));
+		    item.setItemMeta(itemM);
+
+		    inv.setItem(slots[slot], item);
 		}
 
 		// page 1 get 1-14

@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -21,6 +22,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import net.md_5.bungee.api.ChatMessageType;
@@ -34,7 +36,7 @@ public class Main extends JavaPlugin implements Listener {
 	EditGUI editItem;
 
 	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
-	
+
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
 	HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
@@ -62,37 +64,37 @@ public class Main extends JavaPlugin implements Listener {
 	String newupdate = null;
 
 	RecipeAPI api;
-	
+
 	public void copyMessagesToConfig() {
-	    File messagesFile = new File(getDataFolder() + "/messages.yml");
-	    
-	    if (messagesFile.exists()) {
-	        YamlConfiguration messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+		File messagesFile = new File(getDataFolder() + "/messages.yml");
 
-	        // Copy the values from messages.yml to config.yml
-	        getConfig().set("Debug", messagesConfig.getBoolean("Debug"));
-	        getConfig().set("Update-Check", messagesConfig.getBoolean("Update-Check"));
-	        getConfig().set("Messages", messagesConfig.getConfigurationSection("Messages"));
-	        getConfig().set("action-bar", messagesConfig.getConfigurationSection("action-bar"));
-	        getConfig().set("chat-message", messagesConfig.getConfigurationSection("chat-message"));
-	        getConfig().set("add", messagesConfig.getConfigurationSection("add"));
-	        getConfig().set("gui", messagesConfig.getConfigurationSection("gui"));
+		if (messagesFile.exists()) {
+			YamlConfiguration messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
 
-	        // Set the firstLoad value to false
-	        getConfig().set("firstLoad", false);
-	        saveConfig();
+			// Copy the values from messages.yml to config.yml
+			getConfig().set("Debug", messagesConfig.getBoolean("Debug"));
+			getConfig().set("Update-Check", messagesConfig.getBoolean("Update-Check"));
+			getConfig().set("Messages", messagesConfig.getConfigurationSection("Messages"));
+			getConfig().set("action-bar", messagesConfig.getConfigurationSection("action-bar"));
+			getConfig().set("chat-message", messagesConfig.getConfigurationSection("chat-message"));
+			getConfig().set("add", messagesConfig.getConfigurationSection("add"));
+			getConfig().set("gui", messagesConfig.getConfigurationSection("gui"));
 
-	        getLogger().log(Level.INFO, "Successfully copied messages.yml to config.yml.");
-	        
-	        // Delete the messages.yml file
-	        messagesFile.delete();
-	    }
+			// Set the firstLoad value to false
+			getConfig().set("firstLoad", false);
+			saveConfig();
+
+			getLogger().log(Level.INFO, "Successfully copied messages.yml to config.yml.");
+
+			// Delete the messages.yml file
+			messagesFile.delete();
+		}
 	}
 
 	void transferRecipesFromConfig() {
 		// Get the configuration section containing the recipes in the config.yml
 		copyMessagesToConfig();
-		
+
 		ConfigurationSection recipeSection = getConfig().getConfigurationSection("Items");
 
 		// Check if the section exists and contains any recipes
@@ -162,7 +164,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Save the updated config.ym
 		saveConfig();
-        getLogger().log(Level.INFO, "Successfully transfered recipes into their own files.");
+		getLogger().log(Level.INFO, "Successfully transfered recipes into their own files.");
 	}
 
 	void convertRecipeFormat(ConfigurationSection recipeConfig) {
@@ -259,7 +261,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	@Override
 	public void onEnable() {
-        
+
 		instance = this;
 		api = new RecipeAPI();
 		plugin = new RecipeManager();
@@ -312,7 +314,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (isFirstLoad && getConfig().isSet("firstLoad"))
 			getConfig().set("firstLoad", false);
 		saveConfig();
-		
+
 		debug = getConfig().getBoolean("Debug");
 
 		plugin.addItems();
@@ -325,7 +327,17 @@ public class Main extends JavaPlugin implements Listener {
 		recipes = new ManageGUI(this, null);
 		editItem = new EditGUI(Main.getInstance(), null);
 
-		getCommand("crecipe").setExecutor(new GiveRecipe(this));
+		PluginCommand crecipeCommand = getCommand("crecipe");
+		crecipeCommand.setExecutor(new GiveRecipe(this));
+
+		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+		if (!version.contains("1_14") && !version.contains("1_13") && !version.contains("1_12")
+				&& !version.contains("1_11") && !version.contains("1_10") && !version.contains("1_9")
+				&& !version.contains("1_8") && !version.contains("1_7")) {
+			TabCompletion tabCompleter = new TabCompletion();
+			crecipeCommand.setTabCompleter(tabCompleter);
+		}
+		
 		getCommand("edititem").setExecutor(new NBTCommands());
 		addItem = new AddGUI(this, null);
 

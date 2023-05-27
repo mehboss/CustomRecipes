@@ -37,14 +37,13 @@ public class TabCompletion implements TabCompleter {
 			
 		} else if (args.length == 2) {
 			// Tab complete for /customrecipes give <player>
-			// Replace 'getOnlinePlayerNames()' with your logic to fetch online player names
 			
 			List<String> playerNames = getOnlinePlayerNames();
 			StringUtil.copyPartialMatches(args[1], playerNames, completions);
 			
 		} else if (args.length == 3) {
 			// Tab complete for /customrecipes give <player> <recipelist>
-			Collection<String> recipeNames = getRecipes(); // Replace with your logic to fetch recipe names
+			Collection<String> recipeNames = getRecipes();
 			
 			StringUtil.copyPartialMatches(args[2], recipeNames, completions);
 		}
@@ -53,8 +52,6 @@ public class TabCompletion implements TabCompleter {
 	}
 
 	private List<String> getOnlinePlayerNames() {
-		// Replace this with your logic to fetch online player names
-		// Here's an example using Bukkit API
 		List<String> playerNames = new ArrayList<>();
 		for (Player player : Bukkit.getOnlinePlayers()) {
 			playerNames.add(player.getName());
@@ -63,8 +60,6 @@ public class TabCompletion implements TabCompleter {
 	}
 
 	private Collection<String> getRecipes() {
-		// Replace this with your logic to fetch recipe names
-		// Here's an example using Main.getInstance().configName.values()
 		return Main.getInstance().configName.values();
 	}
 }

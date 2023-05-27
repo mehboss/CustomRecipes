@@ -35,13 +35,8 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitScheduler;
-
-import com.mysql.cj.x.protobuf.MysqlxExpr.Identifier;
-
-import me.mehboss.recipe.NBTEditor.NBTCompound;
 import me.mehboss.recipe.RecipeAPI.Ingredient;
 
 public class CraftManager implements Listener {

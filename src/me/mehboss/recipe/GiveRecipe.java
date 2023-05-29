@@ -30,13 +30,8 @@ public class GiveRecipe implements CommandExecutor {
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String arg2, String[] args) {
 
-		if (!(sender instanceof Player)) {
-			sender.sendMessage("You must be a player in order to use this command!");
-			return false;
-		}
-
-		Player p = (Player) sender;
-
+		CommandSender p = sender;
+		
 		if (args.length == 0) {
 			if (!(p.hasPermission("crecipe.help"))) {
 				sender.sendMessage(
@@ -82,12 +77,19 @@ public class GiveRecipe implements CommandExecutor {
 			}
 
 			if (args.length == 1 && args[0].equalsIgnoreCase("gui")) {
+				if (!(sender instanceof Player)) {
+					sender.sendMessage("You must be a player in order to use this command!");
+					return false;
+				}
+				
+				Player player = (Player) sender;
+				
 				if (!sender.hasPermission("crecipe.gui")) {
 					sender.sendMessage(
 							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 					return false;
 				}
-				p.sendMessage(ChatColor.RED + "GUI is currently undergoing maintenance. Come back soon!");
+				player.sendMessage(ChatColor.RED + "GUI is currently undergoing maintenance. Come back soon!");
 //				Main.recipes.show(p);
 //				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
 //				p.sendMessage(OpenMessage);

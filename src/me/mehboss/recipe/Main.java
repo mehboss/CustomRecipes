@@ -301,11 +301,12 @@ public class Main extends JavaPlugin implements Listener {
 		if (getConfig().isSet("firstLoad"))
 			isFirstLoad = getConfig().getBoolean("firstLoad");
 
+		initCustomYml();
+		
 		saveCustomYml(customConfig, customYml);
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 		saveCustomYml(cursedConfig, cursedYml);
-		initCustomYml();
 
 		saveAllCustomYml();
 		transferRecipesFromConfig();
@@ -370,8 +371,8 @@ public class Main extends JavaPlugin implements Listener {
 	public void reload() {
 		clear();
 
-		saveCustomYml(customConfig, customYml);
 		initCustomYml();
+		saveCustomYml(customConfig, customYml);
 
 		saveAllCustomYml();
 

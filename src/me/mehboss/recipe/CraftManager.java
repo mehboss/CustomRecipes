@@ -139,13 +139,12 @@ public class CraftManager implements Listener {
 
 				String getPerm = customConfig().getString("vanilla-recipes." + item + ".permission");
 
+				if (i == null)
+					return false;
+				
 				if ((NBTEditor.contains(i, "CUSTOM_ITEM_IDENTIFIER", id)
 						&& NBTEditor.getString(i, "CUSTOM_ITEM_IDENTIFIER", id).equals(id)
 						&& !identifier().containsKey(id)) || inv.getResult().isSimilar(i)) {
-
-					if (i == null) {
-						getPerm = customConfig().getString("custom-recipes." + item + ".permission");
-					}
 
 					if (getPerm != null && !(getPerm.equalsIgnoreCase("none"))) {
 						if (p.hasPermission("crecipe." + getPerm)) {

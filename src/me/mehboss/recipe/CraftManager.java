@@ -647,8 +647,8 @@ public class CraftManager implements Listener {
 		if ((!passedCheck) && (found))
 			inv.setResult(new ItemStack(Material.AIR));
 
-		if (passedCheck && found) {
-			inv.setResult(new ItemStack(identifier().get(recipeName)));
+		if (passedCheck && found && giveRecipe().containsKey(recipeName.toLowerCase())) {
+			inv.setResult(new ItemStack(giveRecipe().get(recipeName.toLowerCase())));
 		}
 
 		if (debug())
@@ -686,6 +686,10 @@ public class CraftManager implements Listener {
 		Main.getInstance().sendMessage(p);
 	}
 
+	HashMap<String, ItemStack> giveRecipe() {
+		return Main.getInstance().giveRecipe;
+	}
+	
 	HashMap<String, ItemStack> identifier() {
 		return Main.getInstance().identifier;
 	}

@@ -213,11 +213,12 @@ public class RecipeManager {
 			Optional<XMaterial> type = XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase());
 
 			if (!type.isPresent()) {
-				getLogger().log(Level.SEVERE,
-						"Dear message from Custom-Recipes: We are having trouble matching the material " + type
-								+ " to a minecraft item. Please double check you have inputted the correct material "
-								+ "ID in the config and try again. If this problem persists please contact Mehboss on Spigot!");
-				return;
+				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
+				getLogger().log(Level.SEVERE, "We are having trouble matching the material "
+						+ getConfig().getString(item + ".Item").toUpperCase()
+						+ " to a minecraft item. Please double check you have inputted the correct material enum into the 'Item'"
+						+ " section and try again. If this problem persists please contact Mehboss on Spigot!");
+				continue;
 			}
 
 			if (!recipeConfig.isSet(item + ".Ignore-Model-Data")) {
@@ -284,9 +285,10 @@ public class RecipeManager {
 				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
 
 				if (!ingredientMaterial.isPresent() || finishedMaterial == null) {
+					getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
 					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
 							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
-							+ "ID into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
+							+ "ENUM into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
 					return;
 				}
 

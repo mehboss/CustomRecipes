@@ -301,13 +301,13 @@ public class Main extends JavaPlugin implements Listener {
 		if (getConfig().isSet("firstLoad"))
 			isFirstLoad = getConfig().getBoolean("firstLoad");
 
-		initCustomYml();
 		
 		saveCustomYml(customConfig, customYml);
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 		saveCustomYml(cursedConfig, cursedYml);
-
+		initCustomYml();
+		
 		saveAllCustomYml();
 		transferRecipesFromConfig();
 
@@ -386,6 +386,9 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	public void disableRecipes() {
+		if (customConfig == null)
+			return; 
+		
 		for (String vanilla : customConfig.getConfigurationSection("vanilla-recipes").getKeys(false)) {
 			disabledrecipe.add(vanilla);
 		}

@@ -45,7 +45,7 @@ public class RecipeManager {
 
 	@SuppressWarnings("deprecation")
 	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
-		if (getConfig().isSet(item + ".Item-Damage") && damage.equalsIgnoreCase("none")) {
+		if (!getConfig().isSet(item + ".Item-Damage") || damage.equalsIgnoreCase("none")) {
 			return new ItemStack(type.get().parseMaterial(), amount);
 		} else {
 			return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
@@ -190,8 +190,11 @@ public class RecipeManager {
 
 			String item = recipeFile.getName().replace(".yml", "");
 
-			if (!(recipeConfig.isConfigurationSection(item)))
-				return;
+			if (!(recipeConfig.isConfigurationSection(item))) {
+				debug("Could not find configuration section " + item + " in the recipe file: " + item
+						+ ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
+				continue;
+			}
 
 			ItemStack i = null;
 			ItemMeta m = null;

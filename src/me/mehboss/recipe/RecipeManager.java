@@ -51,6 +51,8 @@ public class RecipeManager {
 			try {
 				return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
 			} catch (Exception e) {
+				Main.getInstance().getLogger().log(Level.WARNING, "Couldn't apply item damage to the recipe " + item
+						+ ". Please double check that it is a valid item-damage. Skipping for now.");
 				return new ItemStack(type.get().parseMaterial(), amount);
 			}
 		}
@@ -195,8 +197,8 @@ public class RecipeManager {
 			String item = recipeFile.getName().replace(".yml", "");
 
 			if (!(recipeConfig.isConfigurationSection(item))) {
-				debug("Could not find configuration section " + item + " in the recipe file: " + item
-						+ ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
+				Main.getInstance().getLogger().log(Level.WARNING, "Could not find configuration section " + item
+						+ " in the recipe file: " + item + ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
 				continue;
 			}
 

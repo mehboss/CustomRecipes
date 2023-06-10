@@ -156,6 +156,11 @@ public class GiveRecipe implements CommandExecutor {
 				int pageSize = 6;
 				int totalPages = (int) Math.ceil((double) totalRecipes / pageSize);
 
+				if (totalPages < 1) {
+					sender.sendMessage(ChatColor.RED + "Could not find any active recipes.");
+					return false;
+				}
+				
 				if (page < 1 || page > totalPages) {
 					sender.sendMessage(ChatColor.RED + "Invalid page number.");
 					return false;

@@ -48,7 +48,11 @@ public class RecipeManager {
 		if (!getConfig().isSet(item + ".Item-Damage") || damage.equalsIgnoreCase("none")) {
 			return new ItemStack(type.get().parseMaterial(), amount);
 		} else {
-			return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
+			try {
+				return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
+			} catch (Exception e) {
+				return new ItemStack(type.get().parseMaterial(), amount);
+			}
 		}
 	}
 

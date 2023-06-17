@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -141,7 +142,7 @@ public class CraftManager implements Listener {
 
 				if (i == null)
 					return false;
-				
+
 				if ((NBTEditor.contains(i, "CUSTOM_ITEM_IDENTIFIER", id)
 						&& NBTEditor.getString(i, "CUSTOM_ITEM_IDENTIFIER", id).equals(id)
 						&& !identifier().containsKey(id)) || inv.getResult().isSimilar(i)) {
@@ -475,10 +476,19 @@ public class CraftManager implements Listener {
 				ArrayList<Integer> recipeMD = new ArrayList<Integer>();
 				ArrayList<Integer> inventoryMD = new ArrayList<Integer>();
 
+				Map<String, Integer> recipeCount = new HashMap<>();
+				Map<String, Integer> inventoryCount = new HashMap<>();
+
 				for (RecipeAPI.Ingredient names : recipeIngredients) {
 
 					if (names.getMaterial() != null && !(inv.contains(names.getMaterial())))
 						break;
+
+					if (names.isEmpty()) {
+						recipeCount.put("null", recipeCount.getOrDefault("null", 0) + 1);
+						recipeNames.add("null");
+						continue;
+					}
 
 					if (names.hasIdentifier() && identifier().containsKey(names.getIdentifier())) {
 
@@ -488,18 +498,32 @@ public class CraftManager implements Listener {
 							// grab ingredient model data
 						}
 
-						if (identifier().get(names.getIdentifier()).getItemMeta().hasDisplayName())
+						if (identifier().get(names.getIdentifier()).getItemMeta().hasDisplayName()) {
 							recipeNames.add(identifier().get(names.getIdentifier()).getItemMeta().getDisplayName());
-						else
+							recipeCount.put(identifier().get(names.getIdentifier()).getItemMeta().getDisplayName(),
+									recipeCount.getOrDefault(
+											identifier().get(names.getIdentifier()).getItemMeta().getDisplayName(), 0)
+											+ 1);
+						} else {
 							recipeNames.add("false");
+							recipeCount.put("false", recipeCount.getOrDefault("false", 0) + 1);
+						}
 						continue;
 					}
 					recipeNames.add(names.getDisplayName());
+					recipeCount.put(names.getDisplayName(), recipeCount.getOrDefault(names.getDisplayName(), 0) + 1);
 				}
 
 				for (int slot = 1; slot < 10; slot++) {
-					if (inv.getItem(slot) == null || !(inv.getItem(slot).getItemMeta().hasDisplayName())) {
+					if (inv.getItem(slot) == null) {
+						slotNames.add("null");
+						inventoryCount.put("null", inventoryCount.getOrDefault("null", 0) + 1);
+						continue;
+					}
+
+					if (!(inv.getItem(slot).getItemMeta().hasDisplayName())) {
 						slotNames.add("false");
+						inventoryCount.put("false", inventoryCount.getOrDefault("false", 0) + 1);
 						continue;
 					}
 
@@ -511,6 +535,25 @@ public class CraftManager implements Listener {
 						break;
 
 					slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
+					inventoryCount.put(inv.getItem(slot).getItemMeta().getDisplayName(),
+							inventoryCount.getOrDefault(inv.getItem(slot).getItemMeta().getDisplayName(), 0) + 1);
+				}
+
+				boolean hasIngredients = true;
+				for (Map.Entry<String, Integer> entry : recipeCount.entrySet()) {
+					String material = entry.getKey();
+					int requiredCount = entry.getValue();
+					int invCount = inventoryCount.getOrDefault(material, 0);
+
+					if (invCount < requiredCount) {
+						hasIngredients = false;
+						break;
+					}
+				}
+
+				if (!hasIngredients) {
+					passedCheck = false;
+					continue;
 				}
 
 				if (debug()) {
@@ -594,7 +637,7 @@ public class CraftManager implements Listener {
 						if ((getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
 								&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true))
 							break;
-						
+
 						// checks if displayname is null
 						if ((!meta.hasDisplayName() && ingredient.hasDisplayName())
 								|| (meta.hasDisplayName() && !ingredient.hasDisplayName())) {
@@ -689,7 +732,7 @@ public class CraftManager implements Listener {
 	HashMap<String, ItemStack> giveRecipe() {
 		return Main.getInstance().giveRecipe;
 	}
-	
+
 	HashMap<String, ItemStack> identifier() {
 		return Main.getInstance().identifier;
 	}

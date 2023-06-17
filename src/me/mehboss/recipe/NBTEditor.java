@@ -185,7 +185,11 @@ public final class NBTEditor {
 				methodCache.put( "getKeys", getNMSClass( "NBTTagCompound" ).getMethod( "e" ) );
 			}
 
-			if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_19_R1 ) ) {
+			if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_20 ) ) {
+				methodCache.put( "hasTag", getNMSClass( "ItemStack" ).getMethod( "u" ) );
+				methodCache.put( "getTag", getNMSClass( "ItemStack" ).getMethod( "v" ) );
+				methodCache.put( "setTag", getNMSClass( "ItemStack" ).getMethod( "c", getNMSClass( "NBTTagCompound" ) ) );
+			} else if ( LOCAL_VERSION.greaterThanOrEqualTo( MinecraftVersion.v1_19_R1 ) ) {
 				methodCache.put( "hasTag", getNMSClass( "ItemStack" ).getMethod( "t" ) );
 				methodCache.put( "getTag", getNMSClass( "ItemStack" ).getMethod( "u" ) );
 				methodCache.put( "setTag", getNMSClass( "ItemStack" ).getMethod( "c", getNMSClass( "NBTTagCompound" ) ) );
@@ -573,7 +577,7 @@ public final class NBTEditor {
 	 * @return
 	 * An NBTCompound
 	 */
-	static NBTCompound getItemNBTTag( ItemStack item, Object... keys ) {
+	private static NBTCompound getItemNBTTag( ItemStack item, Object... keys ) {
 		if ( item == null ) {
 			return null;
 		}

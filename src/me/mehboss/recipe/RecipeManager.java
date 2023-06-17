@@ -93,7 +93,16 @@ public class RecipeManager {
 
 	ItemMeta handleDisplayname(String item, ItemStack recipe) {
 		ItemMeta itemMeta = recipe.getItemMeta();
+
+		if (debug())
+			debug("Attempting displayname for: " + item);
+
 		if (getConfig().isSet(item + ".Name")) {
+			if (debug()) {
+				debug("Applied displayname for: " + item);
+				debug("Displayname: " + getConfig().getString(item + ".Name"));
+			}
+
 			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', getConfig().getString(item + ".Name")));
 		}
 		return itemMeta;
@@ -236,6 +245,7 @@ public class RecipeManager {
 			}
 
 			i = handleItemDamage(i, item, damage, type, amount); // handles ItemDamage
+			i = handleIdentifier(i, item); // handles CustomTag
 			i = handleDurability(i, item);
 			i = handleEnchants(i, item);
 
@@ -246,7 +256,6 @@ public class RecipeManager {
 			m = handleAttributes(item, m);
 
 			i.setItemMeta(m);
-			i = handleIdentifier(i, item); // handles CustomTag
 
 			String line1 = r.get(0);
 			String line2 = r.get(1);

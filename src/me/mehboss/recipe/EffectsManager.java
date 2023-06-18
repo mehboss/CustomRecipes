@@ -1,5 +1,9 @@
 package me.mehboss.recipe;
 
+import java.io.File;
+
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,6 +16,17 @@ import org.bukkit.potion.PotionEffectType;
 
 public class EffectsManager implements Listener {
 
+	FileConfiguration getConfig(String recipeName) {
+		File dataFolder = Main.getInstance().getDataFolder();
+		File recipesFolder = new File(dataFolder, "recipes");
+		File recipeFile = new File(recipesFolder, recipeName + ".yml");
+
+		if (!recipeFile.exists())
+			return null;
+
+		return YamlConfiguration.loadConfiguration(recipeFile);
+	}
+
 	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void oneffect(EntityDamageByEntityEvent p) {
@@ -20,30 +35,28 @@ public class EffectsManager implements Listener {
 
 			Player pl = (Player) p.getDamager();
 			ItemStack item = pl.getItemInHand();
-			String displayname = null;
+			String configName = null;
 
-			if (pl.getItemInHand() == null || item.getItemMeta() == null
-					|| item.getItemMeta().getDisplayName() == null) {
+			if (pl.getItemInHand() == null)
 				return;
-			}
 
-			if (Main.getInstance().giveRecipe.containsValue(pl.getItemInHand()))
-				displayname = Main.getInstance().configName.get(pl.getItemInHand());
+			if (Main.getInstance().configName.containsKey(item))
+				configName = Main.getInstance().configName.get(item);
 
-			if (displayname == null)
+			if (configName == null || getConfig(configName) == null)
 				return;
 
 			if (p.getCause() == DamageCause.ENTITY_ATTACK && (!(p.getEntity().isDead()))
-					&& Main.getInstance().getConfig().getStringList("Items." + displayname + ".Effects") != null) {
+					&& getConfig(configName).isSet(configName + ".Effects")) {
 
-				for (String e : Main.getInstance().getConfig().getStringList("Items." + displayname + ".Effects")) {
-
-					if (e == null)
-						return;
+				for (String e : getConfig(configName).getStringList(configName + ".Effects")) {
 
 					String[] effectSplit = e.split(":");
-
 					String eff = effectSplit[0].toUpperCase();
+
+					if (e == null || PotionEffectType.getByName(eff) == null)
+						continue;
+
 					String dur = effectSplit[1];
 					String amp = effectSplit[2];
 

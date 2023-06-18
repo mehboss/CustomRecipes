@@ -476,8 +476,8 @@ public class CraftManager implements Listener {
 				ArrayList<Integer> recipeMD = new ArrayList<Integer>();
 				ArrayList<Integer> inventoryMD = new ArrayList<Integer>();
 
-				Map<String, Integer> recipeCount = new HashMap<>();
-				Map<String, Integer> inventoryCount = new HashMap<>();
+				Map<Material, Integer> recipeCount = new HashMap<>();
+				Map<Material, Integer> inventoryCount = new HashMap<>();
 
 				for (RecipeAPI.Ingredient names : recipeIngredients) {
 
@@ -485,10 +485,12 @@ public class CraftManager implements Listener {
 						break;
 
 					if (names.isEmpty()) {
-						recipeCount.put("null", recipeCount.getOrDefault("null", 0) + 1);
+						recipeCount.put(Material.AIR, recipeCount.getOrDefault(Material.AIR, 0) + 1);
 						recipeNames.add("null");
 						continue;
 					}
+
+					recipeCount.put(names.getMaterial(), recipeCount.getOrDefault(names.getMaterial(), 0) + 1);
 
 					if (names.hasIdentifier() && identifier().containsKey(names.getIdentifier())) {
 
@@ -500,30 +502,26 @@ public class CraftManager implements Listener {
 
 						if (identifier().get(names.getIdentifier()).getItemMeta().hasDisplayName()) {
 							recipeNames.add(identifier().get(names.getIdentifier()).getItemMeta().getDisplayName());
-							recipeCount.put(identifier().get(names.getIdentifier()).getItemMeta().getDisplayName(),
-									recipeCount.getOrDefault(
-											identifier().get(names.getIdentifier()).getItemMeta().getDisplayName(), 0)
-											+ 1);
 						} else {
 							recipeNames.add("false");
-							recipeCount.put("false", recipeCount.getOrDefault("false", 0) + 1);
 						}
 						continue;
 					}
 					recipeNames.add(names.getDisplayName());
-					recipeCount.put(names.getDisplayName(), recipeCount.getOrDefault(names.getDisplayName(), 0) + 1);
 				}
 
 				for (int slot = 1; slot < 10; slot++) {
-					if (inv.getItem(slot) == null) {
+					if (inv.getItem(slot) == null || inv.getItem(slot).getType() == Material.AIR) {
 						slotNames.add("null");
-						inventoryCount.put("null", inventoryCount.getOrDefault("null", 0) + 1);
+						inventoryCount.put(Material.AIR, inventoryCount.getOrDefault(Material.AIR, 0) + 1);
 						continue;
 					}
 
+					inventoryCount.put(inv.getItem(slot).getType(),
+							inventoryCount.getOrDefault(inv.getItem(slot).getType(), 0) + 1);
+
 					if (!(inv.getItem(slot).getItemMeta().hasDisplayName())) {
 						slotNames.add("false");
-						inventoryCount.put("false", inventoryCount.getOrDefault("false", 0) + 1);
 						continue;
 					}
 
@@ -532,16 +530,14 @@ public class CraftManager implements Listener {
 					}
 
 					if (!(NBTEditor.contains(inv.getItem(slot), "CUSTOM_ITEM_IDENTIFIER")))
-						break;
+						continue;
 
 					slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
-					inventoryCount.put(inv.getItem(slot).getItemMeta().getDisplayName(),
-							inventoryCount.getOrDefault(inv.getItem(slot).getItemMeta().getDisplayName(), 0) + 1);
 				}
 
 				boolean hasIngredients = true;
-				for (Map.Entry<String, Integer> entry : recipeCount.entrySet()) {
-					String material = entry.getKey();
+				for (Map.Entry<Material, Integer> entry : recipeCount.entrySet()) {
+					Material material = entry.getKey();
 					int requiredCount = entry.getValue();
 					int invCount = inventoryCount.getOrDefault(material, 0);
 
@@ -551,6 +547,10 @@ public class CraftManager implements Listener {
 					}
 				}
 
+				if (debug()) {
+					debug("Has ingredients: " + hasIngredients);
+				}
+				
 				if (!hasIngredients) {
 					passedCheck = false;
 					continue;

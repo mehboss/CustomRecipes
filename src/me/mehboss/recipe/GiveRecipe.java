@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -31,7 +32,7 @@ public class GiveRecipe implements CommandExecutor {
 	public boolean onCommand(CommandSender sender, Command cmd, String arg2, String[] args) {
 
 		CommandSender p = sender;
-		
+
 		if (args.length == 0) {
 			if (!(p.hasPermission("crecipe.help"))) {
 				sender.sendMessage(
@@ -52,6 +53,8 @@ public class GiveRecipe implements CommandExecutor {
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 					"&c/crecipe gui &8-&f Opens the user-friendly menu for adding/editing &e(crecipe.gui)"));
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&c/crecipe book &8-&f Opens a custom made recipe booklet &e(crecipe.book)"));
+			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 					"&c/crecipe reload &8-&f Reloads the configs and resets all recipes &e(crecipe.reload)"));
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 					"&c/crecipe debug &8-&f Enables debug mode for the author to troubleshoot &e(crecipe.debug)"));
@@ -59,6 +62,32 @@ public class GiveRecipe implements CommandExecutor {
 		}
 
 		if (args.length > 0) {
+
+			if (args.length == 1 && args[0].equalsIgnoreCase("book")) {
+				if (!(sender instanceof Player)) {
+					sender.sendMessage("You must be a player in order to use this command!");
+					return false;
+				}
+
+				if (!sender.hasPermission("crecipe.book")) {
+					sender.sendMessage(
+							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
+					return false;
+				}
+
+				Player player = (Player) sender;
+
+				Main.getInstance().recipeBook.add(player.getUniqueId());
+				Main.recipes.show(player);
+				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
+				player.sendMessage(OpenMessage);
+
+				try {
+					player.playSound(player.getLocation(),
+							Sound.valueOf(debug().getString("gui.Open-Sound").toUpperCase()), 1, 1);
+				} catch (IllegalArgumentException e) {
+				}
+			}
 
 			if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
 				if (!sender.hasPermission("crecipe.reload")) {
@@ -81,14 +110,18 @@ public class GiveRecipe implements CommandExecutor {
 					sender.sendMessage("You must be a player in order to use this command!");
 					return false;
 				}
-				
+
 				Player player = (Player) sender;
-				
+
 				if (!sender.hasPermission("crecipe.gui")) {
 					sender.sendMessage(
 							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
 					return false;
 				}
+
+				if (Main.getInstance().recipeBook.contains(player.getUniqueId()))
+					Main.getInstance().recipeBook.remove(player.getUniqueId());
+				
 				player.sendMessage(ChatColor.RED + "GUI is currently undergoing maintenance. Come back soon!");
 //				Main.recipes.show(p);
 //				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
@@ -160,7 +193,7 @@ public class GiveRecipe implements CommandExecutor {
 					sender.sendMessage(ChatColor.RED + "Could not find any active recipes.");
 					return false;
 				}
-				
+
 				if (page < 1 || page > totalPages) {
 					sender.sendMessage(ChatColor.RED + "Invalid page number.");
 					return false;

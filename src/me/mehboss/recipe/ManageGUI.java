@@ -1,5 +1,6 @@
 package me.mehboss.recipe;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -8,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -41,12 +43,10 @@ public class ManageGUI implements Listener {
 	public ManageGUI(Plugin p, String item) {
 		inv = Bukkit.getServer().createInventory(null, 54, ChatColor.translateAlternateColorCodes('&',
 				getConfig().getString("gui.Displayname").replace("%page%", "1")));
-
-		items(inv, 0);
 	}
 
 	HashMap<Integer, String> itemMaps = new HashMap<Integer, String>();
-	
+
 	@EventHandler
 	public void onClick(InventoryClickEvent e) {
 		if (e.getClickedInventory() == null) {
@@ -88,32 +88,44 @@ public class ManageGUI implements Listener {
 						if (e.getInventory().firstEmpty() != -1) {
 							return;
 						}
-						
+
 						newpage++;
 					}
-
 
 					String newname = ChatColor.translateAlternateColorCodes('&',
 							original.replaceAll(String.valueOf(currentpage), String.valueOf(newpage)));
 
 					Inventory newp = Bukkit.getServer().createInventory(null, 54, newname);
-					items(newp, newpage - 1);
+					items(p, newp, newpage - 1);
+					setDefaults(p, newp);
 
-					p.closeInventory();
 					p.openInventory(newp);
 					return;
 				}
 
-				if (e.getRawSlot() == 49) {
+				if (e.getRawSlot() == 49
+						&& e.getCurrentItem().getItemMeta().getDisplayName().strip().equals("Add Recipe")) {
 					return;
 				}
 
-				if (Main.getInstance().giveRecipe.containsKey(e.getCurrentItem().getItemMeta().getDisplayName().toLowerCase())) {
+				if (Main.getInstance().giveRecipe
+						.containsKey(e.getCurrentItem().getItemMeta().getDisplayName().toLowerCase())) {
+
+					Boolean viewing = false;
 					String name = e.getCurrentItem().getItemMeta().getDisplayName();
-					Inventory edit = Bukkit.getServer().createInventory(null, 54,
-							ChatColor.translateAlternateColorCodes('&', "&cEDITING: " + name));
-					EditGUI.getInstance().setItems(edit, name, e.getCurrentItem());
-					p.closeInventory();
+					Inventory edit = null;
+
+					if (!(Main.getInstance().recipeBook.contains(p.getUniqueId()))) {
+						edit = Bukkit.getServer().createInventory(null, 54,
+								ChatColor.translateAlternateColorCodes('&', "&cEDITING: " + name));
+					} else {
+						edit = Bukkit.getServer().createInventory(null, 54,
+								ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + name));
+						viewing = true;
+					}
+
+					EditGUI.getInstance().setItems(viewing, edit, name, e.getCurrentItem());
+
 					p.openInventory(edit);
 				}
 			}
@@ -122,27 +134,35 @@ public class ManageGUI implements Listener {
 		}
 	}
 
-	private void items(Inventory inv, int page) {
+	int slots;
+
+	private void items(Player p, Inventory inv, int page) {
 
 		int[] slots = { 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34 };
 		ArrayList<String> items = new ArrayList<>(Main.getInstance().configName.values());
 		Collections.sort(items);
 
 		int startSlot = page * slots.length;
-
+		int currentSlot = 0;
 		for (int slot = 0; slot < slots.length; slot++) {
-		    int index = startSlot + slot;
-		    if (index >= items.size()) {
-		        break;
-		    }
-		    
-		    ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
-		    ItemMeta itemM = item.getItemMeta();
+			int index = startSlot + slot;
+			if (index >= items.size()) {
+				break;
+			}
 
-		    itemM.setDisplayName(items.get(index));
-		    item.setItemMeta(itemM);
+			ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
+			ItemMeta itemM = item.getItemMeta();
 
-		    inv.setItem(slots[slot], item);
+			itemM.setDisplayName(items.get(index));
+			item.setItemMeta(itemM);
+
+			String loc = items.get(index);
+			if (p != null && !p.hasPermission("crecipe.gui")
+					&& !p.hasPermission(getConfig(loc).getString(loc + ".Permission")))
+				continue;
+			
+			inv.setItem(slots[currentSlot], item);
+			currentSlot++;
 		}
 
 		// page 1 get 1-14
@@ -191,7 +211,30 @@ public class ManageGUI implements Listener {
 		i.setItem(50, o);
 	}
 
+	public void setDefaults(Player p, Inventory inv) {
+		if (Main.getInstance().recipeBook.contains(p.getUniqueId())) {
+			ItemStack stained = new ItemStack(XMaterial.BLACK_STAINED_GLASS_PANE.parseItem());
+			ItemMeta s = stained.getItemMeta();
+			s.setDisplayName(" ");
+			stained.setItemMeta(s);
+
+			inv.setItem(4, stained);
+			inv.setItem(49, stained);
+		}
+	}
+
+	FileConfiguration getConfig(String recipeName) {
+		File dataFolder = Main.getInstance().getDataFolder();
+		File recipesFolder = new File(dataFolder, "recipes");
+		File recipeFile = new File(recipesFolder, recipeName + ".yml");
+
+		return YamlConfiguration.loadConfiguration(recipeFile);
+	}
+
 	public void show(Player p) {
+		inv.clear();
+		items(p, inv, 0);
+		setDefaults(p, inv);
 		p.openInventory(inv);
 	}
 }

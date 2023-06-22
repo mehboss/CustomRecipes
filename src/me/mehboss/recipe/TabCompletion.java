@@ -35,6 +35,8 @@ public class TabCompletion implements TabCompleter {
 				subCommands.add("reload");
 			if (sender.hasPermission("crecipe.gui"))
 				subCommands.add("gui");
+			if (sender.hasPermission("crecipe.book"))
+				subCommands.add("book");
 
 			StringUtil.copyPartialMatches(args[0], subCommands, completions);
 		} else if (args.length > 1 && !args[0].equals("give") && sender.hasPermission("crecipe.give")) {

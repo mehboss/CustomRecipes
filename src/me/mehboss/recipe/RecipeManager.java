@@ -91,6 +91,27 @@ public class RecipeManager {
 		return i;
 	}
 
+	ItemMeta handleFlags(String item, ItemMeta m) {
+
+		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
+				|| version.contains("1_11") || version.contains("1_12") || version.contains("1_13"))
+			return m;
+
+		if (getConfig().isSet(item + ".Item-Flags")) {
+			for (String flag : getConfig().getStringList(item + ".Item-Flags")) {
+				try {
+					m.addItemFlags(ItemFlag.valueOf(flag));
+				} catch (IllegalArgumentException e) {
+					debug("Could not add the item flag (" + flag + ") to recipe " + item
+							+ ". This item flag could not be found so we will be skipping this flag for now. Please visit https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/inventory/ItemFlag.html for a list of valid flags.");
+					continue;
+				}
+			}
+		}
+		return m;
+	}
+
 	ItemMeta handleDisplayname(String item, ItemStack recipe) {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
@@ -244,6 +265,11 @@ public class RecipeManager {
 				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
 			}
 
+			if (!recipeConfig.isSet(item + ".Item-Flags")) {
+				recipeConfig.set(item + ".Item-Flags", new ArrayList<String>());
+				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
+			}
+
 			i = handleItemDamage(i, item, damage, type, amount); // handles ItemDamage
 			i = handleIdentifier(i, item); // handles CustomTag
 			i = handleDurability(i, item);
@@ -254,6 +280,7 @@ public class RecipeManager {
 			m = handleHideEnchants(item, m); // handles hiding enchants
 			m = handleCustomModelData(item, m); // handles custom model data
 			m = handleAttributes(item, m);
+			m = handleFlags(item, m);
 
 			i.setItemMeta(m);
 
@@ -403,10 +430,15 @@ public class RecipeManager {
 	}
 
 	void debug(String st) {
-		getLogger().log(Level.WARNING, "-----------------");
-		getLogger().log(Level.WARNING, "DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
+		if (debug()) {
+			getLogger().log(Level.WARNING, "-----------------");
+			getLogger().log(Level.WARNING, "DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
+		}
+
 		getLogger().log(Level.WARNING, st);
-		getLogger().log(Level.WARNING, "-----------------");
+
+		if (debug())
+			getLogger().log(Level.WARNING, "-----------------");
 	}
 
 	boolean checkAbsent(String letterIngredient) {

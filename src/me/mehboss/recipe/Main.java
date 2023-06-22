@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
@@ -34,6 +35,7 @@ public class Main extends JavaPlugin implements Listener {
 	AddGUI addItem;
 	EditGUI editItem;
 
+	ArrayList<UUID> recipeBook = new ArrayList<UUID>();
 	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
 
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();

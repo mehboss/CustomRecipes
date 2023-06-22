@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v1.7.7                                                                                    #
+# Version v1.7.9                                                                                    #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
@@ -13,6 +13,8 @@
 # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/potion/PotionEffect.html                      #
 #    Attributes:                                                                                    #
 # https://hub.spigotmc.org/javadocs/spigot/org/bukkit/attribute/Attribute.html                      #
+#    Item Flags:                                                                                    #
+# https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/inventory/ItemFlag.html                       #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 firstLoad: true # internally managed do not remove
 Debug: false

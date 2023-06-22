@@ -1,6 +1,7 @@
 package me.mehboss.recipe;
 
 import java.io.File;
+import java.util.HashMap;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -35,15 +36,23 @@ public class EffectsManager implements Listener {
 
 			Player pl = (Player) p.getDamager();
 			ItemStack item = pl.getItemInHand();
+			ItemStack foundItem = null;
+			String identifier = null;
 			String configName = null;
 
 			if (pl.getItemInHand() == null)
 				return;
 
-			if (Main.getInstance().configName.containsKey(item))
-				configName = Main.getInstance().configName.get(item);
+			if (NBTEditor.contains(item, "CUSTOM_ITEM_IDENTIFIER"))
+				identifier = NBTEditor.getString(item, "CUSTOM_ITEM_IDENTIFIER");
 
-			if (configName == null || getConfig(configName) == null)
+			if (identifier != null && identifier().containsKey(identifier))
+				foundItem = identifier().get(identifier);
+
+			if (foundItem != null && configName().containsKey(foundItem))
+				configName = configName().get(foundItem);
+
+			if (configName == null || foundItem == null || identifier == null || getConfig(configName) == null)
 				return;
 
 			if (p.getCause() == DamageCause.ENTITY_ATTACK && (!(p.getEntity().isDead()))
@@ -70,5 +79,13 @@ public class EffectsManager implements Listener {
 				}
 			}
 		}
+	}
+
+	HashMap<String, ItemStack> identifier() {
+		return Main.getInstance().identifier;
+	}
+
+	HashMap<ItemStack, String> configName() {
+		return Main.getInstance().configName;
 	}
 }

@@ -712,10 +712,15 @@ public class CraftManager implements Listener {
 	}
 
 	void debug(String st) {
-		getLogger().log(Level.WARNING, "-----------------");
-		getLogger().log(Level.WARNING, "DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
+		if (debug()) {
+			getLogger().log(Level.WARNING, "-----------------");
+			getLogger().log(Level.WARNING, "DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
+		}
+
 		getLogger().log(Level.WARNING, st);
-		getLogger().log(Level.WARNING, "-----------------");
+
+		if (debug())
+			getLogger().log(Level.WARNING, "-----------------");
 	}
 
 	void sendMessages(Player p, String s) {

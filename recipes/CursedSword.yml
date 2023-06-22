@@ -32,5 +32,6 @@ CursedSword:
       Identifier: none
       Amount: 1
       Name: 'Wooden Board'
+  Item-Flags: []
   Attribute: []
   Custom-Model-Data: none

@@ -16,8 +16,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -54,7 +56,7 @@ public class EditGUI implements Listener {
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
-	public void setItems(Inventory i, String invname, ItemStack item) {
+	public void setItems(Boolean viewing, Inventory i, String invname, ItemStack item) {
 
 		String configname = invname;
 
@@ -66,8 +68,69 @@ public class EditGUI implements Listener {
 		ItemMeta stainedm = stained.getItemMeta();
 		stainedm.setDisplayName(" ");
 		stained.setItemMeta(stainedm);
+
 		for (int slot : paneslot) {
 			i.setItem(slot, stained);
+		}
+
+		int slot = 1;
+		for (String materials : getMaterials(configname)) {
+
+			if (materials == null || !XMaterial.matchXMaterial(materials).isPresent()) {
+				slot++;
+				continue;
+			}
+
+			ItemStack mat = XMaterial.matchXMaterial(materials).get().parseItem();
+			mat.setAmount(getAmounts(configname, slot));
+			ItemMeta matm = mat.getItemMeta();
+
+			if (getNames(configname, slot) != null)
+				matm.setDisplayName(getNames(configname, slot));
+
+			mat.setItemMeta(matm);
+
+			if (slot == 1)
+				i.setItem(10, mat);
+			if (slot == 2)
+				i.setItem(11, mat);
+			if (slot == 3)
+				i.setItem(12, mat);
+			if (slot == 4)
+				i.setItem(19, mat);
+			if (slot == 5)
+				i.setItem(20, mat);
+			if (slot == 6)
+				i.setItem(21, mat);
+			if (slot == 7)
+				i.setItem(28, mat);
+			if (slot == 8)
+				i.setItem(29, mat);
+			if (slot == 9)
+				i.setItem(30, mat);
+
+			slot++;
+		}
+
+		ItemStack result = Main.getInstance().giveRecipe.get(configname.toLowerCase());
+		i.setItem(23, result);
+		
+		if (viewing) {
+			int[] emptySlots = { 7, 8, 16, 17, 25, 26, 35, 40, 44, 53 };
+
+			ItemStack back = XMaterial.RED_STAINED_GLASS_PANE.parseItem();
+			ItemMeta backm = back.getItemMeta();
+			backm.setDisplayName(ChatColor.DARK_RED + "Back");
+			back.setItemMeta(backm);
+
+			i.setItem(48, back);
+			i.setItem(49, back);
+			i.setItem(50, back);
+
+			for (int slots : emptySlots)
+				i.setItem(slots, stained);
+
+			return;
 		}
 
 		ItemStack identifier = XMaterial.PAPER.parseItem();
@@ -182,9 +245,6 @@ public class EditGUI implements Listener {
 		}
 		i.setItem(40, enabled);
 
-		ItemStack result = Main.getInstance().giveRecipe.get(configname.toLowerCase());
-		i.setItem(23, result);
-
 		ItemStack cancel = XMaterial.RED_STAINED_GLASS_PANE.parseItem();
 		ItemMeta cancelm = cancel.getItemMeta();
 		cancelm.setDisplayName(ChatColor.DARK_RED + "Cancel");
@@ -208,45 +268,6 @@ public class EditGUI implements Listener {
 		deletem.setDisplayName(ChatColor.DARK_RED + "Delete Recipe");
 		delete.setItemMeta(deletem);
 		i.setItem(45, delete);
-
-		int slot = 1;
-		for (String materials : getMaterials(configname)) {
-
-			if (materials == null || !XMaterial.matchXMaterial(materials).isPresent()) {
-				slot++;
-				continue;
-			}
-
-			ItemStack mat = XMaterial.matchXMaterial(materials).get().parseItem();
-			mat.setAmount(getAmounts(configname, slot));
-			ItemMeta matm = mat.getItemMeta();
-
-			if (getNames(configname, slot) != null)
-				matm.setDisplayName(getNames(configname, slot));
-
-			mat.setItemMeta(matm);
-
-			if (slot == 1)
-				i.setItem(10, mat);
-			if (slot == 2)
-				i.setItem(11, mat);
-			if (slot == 3)
-				i.setItem(12, mat);
-			if (slot == 4)
-				i.setItem(19, mat);
-			if (slot == 5)
-				i.setItem(20, mat);
-			if (slot == 6)
-				i.setItem(21, mat);
-			if (slot == 7)
-				i.setItem(28, mat);
-			if (slot == 8)
-				i.setItem(29, mat);
-			if (slot == 9)
-				i.setItem(30, mat);
-
-			slot++;
-		}
 
 	}
 
@@ -349,7 +370,7 @@ public class EditGUI implements Listener {
 
 		return 0;
 	}
-	
+
 	public String getNames(String recipename, int slot) {
 		HashMap<String, String> letter = new HashMap<String, String>();
 		letter.put("X", "false");
@@ -407,6 +428,17 @@ public class EditGUI implements Listener {
 			return;
 
 		Player p = (Player) e.getWhoClicked();
+
+		if (e.getInventory() != null && e.getView().getTitle() != null
+				&& e.getView().getTitle().contains("VIEWING: ")) {
+			e.setCancelled(true);
+
+			if (e.getRawSlot() == 48 || e.getRawSlot() == 49 || e.getRawSlot() == 50) {
+				Main.recipes.show(p);
+			}
+
+			return;
+		}
 
 		if (e.getInventory() != null && e.getView().getTitle() != null
 				&& e.getView().getTitle().contains("EDITING: ")) {
@@ -508,7 +540,6 @@ public class EditGUI implements Listener {
 
 			if (e.getRawSlot() == 49) {
 				// main menu button
-				p.closeInventory();
 				p.openInventory(ManageGUI.inv);
 			}
 
@@ -556,7 +587,6 @@ public class EditGUI implements Listener {
 
 				if (ChatColor.stripColor(e.getClickedInventory().getItem(45).getItemMeta().getDisplayName())
 						.equals("Confirm Recipe Deletion")) {
-					p.closeInventory();
 
 					Main.getInstance().getConfig().set("Items." + recipe, null);
 					Main.getInstance().saveConfig();
@@ -692,6 +722,12 @@ public class EditGUI implements Listener {
 		p.sendMessage(ChatColor.GREEN + "You have successfully updated changes to the recipe '" + recipe + "'");
 		p.closeInventory();
 
+	}
+
+	@EventHandler
+	public void onClose(PlayerQuitEvent e) {
+		if (Main.getInstance().recipeBook.contains(e.getPlayer().getUniqueId()))
+			Main.getInstance().recipeBook.remove(e.getPlayer().getUniqueId());
 	}
 
 	@EventHandler

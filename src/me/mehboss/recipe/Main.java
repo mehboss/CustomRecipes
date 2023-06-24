@@ -11,7 +11,9 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Keyed;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -23,6 +25,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import net.md_5.bungee.api.ChatMessageType;
@@ -303,13 +306,17 @@ public class Main extends JavaPlugin implements Listener {
 		if (getConfig().isSet("firstLoad"))
 			isFirstLoad = getConfig().getBoolean("firstLoad");
 
-		
 		saveCustomYml(customConfig, customYml);
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 		saveCustomYml(cursedConfig, cursedYml);
 		initCustomYml();
-		
+
+		if (!customConfig.isSet("override-recipes")) {
+			customConfig.set("override-recipes", new ArrayList<String>());
+			saveCustomYml(customConfig, customYml);
+		}
+
 		saveAllCustomYml();
 		transferRecipesFromConfig();
 
@@ -319,6 +326,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 
+		removeRecipes();
 		plugin.addItems();
 
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
@@ -339,7 +347,7 @@ public class Main extends JavaPlugin implements Listener {
 			TabCompletion tabCompleter = new TabCompletion();
 			crecipeCommand.setTabCompleter(tabCompleter);
 		}
-		
+
 		getCommand("edititem").setExecutor(new NBTCommands());
 		addItem = new AddGUI(this, null);
 
@@ -380,6 +388,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 
+		removeRecipes();
 		plugin.addItems();
 
 		recipes = new ManageGUI(this, null);
@@ -387,10 +396,39 @@ public class Main extends JavaPlugin implements Listener {
 		addItem = new AddGUI(this, null);
 	}
 
+	void removeRecipes() {
+		if (customConfig == null || !customConfig.isSet("override-recipes"))
+			return;
+
+		for (String recipe : customConfig.getStringList("override-recipes")) {
+
+			if (!(XMaterial.matchXMaterial(recipe).isPresent()))
+				continue;
+
+			for (Recipe foundRecipes : Bukkit.getRecipesFor(XMaterial.matchXMaterial(recipe).get().parseItem())) {
+				Keyed rKey = (Keyed) foundRecipes;
+
+				if (!(foundRecipes instanceof ShapedRecipe) && !(foundRecipes instanceof ShapelessRecipe))
+					continue;
+
+				if (debug)
+					getLogger().log(Level.SEVERE, "foundRecipes: " + foundRecipes);
+
+				try {
+					Bukkit.removeRecipe(NamespacedKey.minecraft(rKey.getKey().getKey()));
+				} catch (Exception e) {
+					getLogger().log(Level.SEVERE,
+							"Could not find NameSpacedKey for " + NamespacedKey.minecraft(rKey.getKey().getKey())
+									+ ", therefore we can not remove this recipe.");
+				}
+			}
+		}
+	}
+
 	public void disableRecipes() {
 		if (customConfig == null)
-			return; 
-		
+			return;
+
 		for (String vanilla : customConfig.getConfigurationSection("vanilla-recipes").getKeys(false)) {
 			disabledrecipe.add(vanilla);
 		}

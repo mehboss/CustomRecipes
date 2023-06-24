@@ -7,6 +7,8 @@
 # GUI MADE FOR ENHANCED USER FRIENDLINESS                              #
 #   /crecipe gui                                                       #
 #                                                                      #
+# OVERRIDE-RECIPES will disable normal vanilla crafting for an         #
+# item and will allow you to add your own!                             #
 ########################################################################
 blacklist-recipes: false
 no-permission-message: 
@@ -25,6 +27,7 @@ recipe-disabled-message:
   actionbar-message:
     enabled: false
     message: '&cYou cannot craft this recipe!'
+override-recipes: [] # add vanilla material here if you plan on changing how you craft it
 vanilla-recipes:
   'BEETROOT_SOUP': # item ID for soup
     permission: 'soup' # permission will then be crecipe.soup in order to craft this vanilla recipe. set to 'none' if not needed.

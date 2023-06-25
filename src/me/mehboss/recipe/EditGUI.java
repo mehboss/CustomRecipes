@@ -379,6 +379,9 @@ public class EditGUI implements Listener {
 	}
 
 	String chatColor(String st) {
+		if (st == null)
+			return null;
+
 		if (st.equalsIgnoreCase("false"))
 			return st;
 
@@ -443,6 +446,10 @@ public class EditGUI implements Listener {
 				ConfigurationSection ingredient = ingredientsSection.getConfigurationSection(ingredientKey);
 				if (ingredient != null) {
 					String identifier = ingredient.isSet("Name") ? ingredient.getString("Name") : null;
+
+					if (identifier != null && ingredient.getString("Name").equalsIgnoreCase("none"))
+						identifier = null;
+
 					letter.put(ingredientKey, identifier);
 				}
 			}

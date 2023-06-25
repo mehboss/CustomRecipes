@@ -81,14 +81,20 @@ public class EditGUI implements Listener {
 				continue;
 			}
 
-			ItemStack mat = XMaterial.matchXMaterial(materials).get().parseItem();
+			boolean foundIdentifier = itemIngredients(configname, slot) != null ? true : false;
+			ItemStack mat = foundIdentifier ? itemIngredients(configname, slot)
+					: XMaterial.matchXMaterial(materials).get().parseItem();
+
 			mat.setAmount(getAmounts(configname, slot));
-			ItemMeta matm = mat.getItemMeta();
 
-			if (getNames(configname, slot) != null)
-				matm.setDisplayName(getNames(configname, slot));
+			if (!foundIdentifier) {
+				ItemMeta matm = mat.getItemMeta();
 
-			mat.setItemMeta(matm);
+				if (getNames(configname, slot) != null)
+					matm.setDisplayName(getNames(configname, slot));
+
+				mat.setItemMeta(matm);
+			}
 
 			if (slot == 1)
 				i.setItem(10, mat);
@@ -110,11 +116,12 @@ public class EditGUI implements Listener {
 				i.setItem(30, mat);
 
 			slot++;
+
 		}
 
 		ItemStack result = Main.getInstance().giveRecipe.get(configname.toLowerCase());
 		i.setItem(23, result);
-		
+
 		if (viewing) {
 			int[] emptySlots = { 7, 8, 16, 17, 25, 26, 35, 40, 44, 53 };
 
@@ -371,6 +378,60 @@ public class EditGUI implements Listener {
 		return 0;
 	}
 
+	String chatColor(String st) {
+		if (st.equalsIgnoreCase("false"))
+			return st;
+
+		return ChatColor.translateAlternateColorCodes('&', st);
+	}
+
+	ItemStack itemIngredients(String recipename, int slot) {
+
+		ArrayList<String> ingLetters = new ArrayList<String>();
+
+		List<String> craftingRows = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
+		if (craftingRows.size() >= 3) {
+			String row1 = craftingRows.get(0);
+			String row2 = craftingRows.get(1);
+			String row3 = craftingRows.get(2);
+
+			String[] row1Split = row1.split("");
+			String[] row2Split = row2.split("");
+			String[] row3Split = row3.split("");
+
+			ingLetters.add(row1Split[0]);
+			ingLetters.add(row1Split[1]);
+			ingLetters.add(row1Split[2]);
+
+			ingLetters.add(row2Split[0]);
+			ingLetters.add(row2Split[1]);
+			ingLetters.add(row2Split[2]);
+
+			ingLetters.add(row3Split[0]);
+			ingLetters.add(row3Split[1]);
+			ingLetters.add(row3Split[2]);
+		}
+
+		String letter = ingLetters.get(slot - 1);
+		ConfigurationSection ingredientsSection = getConfig(recipename)
+				.getConfigurationSection(recipename + ".Ingredients." + letter);
+
+		if (ingredientsSection == null || letter == null || letter.equalsIgnoreCase("X"))
+			return null;
+
+		if (ingredientsSection.isSet("Identifier")
+				&& !ingredientsSection.getString("Identifier").equalsIgnoreCase("none")
+				&& identifier().containsKey(ingredientsSection.getString("Identifier"))) {
+
+			return identifier().get(ingredientsSection.getString("Identifier"));
+		}
+		return null;
+	}
+
+	HashMap<String, ItemStack> identifier() {
+		return Main.getInstance().identifier;
+	}
+
 	public String getNames(String recipename, int slot) {
 		HashMap<String, String> letter = new HashMap<String, String>();
 		letter.put("X", "false");
@@ -398,23 +459,23 @@ public class EditGUI implements Listener {
 			String[] row3Split = row3.split("");
 
 			if (slot == 1)
-				return letter.get(row1Split[0]);
+				return chatColor(letter.get(row1Split[0]));
 			if (slot == 2)
-				return letter.get(row1Split[1]);
+				return chatColor(letter.get(row1Split[1]));
 			if (slot == 3)
-				return letter.get(row1Split[2]);
+				return chatColor(letter.get(row1Split[2]));
 			if (slot == 4)
-				return letter.get(row2Split[0]);
+				return chatColor(letter.get(row2Split[0]));
 			if (slot == 5)
-				return letter.get(row2Split[1]);
+				return chatColor(letter.get(row2Split[1]));
 			if (slot == 6)
-				return letter.get(row2Split[2]);
+				return chatColor(letter.get(row2Split[2]));
 			if (slot == 7)
-				return letter.get(row3Split[0]);
+				return chatColor(letter.get(row3Split[0]));
 			if (slot == 8)
-				return letter.get(row3Split[1]);
+				return chatColor(letter.get(row3Split[1]));
 			if (slot == 9)
-				return letter.get(row3Split[2]);
+				return chatColor(letter.get(row3Split[2]));
 		}
 
 		return null;

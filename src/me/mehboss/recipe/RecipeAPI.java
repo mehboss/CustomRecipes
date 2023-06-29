@@ -118,7 +118,7 @@ public class RecipeAPI {
 		}
 
 		public boolean hasDisplayName() {
-			if (this.displayName == null || this.displayName.equals("false") || this.displayName.equals("none"))
+			if (displayName == null || displayName.equals("false") || displayName.equals("none"))
 				return false;
 
 			return true;

@@ -178,7 +178,7 @@ public class CraftManager implements Listener {
 		if (!(configName().containsKey(inv.getResult())))
 			return;
 
-		if (e.getCurrentItem() == null || !e.getCurrentItem().equals(inv.getResult()))
+		if (e.getCurrentItem() == null)
 			return;
 
 		String findName = configName().get(inv.getResult());
@@ -189,12 +189,20 @@ public class CraftManager implements Listener {
 				findName = recipes;
 				found = true;
 				break;
-			} else if (findIngredients(inv, recipes)
-					&& getConfig(findName).getBoolean(findName + ".Shapeless") == false) {
+			}
+			if (findIngredients(inv, recipes) && getConfig(findName).getBoolean(findName + ".Shapeless") == false) {
 				findName = recipes;
 				found = true;
 				break;
 			}
+		}
+
+		if (NBTEditor.contains(inv.getResult(), "CUSTOM_ITEM_IDENTIFIER")) {
+			String foundID = NBTEditor.getString(inv.getResult(), "CUSTOM_ITEM_IDENTIFIER");
+
+			if (identifier().containsKey(foundID) && configName().containsKey(identifier().get(foundID)))
+				findName = configName().get(identifier().get(foundID));
+
 		}
 
 		if (!found)
@@ -202,8 +210,7 @@ public class CraftManager implements Listener {
 
 		final String recipeName = findName;
 
-		if ((e.getCursor() != null && !e.getCursor().getType().equals(Material.AIR))
-				|| (e.getCursor().equals(result) && result.getMaxStackSize() <= 1))
+		if (e.getCursor().equals(result) && result.getMaxStackSize() <= 1)
 			return;
 
 		// Remove the required items from the inventory
@@ -250,12 +257,16 @@ public class CraftManager implements Listener {
 				ItemStack item = inv.getItem(i);
 				int slot = i;
 
-				if (item != null && debug())
+				if (item == null)
+					continue;
+
+				if (debug())
 					debug(String.valueOf(hasMatchingDisplayName(recipeName, item, displayName,
 							ingredient.getIdentifier(), hasIdentifier)));
 
-				if (item != null && item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
-						ingredient.getIdentifier(), hasIdentifier)) {
+				if ((ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
+						|| item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
+								ingredient.getIdentifier(), hasIdentifier)) {
 					int itemAmount = item.getAmount();
 
 					if (itemAmount < requiredAmount)
@@ -299,8 +310,13 @@ public class CraftManager implements Listener {
 					inv.setResult(new ItemStack(Material.AIR));
 			});
 
+			ItemStack add = inv.getResult();
+
+			if (e.getCursor() != null && e.getCursor().getType() != Material.AIR)
+				add.setAmount(e.getCursor().getAmount() + result.getAmount());
+
 			if (inv.getResult() != null && inv.getResult().equals(result))
-				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(result), 1L);
+				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.setCursor(add), 1L);
 
 			return;
 		}
@@ -311,8 +327,15 @@ public class CraftManager implements Listener {
 		e.setCursor(null);
 		inv.setResult(new ItemStack(Material.AIR));
 
-		for (int i = 0; i < itemsToAdd; i++)
+		getLogger().log(Level.SEVERE, "ITEMSTOADD: " + itemsToAdd);
+		for (int i = 0; i < itemsToAdd; i++) {
+			if (player.getInventory().firstEmpty() == -1) {
+				player.getLocation().getWorld().dropItem(player.getLocation(), result);
+				continue;
+			}
+
 			player.getInventory().addItem(result);
+		}
 	}
 
 	public ArrayList<Ingredient> getIngredients(String recipeName) {
@@ -550,7 +573,7 @@ public class CraftManager implements Listener {
 				if (debug()) {
 					debug("Has ingredients: " + hasIngredients);
 				}
-				
+
 				if (!hasIngredients) {
 					passedCheck = false;
 					continue;

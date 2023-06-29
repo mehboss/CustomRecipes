@@ -1,0 +1,40 @@
+name: Question Form
+description: Ask a question related to Custom Recipes!
+labels: ["question"]
+assignees:
+  - Mehboss
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: What is your question?
+      placeholder: What do you need help with?
+    validations:
+      required: true
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Provide documentation
+      placeholder: If applicable, what does the recipe file or configuration in question look like? (provide pastebin links)
+  - type: input
+    id: server_version
+    attributes:
+      label: Server Version
+      description: What spigot or paper version are you using? (run /version in-game)
+    validations:
+      required: true
+  - type: input
+    id: plugin_version
+    attributes:
+      label: Plugin Version
+      description: What version of custom recipes are you using?
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Question Confirmation
+      description: Please confirm the following below.
+      options:
+        - label: I have checked the WIKI and the main page of the spigot resource, but still cannot find my answer.
+          required: true
+        - label: I have provided sufficient information regarding my question.
+          required: true

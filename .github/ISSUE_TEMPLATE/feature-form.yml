@@ -1,0 +1,41 @@
+name: Suggestion Form
+description: Suggest a new feature or enhancement!
+title: "[Feature Suggestion]: "
+labels: ["new feature", "pending review"]
+assignees:
+  - Mehboss
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for providing suggestions to further Custom Recipes!
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: What is your suggestion?
+      placeholder: Provide details about your suggestion.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Can you show some examples?
+      placeholder: What would this look like?
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Beneficial to others?
+      placeholder: What is the intended use or benefits of this feature?
+  - type: input
+    id: server_version
+    attributes:
+      label: Server Version
+      description: What spigot or paper version are you using? (run /version in-game)
+  - type: dropdown
+    id: version
+    attributes:
+      label: Server Mode
+      description: Are you running in offline or online mode?
+      options:
+        - Online Mode
+        - Offline Mode

@@ -1,8 +1,12 @@
 package me.mehboss.recipe;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -100,7 +104,8 @@ public class GiveRecipe implements CommandExecutor {
 						ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reloading")));
 
 				plugin.reload();
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reload")));
+				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reload")
+						.replaceAll("%recipes%", String.valueOf(Main.getInstance().giveRecipe.values().size()))));
 
 				return false;
 			}
@@ -121,7 +126,7 @@ public class GiveRecipe implements CommandExecutor {
 
 				if (Main.getInstance().recipeBook.contains(player.getUniqueId()))
 					Main.getInstance().recipeBook.remove(player.getUniqueId());
-				
+
 				player.sendMessage(ChatColor.RED + "GUI is currently undergoing maintenance. Come back soon!");
 //				Main.recipes.show(p);
 //				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));

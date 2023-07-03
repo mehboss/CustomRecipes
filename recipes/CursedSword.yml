@@ -4,6 +4,7 @@ CursedSword:
   Item: 'DIAMOND_SWORD'
   Item-Damage: 'none'
   Amount: 1
+  Placeable: true
   Ignore-Data: false
   Ignore-Model-Data: false
   Custom-Tagged: true

@@ -1,9 +1,10 @@
 name: CustomRecipes
-version: 1.8.2
+version: 1.8.3
 api-version: 1.13
 main: me.mehboss.recipe.Main
 author: mehboss
 description: An easy-to-use remastered custom recipe plugin!
+softdepend: [PlaceholderAPI]
 commands:
   crecipe:
     description: Displays the custom recipe help page.

@@ -28,6 +28,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.ConfigurationSection;
@@ -40,6 +41,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import me.clip.placeholderapi.PlaceholderAPI;
 
 public class RecipeManager {
 
@@ -129,16 +132,25 @@ public class RecipeManager {
 		return itemMeta;
 	}
 
-	ItemMeta handleLore(String item, ItemMeta m, List<String> loreList) {
+	ItemMeta handleLore(String item, OfflinePlayer p, ItemMeta m) {
+
+		ArrayList<String> loreList = new ArrayList<String>();
+
 		if (getConfig().isSet(item + ".Lore")) {
 
 			for (String Item1Lore : getConfig().getStringList(item + ".Lore")) {
 				String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
+				Main.getInstance().getLogger().log(Level.SEVERE,
+						PlaceholderAPI.setPlaceholders(p, crateLore).toString());
 				loreList.add(crateLore);
 			}
 
+			Main.getInstance().getLogger().log(Level.SEVERE, PlaceholderAPI.setPlaceholders(p, loreList).toString());
+			Main.getInstance().getLogger().log(Level.SEVERE,
+					PlaceholderAPI.setPlaceholders(p, "%player_displayname%").toString());
+			List<String> withPlaceholders = PlaceholderAPI.setPlaceholders(p, loreList);
 			if (!(loreList.isEmpty())) {
-				m.setLore(loreList);
+				m.setLore(withPlaceholders);
 			}
 		}
 		return m;
@@ -260,6 +272,11 @@ public class RecipeManager {
 				continue;
 			}
 
+			if (!recipeConfig.isSet(item + ".Placeable")) {
+				recipeConfig.set(item + ".Placeable", true);
+				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
+			}
+
 			if (!recipeConfig.isSet(item + ".Ignore-Model-Data")) {
 				recipeConfig.set(item + ".Ignore-Model-Data", false);
 				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
@@ -276,11 +293,11 @@ public class RecipeManager {
 			i = handleEnchants(i, item);
 
 			m = handleDisplayname(item, i); // handle Displayname
-			m = handleLore(item, m, loreList); // handle Lore
 			m = handleHideEnchants(item, m); // handles hiding enchants
 			m = handleCustomModelData(item, m); // handles custom model data
 			m = handleAttributes(item, m);
 			m = handleFlags(item, m);
+			m = handleLore(item, Bukkit.getPlayer("Mr_Boss_Man"), m);
 
 			i.setItemMeta(m);
 

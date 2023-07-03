@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v1.8.2                                                                                    #
+# Version v1.8.3                                                                                    #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
@@ -22,12 +22,13 @@ Update-Check: true
 Messages:
   Invalid-Args: '&cInvalid args! (use: /crecipe give <player> <recipename> [amount])'
   Invalid-Perms: '&cYou are not allowed to use this command!'
+  No-Perm-Place: '&cYou cannot place an unplaceable block!'
   Player-Not-Found: '&cERROR: player not found!'
   Recipe-Not-Found: '&cERROR: recipe not found!'
   Inventory-Full: '&cERROR: target''s inventory is full!'
   Give-Recipe: '&aSuccessfully given player item!'
   Reloading: '&cReloading.. please wait'
-  Reload: '&aSuccessfully reloaded Custom Recipes!'
+  Reload: '&aSuccessfully reloaded Custom Recipes with&c %recipes% &arecipes!'
 action-bar:
   enabled: true
   message: '&4You are not allowed to craft this item!'

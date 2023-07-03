@@ -28,6 +28,7 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
@@ -290,6 +291,9 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		});
 
+		getLogger().log(Level.INFO,
+				"Loading Recipes..");
+		
 		int pluginId = 17989;
 		Metrics metrics = new Metrics(this, pluginId);
 		metrics.addCustomChart(new Metrics.MultiLineChart("players_and_servers", new Callable<Map<String, Integer>>() {
@@ -322,6 +326,10 @@ public class Main extends JavaPlugin implements Listener {
 
 		if (isFirstLoad && getConfig().isSet("firstLoad"))
 			getConfig().set("firstLoad", false);
+
+		if (!getConfig().isSet("Messages.No-Perm-Place"))
+			getConfig().set("Messages.No-Perm-Place", "&cYou cannot place an unplaceable block!");
+
 		saveConfig();
 
 		debug = getConfig().getBoolean("Debug");
@@ -332,6 +340,7 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(new CraftManager(), this);
+		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
 		recipes = new ManageGUI(this, null);
@@ -350,6 +359,9 @@ public class Main extends JavaPlugin implements Listener {
 
 		getCommand("edititem").setExecutor(new NBTCommands());
 		addItem = new AddGUI(this, null);
+		
+		getLogger().log(Level.INFO,
+				"Loaded " + giveRecipe.values().size() + " recipes.");
 
 	}
 
@@ -359,8 +371,8 @@ public class Main extends JavaPlugin implements Listener {
 
 	public void clear() {
 
-		saveConfig();
 		reloadConfig();
+		saveConfig();
 		getServer().resetRecipes();
 		disabledrecipe.clear();
 		recipe.clear();

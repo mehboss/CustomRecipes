@@ -140,15 +140,14 @@ public class RecipeManager {
 
 			for (String Item1Lore : getConfig().getStringList(item + ".Lore")) {
 				String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
-				Main.getInstance().getLogger().log(Level.SEVERE,
-						PlaceholderAPI.setPlaceholders(p, crateLore).toString());
 				loreList.add(crateLore);
 			}
+			
+			List<String> withPlaceholders = loreList;
 
-			Main.getInstance().getLogger().log(Level.SEVERE, PlaceholderAPI.setPlaceholders(p, loreList).toString());
-			Main.getInstance().getLogger().log(Level.SEVERE,
-					PlaceholderAPI.setPlaceholders(p, "%player_displayname%").toString());
-			List<String> withPlaceholders = PlaceholderAPI.setPlaceholders(p, loreList);
+			if (Bukkit.getPluginManager().getPlugin("PlaceHolderAPI") != null)
+				withPlaceholders = PlaceholderAPI.setPlaceholders(p, loreList);
+			
 			if (!(loreList.isEmpty())) {
 				m.setLore(withPlaceholders);
 			}
@@ -297,7 +296,7 @@ public class RecipeManager {
 			m = handleCustomModelData(item, m); // handles custom model data
 			m = handleAttributes(item, m);
 			m = handleFlags(item, m);
-			m = handleLore(item, Bukkit.getPlayer("Mr_Boss_Man"), m);
+			m = handleLore(item, null, m);
 
 			i.setItemMeta(m);
 

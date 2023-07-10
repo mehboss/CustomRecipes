@@ -32,6 +32,12 @@ public class BlockManager implements Listener {
 			return;
 
 		e.setCancelled(true);
+		String message = Main.getInstance().getConfig().isSet("Messages.No-Perm-Place")
+				? Main.getInstance().getConfig().getString("Messages.No-Perm-Place")
+				: null;
+
+		if (message != null && !message.equalsIgnoreCase("none"))
+			e.getPlayer().sendMessage(ChatColor.translateAlternateColorCodes('&', message));
 
 	}
 

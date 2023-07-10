@@ -6,7 +6,9 @@
 #                                                                                                   #
 # For MC 1.14+ add 'Custom-Model-Data: INT' to your recipe for utilization                          #
 # For MC 1.12+ you can use attribute modifiers                                                      #
-#                                                                                                   #               
+#                                                                                                   #  
+# (!) SET TO 'none' OR COMPLETELY REMOVE IF ANY OF THESE MESSAGES ARE NOT WANTED (!)                #
+#                                                                                                   #             
 #    Enchant Strings:                                                                               #
 # http://pastebin.com/AWtKQ5UH                                                                      #
 #    Effects:                                                                                       #

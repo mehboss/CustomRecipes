@@ -33,18 +33,28 @@ public class EffectsManager implements Listener {
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
+	public boolean isVersion() {
+		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+		
+		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
+				|| version.contains("1_11") || version.contains("1_12"))
+			return false;
+		
+		return true;
+	}
+	
 	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void oneffect(EntityDamageByEntityEvent p) {
 
-		if (p.getDamager() instanceof Player || p.getDamager() instanceof Trident) {
+		if (p.getDamager() instanceof Player || (isVersion() && p.getDamager() instanceof Trident)) {
 
 			Player pl = null;
 
 			if (p.getDamager() instanceof Player)
 				pl = (Player) p.getDamager();
 
-			if (p.getDamager() instanceof Trident) {
+			if (isVersion() && p.getDamager() instanceof Trident) {
 				Projectile trident = (Projectile) p.getDamager();
 				pl = (Player) trident.getShooter();
 			}

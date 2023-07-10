@@ -1,5 +1,6 @@
 name: Question Form
 description: Ask a question related to Custom Recipes!
+title: "[Question]: "
 labels: ["question"]
 assignees:
   - Mehboss

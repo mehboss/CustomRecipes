@@ -21,6 +21,8 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
+import me.clip.placeholderapi.PlaceholderAPI;
+
 public class ManageGUI implements Listener {
 
 	// *** this menu is the main GUI for recipes. it shows what recipes exist and
@@ -124,7 +126,7 @@ public class ManageGUI implements Listener {
 						viewing = true;
 					}
 
-					EditGUI.getInstance().setItems(viewing, edit, name, e.getCurrentItem());
+					EditGUI.getInstance().setItems(viewing, edit, name, e.getCurrentItem(), p);
 
 					p.openInventory(edit);
 				}
@@ -153,6 +155,9 @@ public class ManageGUI implements Listener {
 			ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
 			ItemMeta itemM = item.getItemMeta();
 
+			if (itemM.hasLore() && hasPlaceholder())
+				itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
+
 			itemM.setDisplayName(items.get(index));
 			item.setItemMeta(itemM);
 
@@ -160,7 +165,7 @@ public class ManageGUI implements Listener {
 			if (p != null && !p.hasPermission("crecipe.gui")
 					&& !p.hasPermission(getConfig(loc).getString(loc + ".Permission")))
 				continue;
-			
+
 			inv.setItem(slots[currentSlot], item);
 			currentSlot++;
 		}
@@ -191,6 +196,10 @@ public class ManageGUI implements Listener {
 		orangestained.setItemMeta(ws);
 
 		defaults(inv, redstained, orangestained, greenstained, stained);
+	}
+
+	boolean hasPlaceholder() {
+		return Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
 	}
 
 	public void defaults(Inventory i, ItemStack r, ItemStack o, ItemStack g, ItemStack d) {

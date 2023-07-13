@@ -38,6 +38,8 @@ import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitScheduler;
+
+import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.RecipeAPI.Ingredient;
 
 public class CraftManager implements Listener {
@@ -714,7 +716,25 @@ public class CraftManager implements Listener {
 			inv.setResult(new ItemStack(Material.AIR));
 
 		if (passedCheck && found && getRecipe().containsKey(recipeName.toLowerCase())) {
-			inv.setResult(new ItemStack(getRecipe().get(recipeName.toLowerCase())));
+
+			List<String> withPlaceholders = null;
+
+			if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
+				withPlaceholders = getRecipe().get(recipeName.toLowerCase()).hasItemMeta()
+						&& getRecipe().get(recipeName.toLowerCase()).getItemMeta().hasLore()
+								? PlaceholderAPI.setPlaceholders(p,
+										getRecipe().get(recipeName.toLowerCase()).getItemMeta().getLore())
+								: null;
+
+			ItemStack finalItem = new ItemStack(getRecipe().get(recipeName.toLowerCase()));
+			ItemMeta finalItemm = finalItem.getItemMeta();
+
+			if (withPlaceholders != null) {
+				finalItemm.setLore(withPlaceholders);
+				finalItem.setItemMeta(finalItemm);
+			}
+
+			inv.setResult(finalItem);
 		}
 
 		if (debug())

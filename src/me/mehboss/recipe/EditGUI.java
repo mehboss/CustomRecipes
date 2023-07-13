@@ -9,6 +9,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -24,6 +25,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+
+import me.clip.placeholderapi.PlaceholderAPI;
 
 public class EditGUI implements Listener {
 
@@ -56,7 +59,7 @@ public class EditGUI implements Listener {
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
-	public void setItems(Boolean viewing, Inventory i, String invname, ItemStack item) {
+	public void setItems(Boolean viewing, Inventory i, String invname, ItemStack item, OfflinePlayer p) {
 
 		String configname = invname;
 
@@ -81,8 +84,8 @@ public class EditGUI implements Listener {
 				continue;
 			}
 
-			boolean foundIdentifier = itemIngredients(configname, slot) != null ? true : false;
-			ItemStack mat = foundIdentifier ? itemIngredients(configname, slot)
+			boolean foundIdentifier = itemIngredients(configname, slot, p) != null ? true : false;
+			ItemStack mat = foundIdentifier ? itemIngredients(configname, slot, p)
 					: XMaterial.matchXMaterial(materials).get().parseItem();
 
 			mat.setAmount(getAmounts(configname, slot));
@@ -120,6 +123,13 @@ public class EditGUI implements Listener {
 		}
 
 		ItemStack result = Main.getInstance().giveRecipe.get(configname.toLowerCase());
+		ItemMeta resultM = result.getItemMeta();
+
+		if (result.hasItemMeta() && resultM.hasLore() && hasPlaceholder()) {
+			resultM.setLore(PlaceholderAPI.setPlaceholders(p, resultM.getLore()));
+			result.setItemMeta(resultM);
+		}
+
 		i.setItem(23, result);
 
 		if (viewing) {
@@ -152,8 +162,13 @@ public class EditGUI implements Listener {
 		ItemMeta lorem = lore.getItemMeta();
 		lorem.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fLore"));
 
-		if (item.hasItemMeta() && item.getItemMeta().hasLore())
+		if (item.hasItemMeta() && item.getItemMeta().hasLore()) {
 			lorem.setLore(item.getItemMeta().getLore());
+
+			if (hasPlaceholder())
+				lorem.setLore(PlaceholderAPI.setPlaceholders(p, item.getItemMeta().getLore()));
+		}
+
 		lore.setItemMeta(lorem);
 
 		ItemStack effects = XMaterial.GHAST_TEAR.parseItem();
@@ -388,7 +403,7 @@ public class EditGUI implements Listener {
 		return ChatColor.translateAlternateColorCodes('&', st);
 	}
 
-	ItemStack itemIngredients(String recipename, int slot) {
+	ItemStack itemIngredients(String recipename, int slot, OfflinePlayer p) {
 
 		ArrayList<String> ingLetters = new ArrayList<String>();
 
@@ -426,7 +441,15 @@ public class EditGUI implements Listener {
 				&& !ingredientsSection.getString("Identifier").equalsIgnoreCase("none")
 				&& identifier().containsKey(ingredientsSection.getString("Identifier"))) {
 
-			return identifier().get(ingredientsSection.getString("Identifier"));
+			ItemStack item = identifier().get(ingredientsSection.getString("Identifier"));
+			ItemMeta itemM = item.getItemMeta();
+
+			if (item.hasItemMeta() && itemM.hasLore() && hasPlaceholder()) {
+				itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
+				item.setItemMeta(itemM);
+			}
+
+			return item;
 		}
 		return null;
 	}
@@ -699,6 +722,10 @@ public class EditGUI implements Listener {
 		p.sendMessage(ChatColor.DARK_GRAY + "---------------------------------------------");
 	}
 
+	boolean hasPlaceholder() {
+		return Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
+	}
+
 	public void handleLore(int slot, String string, Player p, AsyncPlayerChatEvent e) {
 
 		Inventory inv = inventoryinstance.get(p.getUniqueId());
@@ -713,10 +740,18 @@ public class EditGUI implements Listener {
 			if (!lore.isEmpty() && item.hasItemMeta()) {
 				ItemMeta itemm = item.getItemMeta();
 				itemm.setLore(lore);
+
+				if (hasPlaceholder())
+					itemm.setLore(PlaceholderAPI.setPlaceholders(p, lore));
+
 				item.setItemMeta(itemm);
 
 				ItemMeta resultm = result.getItemMeta();
 				resultm.setLore(lore);
+
+				if (hasPlaceholder())
+					resultm.setLore(PlaceholderAPI.setPlaceholders(p, lore));
+
 				result.setItemMeta(resultm);
 			}
 

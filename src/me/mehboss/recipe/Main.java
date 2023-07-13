@@ -28,7 +28,6 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
@@ -291,9 +290,8 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		});
 
-		getLogger().log(Level.INFO,
-				"Loading Recipes..");
-		
+		getLogger().log(Level.INFO, "Loading Recipes..");
+
 		int pluginId = 17989;
 		Metrics metrics = new Metrics(this, pluginId);
 		metrics.addCustomChart(new Metrics.MultiLineChart("players_and_servers", new Callable<Map<String, Integer>>() {
@@ -359,9 +357,11 @@ public class Main extends JavaPlugin implements Listener {
 
 		getCommand("edititem").setExecutor(new NBTCommands());
 		addItem = new AddGUI(this, null);
-		
-		getLogger().log(Level.INFO,
-				"Loaded " + giveRecipe.values().size() + " recipes.");
+
+		getLogger().log(Level.INFO, "Loaded " + giveRecipe.values().size() + " recipes.");
+
+		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
+			new Placeholders().register();
 
 	}
 

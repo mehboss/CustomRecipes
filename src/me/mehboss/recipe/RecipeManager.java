@@ -83,12 +83,16 @@ public class RecipeManager {
 	ItemStack handleEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
 
-			for (String e : getConfig().getStringList(item + ".Enchantments")) {
-				String[] breakdown = e.split(":");
-				String enchantment = breakdown[0];
+			try {
+				for (String e : getConfig().getStringList(item + ".Enchantments")) {
+					String[] breakdown = e.split(":");
+					String enchantment = breakdown[0];
 
-				int lvl = Integer.parseInt(breakdown[1]);
-				i.addUnsafeEnchantment(Enchantment.getByName(enchantment), lvl);
+					int lvl = Integer.parseInt(breakdown[1]);
+					i.addUnsafeEnchantment(Enchantment.getByName(enchantment), lvl);
+				}
+			} catch (Exception e) {
+				debug("Enchantment section for the recipe " + item + " is not valid. Skipping..");
 			}
 		}
 		return i;
@@ -132,7 +136,7 @@ public class RecipeManager {
 		return itemMeta;
 	}
 
-	ItemMeta handleLore(String item, OfflinePlayer p, ItemMeta m) {
+	ItemMeta handleLore(String item, ItemMeta m) {
 
 		ArrayList<String> loreList = new ArrayList<String>();
 
@@ -143,13 +147,8 @@ public class RecipeManager {
 				loreList.add(crateLore);
 			}
 			
-			List<String> withPlaceholders = loreList;
-
-			if (Bukkit.getPluginManager().getPlugin("PlaceHolderAPI") != null)
-				withPlaceholders = PlaceholderAPI.setPlaceholders(p, loreList);
-			
 			if (!(loreList.isEmpty())) {
-				m.setLore(withPlaceholders);
+				m.setLore(loreList);
 			}
 		}
 		return m;
@@ -296,7 +295,7 @@ public class RecipeManager {
 			m = handleCustomModelData(item, m); // handles custom model data
 			m = handleAttributes(item, m);
 			m = handleFlags(item, m);
-			m = handleLore(item, null, m);
+			m = handleLore(item, m);
 
 			i.setItemMeta(m);
 
@@ -343,15 +342,15 @@ public class RecipeManager {
 						: "false";
 				String name = ingredientSection.isSet("Name") ? ingredientSection.getString("Name") : "false";
 
-				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
-
-				if (!ingredientMaterial.isPresent() || finishedMaterial == null) {
+				if (!ingredientMaterial.isPresent()) {
 					getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
 					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
 							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
 							+ "ENUM into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
 					return;
 				}
+
+				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
 
 				R.setIngredient(abbreviation.charAt(0), finishedMaterial);
 				shape.put(abbreviation, finishedMaterial);

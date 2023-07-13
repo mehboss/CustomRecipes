@@ -19,15 +19,32 @@ public class BlockManager implements Listener {
 		if (e.getItemInHand() == null)
 			return;
 
+		String configName = null;
+		String foundID = null;
+
+		boolean found = false;
 		ItemStack item = e.getItemInHand();
 
-		if (!configName().containsKey(item))
-			return;
+		if (NBTEditor.contains(item, "CUSTOM_ITEM_IDENTIFIER")) {
+			foundID = NBTEditor.getString(item, "CUSTOM_ITEM_IDENTIFIER");
+			found = true;
+		}
 
-		String configName = configName().get(item);
+		if (foundID != null && identifier().containsKey(foundID))
+			configName = configName().get(identifier().get(foundID));
+
+		if (foundID == null && !found)
+			for (ItemStack recipes : configName().keySet()) {
+				if (item.isSimilar(recipes)) {
+					configName = configName().get(recipes);
+					found = true;
+					break;
+				}
+			}
+
 		FileConfiguration recipeConfig = getConfig(configName);
 
-		if (!recipeConfig.isSet(configName + ".Placeable")
+		if (configName == null || !found || !recipeConfig.isSet(configName + ".Placeable")
 				|| recipeConfig.getBoolean(configName + ".Placeable") == true)
 			return;
 
@@ -55,6 +72,10 @@ public class BlockManager implements Listener {
 
 	FileConfiguration getConfig() {
 		return Main.getInstance().getConfig();
+	}
+
+	HashMap<String, ItemStack> identifier() {
+		return Main.getInstance().identifier;
 	}
 
 	void sendMessage(Player p) {

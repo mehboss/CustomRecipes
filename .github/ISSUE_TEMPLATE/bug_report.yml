@@ -3,6 +3,7 @@ description: File a bug report to help us improve!
 labels: ["bug", "unconfirmed"]
 assignees:
   - Mehboss
+  - Valorless
 body:
   - type: markdown
     attributes:

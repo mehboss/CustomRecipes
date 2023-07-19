@@ -4,6 +4,7 @@ title: "[Question]: "
 labels: ["question"]
 assignees:
   - Mehboss
+  - Valorless
 body:
   - type: textarea
     id: question

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -265,7 +266,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	@Override
 	public void onEnable() {
-
+        
 		instance = this;
 		api = new RecipeAPI();
 		plugin = new RecipeManager();
@@ -333,6 +334,12 @@ public class Main extends JavaPlugin implements Listener {
 		debug = getConfig().getBoolean("Debug");
 
 		removeRecipes();
+		
+        for(Iterator<Recipe> iterator = Bukkit.recipeIterator(); iterator.hasNext();) {
+            Recipe type = iterator.next();
+            vanillaRecipes.add(type);
+        }
+        
 		plugin.addItems();
 
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);

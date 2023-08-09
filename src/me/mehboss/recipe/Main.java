@@ -42,6 +42,7 @@ public class Main extends JavaPlugin implements Listener {
 	ArrayList<UUID> recipeBook = new ArrayList<UUID>();
 	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
 
+	HashMap<String, ItemStack> itemNames = new HashMap<String, ItemStack>();
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
 	HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
@@ -266,7 +267,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	@Override
 	public void onEnable() {
-        
+
 		instance = this;
 		api = new RecipeAPI();
 		plugin = new RecipeManager();
@@ -334,13 +335,17 @@ public class Main extends JavaPlugin implements Listener {
 		debug = getConfig().getBoolean("Debug");
 
 		removeRecipes();
-		
-        for(Iterator<Recipe> iterator = Bukkit.recipeIterator(); iterator.hasNext();) {
-            Recipe type = iterator.next();
-            vanillaRecipes.add(type);
-        }
-        
+
+		for (Iterator<Recipe> iterator = Bukkit.recipeIterator(); iterator.hasNext();) {
+			Recipe type = iterator.next();
+			vanillaRecipes.add(type);
+		}
+
+		Bukkit.clearRecipes();
 		plugin.addItems();
+
+		for (Recipe vanilla : vanillaRecipes)
+			Bukkit.addRecipe(vanilla);
 
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
@@ -366,7 +371,7 @@ public class Main extends JavaPlugin implements Listener {
 		addItem = new AddGUI(this, null);
 
 		getLogger().log(Level.INFO, "Loaded " + giveRecipe.values().size() + " recipes.");
-
+		
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
 

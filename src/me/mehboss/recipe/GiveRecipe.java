@@ -5,6 +5,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -185,7 +186,7 @@ public class GiveRecipe implements CommandExecutor {
 					}
 				}
 
-				List<String> recipes = new ArrayList<>(Main.getInstance().configName.values());
+				List<String> recipes = new ArrayList<>(Main.getInstance().itemNames.keySet());
 
 				// Sort the recipes alphabetically
 				Collections.sort(recipes, String.CASE_INSENSITIVE_ORDER);

@@ -67,6 +67,6 @@ public class TabCompletion implements TabCompleter {
 	}
 
 	private Collection<String> getRecipes() {
-		return Main.getInstance().configName.values();
+		return Main.getInstance().itemNames.keySet();
 	}
 }

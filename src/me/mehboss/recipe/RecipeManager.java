@@ -306,9 +306,10 @@ public class RecipeManager {
 			HashMap<String, Material> shape = new HashMap<String, Material>();
 			ArrayList<String> shapeletter = new ArrayList<String>();
 
-			configName().put(i, item);
 			menui().add(i);
 			giveRecipe().put(item.toLowerCase(), i);
+			itemNames().put(item, i);
+			configName().put(i, item);
 
 			String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
 
@@ -503,6 +504,10 @@ public class RecipeManager {
 		return Main.getInstance().recipe;
 	}
 
+	HashMap<String, ItemStack> itemNames() {
+		return Main.getInstance().itemNames;
+	}
+	
 	HashMap<String, ItemStack> giveRecipe() {
 		return Main.getInstance().giveRecipe;
 	}

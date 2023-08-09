@@ -141,7 +141,7 @@ public class ManageGUI implements Listener {
 	private void items(Player p, Inventory inv, int page) {
 
 		int[] slots = { 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34 };
-		ArrayList<String> items = new ArrayList<>(Main.getInstance().configName.values());
+		ArrayList<String> items = new ArrayList<>(Main.getInstance().itemNames.keySet());
 		Collections.sort(items);
 
 		int startSlot = page * slots.length;

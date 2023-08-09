@@ -29,6 +29,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryAction;
@@ -36,9 +37,6 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitScheduler;
 
@@ -180,7 +178,7 @@ public class CraftManager implements Listener {
 		if (!(matchedRecipe(inv)))
 			return;
 
-		if (!(configName().containsKey(inv.getResult())))
+		if (!(getRecipe().values().contains(inv.getResult())))
 			return;
 
 		if (e.getCurrentItem() == null)
@@ -205,7 +203,7 @@ public class CraftManager implements Listener {
 		if (NBTEditor.contains(inv.getResult(), "CUSTOM_ITEM_IDENTIFIER")) {
 			String foundID = NBTEditor.getString(inv.getResult(), "CUSTOM_ITEM_IDENTIFIER");
 
-			if (identifier().containsKey(foundID) && configName().containsKey(identifier().get(foundID)))
+			if (identifier().containsKey(foundID) && getRecipe().containsKey(identifier().get(foundID)))
 				findName = configName().get(identifier().get(foundID));
 
 		}
@@ -450,68 +448,8 @@ public class CraftManager implements Listener {
 
 		return true;
 	}
-
-	boolean isMatrixEqual(ItemStack[] matrix1, ItemStack[] matrix2) {
-
-		for (int i = 0; i < matrix2.length; i++) {
-			ItemStack item1 = matrix1[i];
-			ItemStack item2 = matrix2[i];
-
-			if (item1 == null || item2 == null) {
-				// If either item is null (empty slot), both items should be null to be
-				// considered equal
-				if (item1 != item2) {
-					return false;
-				}
-				continue;
-			}
-
-			if (!item1.isSimilar(item2))
-				return false;
-		}
-
-		return true;
-	}
-
-	ItemStack isVanillaRecipe(CraftingInventory inv) {
-		ItemStack[] matrix = inv.getMatrix();
-
-		for (int slot = 1; slot < 10; slot++) {
-			
-			if (inv.getItem(slot) == null || inv.getItem(slot).getType() == Material.AIR)
-				continue;
-
-			ItemMeta itemM = inv.getItem(slot).getItemMeta();
-
-			if (itemM.hasDisplayName() || itemM.hasLore())
-				return null;
-		}
-
-		// Get the list of registered recipes from the server
-		for (Recipe recipe : Main.getInstance().vanillaRecipes) {
-			if (recipe instanceof ShapelessRecipe || recipe instanceof ShapedRecipe) {
-				ItemStack[] recipeMatrix;
-
-				// Check if it's a shaped or shapeless recipe
-				if (recipe instanceof ShapedRecipe) {
-					ShapedRecipe shapedRecipe = (ShapedRecipe) recipe;
-					recipeMatrix = shapedRecipe.getIngredientMap().values().toArray(new ItemStack[0]);
-				} else { // ShapelessRecipe
-					ShapelessRecipe shapelessRecipe = (ShapelessRecipe) recipe;
-					recipeMatrix = shapelessRecipe.getIngredientList().toArray(new ItemStack[0]);
-				}
-
-				// Compare the crafting matrix and recipe matrix
-				if (isMatrixEqual(matrix, recipeMatrix)) {
-					return recipe.getResult(); // The crafting matrix matches the vanilla recipe
-				}
-			}
-		}
-
-		return null; // No vanilla recipe match found
-	}
-
-	@EventHandler
+	
+	@EventHandler (priority = EventPriority.HIGHEST)
 	void handleCrafting(PrepareItemCraftEvent e) {
 
 		CraftingInventory inv = e.getInventory();
@@ -540,7 +478,7 @@ public class CraftManager implements Listener {
 			passedCheck = true;
 			recipeName = recipes;
 
-			if (isVanillaRecipe(inv) != null || !hasIngredients(inv, recipes)) {
+			if (!hasIngredients(inv, recipes)) {
 				if (debug())
 					debug("Recipe: " + recipeName + " | Materials did not match, skipping!");
 				passedCheck = false;
@@ -687,7 +625,7 @@ public class CraftManager implements Listener {
 
 				if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
 						&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
-					return;
+					break;
 
 				int i = 0;
 
@@ -799,9 +737,6 @@ public class CraftManager implements Listener {
 
 			inv.setResult(finalItem);
 		}
-
-		if (isVanillaRecipe(inv) != null)
-			inv.setResult(isVanillaRecipe(inv));
 
 		if (debug())
 			debug("Final Recipe Match: " + passedCheck + "| Recipe Pulled: " + recipeName + "| Found: " + found);

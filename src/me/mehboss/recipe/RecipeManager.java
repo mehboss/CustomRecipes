@@ -284,6 +284,11 @@ public class RecipeManager {
 				recipeConfig.set(item + ".Item-Flags", new ArrayList<String>());
 				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
 			}
+			
+			if (!recipeConfig.isSet(item + ".Disabled-Worlds")) {
+				recipeConfig.set(item + ".Disabled-Worlds", new ArrayList<String>());
+				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
+			}
 
 			i = handleItemDamage(i, item, damage, type, amount); // handles ItemDamage
 			i = handleIdentifier(i, item); // handles CustomTag

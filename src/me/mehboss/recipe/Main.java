@@ -23,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
@@ -42,6 +43,8 @@ public class Main extends JavaPlugin implements Listener {
 	ArrayList<UUID> recipeBook = new ArrayList<UUID>();
 	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
 
+	HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
+	
 	HashMap<String, ItemStack> itemNames = new HashMap<String, ItemStack>();
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
@@ -279,7 +282,7 @@ public class Main extends JavaPlugin implements Listener {
 
 			newupdate = version;
 
-			if (getDescription().getVersion().equals(version)) {
+			if (getDescription().getVersion().compareTo(version) >= 0) {
 				getLogger().log(Level.INFO, "Checking for updates..");
 				getLogger().log(Level.INFO,
 						"We are all up to date with the latest version. Thank you for using custom recipes :)");
@@ -371,7 +374,7 @@ public class Main extends JavaPlugin implements Listener {
 		addItem = new AddGUI(this, null);
 
 		getLogger().log(Level.INFO, "Loaded " + giveRecipe.values().size() + " recipes.");
-		
+
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
 
@@ -385,7 +388,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		reloadConfig();
 		saveConfig();
-		getServer().resetRecipes();
+
 		disabledrecipe.clear();
 		recipe.clear();
 		giveRecipe.clear();
@@ -412,8 +415,13 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 
-		removeRecipes();
+		Bukkit.clearRecipes();
 		plugin.addItems();
+
+		for (Recipe vanilla : vanillaRecipes)
+			Bukkit.addRecipe(vanilla);
+
+		removeRecipes();
 
 		recipes = new ManageGUI(this, null);
 		editItem = new EditGUI(Main.getInstance(), null);
@@ -522,7 +530,7 @@ public class Main extends JavaPlugin implements Listener {
 	@EventHandler
 	public void update(PlayerJoinEvent e) {
 		if (getConfig().getBoolean("Update-Check") == true && e.getPlayer().hasPermission("crecipe.reload")
-				&& !getDescription().getVersion().equals(newupdate)) {
+				&& getDescription().getVersion().compareTo(newupdate) < 0) {
 			e.getPlayer()
 					.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate

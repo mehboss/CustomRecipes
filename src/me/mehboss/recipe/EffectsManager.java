@@ -35,14 +35,14 @@ public class EffectsManager implements Listener {
 
 	public boolean isVersion() {
 		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-		
+
 		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
 				|| version.contains("1_11") || version.contains("1_12"))
 			return false;
-		
+
 		return true;
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void oneffect(EntityDamageByEntityEvent p) {
@@ -56,7 +56,7 @@ public class EffectsManager implements Listener {
 
 			if (isVersion() && p.getDamager() instanceof Trident) {
 				Projectile trident = (Projectile) p.getDamager();
-				pl = (Player) trident.getShooter();
+				pl = trident.getShooter() instanceof Player ? (Player) trident.getShooter() : null;
 			}
 
 			if (pl == null || pl.getItemInHand() == null)
@@ -79,8 +79,8 @@ public class EffectsManager implements Listener {
 			if (configName == null || foundItem == null || identifier == null || getConfig(configName) == null)
 				return;
 
-			if ((p.getCause() == DamageCause.PROJECTILE || p.getCause() == DamageCause.ENTITY_ATTACK) && (!(p.getEntity().isDead()))
-					&& getConfig(configName).isSet(configName + ".Effects")) {
+			if ((p.getCause() == DamageCause.PROJECTILE || p.getCause() == DamageCause.ENTITY_ATTACK)
+					&& (!(p.getEntity().isDead())) && getConfig(configName).isSet(configName + ".Effects")) {
 
 				for (String e : getConfig(configName).getStringList(configName + ".Effects")) {
 

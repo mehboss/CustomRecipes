@@ -122,7 +122,10 @@ public class EditGUI implements Listener {
 
 		}
 
-		ItemStack result = Main.getInstance().giveRecipe.get(configname.toLowerCase());
+		ItemStack result = NBTEditor.contains(item, "CUSTOM_ITEM_IDENTIFIER")
+				? Main.getInstance().identifier.get(NBTEditor.getString(item, "CUSTOM_ITEM_IDENTIFIER"))
+				: Main.getInstance().giveRecipe.get(configname.toLowerCase());
+
 		ItemMeta resultM = result.getItemMeta();
 
 		if (result.hasItemMeta() && resultM.hasLore() && hasPlaceholder()) {
@@ -519,13 +522,37 @@ public class EditGUI implements Listener {
 			return;
 
 		Player p = (Player) e.getWhoClicked();
-
 		if (e.getInventory() != null && e.getView().getTitle() != null
 				&& e.getView().getTitle().contains("VIEWING: ")) {
 			e.setCancelled(true);
 
+			if (e.getCurrentItem() == null || e.getRawSlot() == 23)
+				return;
+
+			if (NBTEditor.contains(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER") && Main.getInstance().identifier
+					.containsKey(NBTEditor.getString(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER"))) {
+
+				String name = Main.getInstance().configName.containsKey(e.getCurrentItem())
+						? Main.getInstance().configName.get(e.getCurrentItem())
+						: null;
+
+				Inventory edit = Bukkit.getServer().createInventory(null, 54,
+						ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + name));
+
+				setItems(true, edit, name, e.getCurrentItem(), p);
+
+				Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
+				p.openInventory(edit);
+			}
+
 			if (e.getRawSlot() == 48 || e.getRawSlot() == 49 || e.getRawSlot() == 50) {
-				Main.recipes.show(p);
+
+				if (Main.getInstance().saveInventory.containsKey(p.getUniqueId())) {
+					p.openInventory(Main.getInstance().saveInventory.get(p.getUniqueId()));
+					Main.getInstance().saveInventory.remove(p.getUniqueId());
+				} else {
+					Main.recipes.show(p);
+				}
 			}
 
 			return;
@@ -831,6 +858,9 @@ public class EditGUI implements Listener {
 	public void onClose(PlayerQuitEvent e) {
 		if (Main.getInstance().recipeBook.contains(e.getPlayer().getUniqueId()))
 			Main.getInstance().recipeBook.remove(e.getPlayer().getUniqueId());
+
+		if (Main.getInstance().saveInventory.containsKey(e.getPlayer().getUniqueId()))
+			Main.getInstance().saveInventory.remove(e.getPlayer().getUniqueId());
 	}
 
 	@EventHandler

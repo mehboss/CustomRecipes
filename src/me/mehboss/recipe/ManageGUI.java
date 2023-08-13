@@ -110,11 +110,14 @@ public class ManageGUI implements Listener {
 					return;
 				}
 
-				if (Main.getInstance().giveRecipe
+				if (NBTEditor.contains(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER") || Main.getInstance().giveRecipe
 						.containsKey(e.getCurrentItem().getItemMeta().getDisplayName().toLowerCase())) {
 
 					Boolean viewing = false;
-					String name = e.getCurrentItem().getItemMeta().getDisplayName();
+					String name = e.getCurrentItem().hasItemMeta() && e.getCurrentItem().getItemMeta().hasDisplayName()
+							? e.getCurrentItem().getItemMeta().getDisplayName()
+							: e.getCurrentItem().getType().toString();
+							
 					Inventory edit = null;
 
 					if (!(Main.getInstance().recipeBook.contains(p.getUniqueId()))) {
@@ -126,6 +129,7 @@ public class ManageGUI implements Listener {
 						viewing = true;
 					}
 
+					Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
 					EditGUI.getInstance().setItems(viewing, edit, name, e.getCurrentItem(), p);
 
 					p.openInventory(edit);

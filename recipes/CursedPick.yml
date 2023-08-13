@@ -44,3 +44,5 @@ CursedPick:
       # Format: ATTRIBUTE:AMOUNT:SLOT
   Custom-Model-Data: none
       # Custom model data for texture packs. Only on MC 1.14+!
+  Disabled-Worlds: []
+      # Disable crafting in specific worlds

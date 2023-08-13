@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -448,8 +449,25 @@ public class CraftManager implements Listener {
 
 		return true;
 	}
-	
-	@EventHandler (priority = EventPriority.HIGHEST)
+
+	boolean hasVanillaIngredients(CraftingInventory inv) {
+
+		if (inv.getResult().hasItemMeta()
+				&& (inv.getResult().getItemMeta().hasDisplayName() || inv.getResult().getItemMeta().hasLore()
+						|| NBTEditor.contains(inv.getResult(), "CUSTOM_ITEM_IDENTIFIER")))
+			return false;
+
+		for (ItemStack item : inv.getContents()) {
+			if (item == null || item.getType() == Material.AIR)
+				continue;
+
+			if (item.hasItemMeta() && (item.getItemMeta().hasDisplayName() || item.getItemMeta().hasLore()))
+				return false;
+		}
+		return true;
+	}
+
+	@EventHandler(priority = EventPriority.HIGHEST)
 	void handleCrafting(PrepareItemCraftEvent e) {
 
 		CraftingInventory inv = e.getInventory();
@@ -468,9 +486,6 @@ public class CraftManager implements Listener {
 			return;
 
 		recipeName = configName().get(inv.getResult());
-
-		if (recipeName == null || !(api().hasRecipe(recipeName)))
-			return;
 
 		for (String recipes : api().getRecipes()) {
 			ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipes);
@@ -625,7 +640,7 @@ public class CraftManager implements Listener {
 
 				if (getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
 						&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
-					break;
+					continue;
 
 				int i = 0;
 
@@ -656,13 +671,13 @@ public class CraftManager implements Listener {
 							continue;
 
 						} else if (ingredient.hasIdentifier()) {
+
+							if (debug())
+								debug("ingredient.hasIdentifier()");
+
 							passedCheck = false;
 							break;
 						}
-
-						if ((getConfig(recipeName).isSet(recipeName + ".Ignore-Data")
-								&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true))
-							break;
 
 						// checks if displayname is null
 						if ((!meta.hasDisplayName() && ingredient.hasDisplayName())
@@ -700,7 +715,7 @@ public class CraftManager implements Listener {
 				}
 			}
 
-			if (passedCheck || found) {
+			if (passedCheck && found) {
 				break;
 			}
 		}
@@ -711,6 +726,19 @@ public class CraftManager implements Listener {
 			inv.setResult(new ItemStack(Material.AIR));
 			sendNoPermsMessage(p);
 			return;
+		}
+
+		if (hasVanillaIngredients(inv))
+			return;
+
+		if (getConfig(recipeName).isSet(recipeName + ".Disabled-Worlds")) {
+			for (String string : getConfig(recipeName).getStringList(recipeName + ".Disabled-Worlds")) {
+				if (p.getWorld().getName().equalsIgnoreCase(string)) {
+					inv.setResult(new ItemStack(Material.AIR));
+					sendMessages(p, "none");
+					return;
+				}
+			}
 		}
 
 		if ((!passedCheck) && (found))

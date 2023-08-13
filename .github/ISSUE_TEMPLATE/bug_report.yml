@@ -42,6 +42,12 @@ body:
       label: Relevant log output
       placeholder: Please copy and paste any relevant console log output. This will be automatically formatted into code.
       render: shell
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant file configuration
+      placeholder: Please copy and paste any relevant recipe files in question. This can be a pastebin link if you have multiple.
+      render: shell
   - type: input
     id: server_version
     attributes:

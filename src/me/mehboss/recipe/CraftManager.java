@@ -400,13 +400,16 @@ public class CraftManager implements Listener {
 
 		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
 		int slot = 0;
+		
 		for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
 
 			if (ingredient.getMaterial() == null && !invMaterials.get(slot).equals("null")) {
 				return false;
 			}
-			if (ingredient.getMaterial() != null && !invMaterials.get(slot).equals(ingredient.getMaterial().toString()))
+			if (ingredient.getMaterial() != null
+					&& !invMaterials.get(slot).equals(ingredient.getMaterial().toString())) {
 				return false;
+			}
 
 			slot++;
 		}
@@ -741,7 +744,7 @@ public class CraftManager implements Listener {
 			}
 		}
 
-		if ((!passedCheck) && (found))
+		if ((!passedCheck) || (found) || (passedCheck && !found))
 			inv.setResult(new ItemStack(Material.AIR));
 
 		if (passedCheck && found && getRecipe().containsKey(recipeName.toLowerCase())) {

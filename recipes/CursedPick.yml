@@ -37,6 +37,8 @@ CursedPick:
       Identifier: none
       Amount: 1
       Name: 'Iron Essence'
+  Custom-Tags: []
+     # Add specific NBT tags
   Item-Flags: []
      # Add items flags to your item such as hide attributes
   Attribute: []

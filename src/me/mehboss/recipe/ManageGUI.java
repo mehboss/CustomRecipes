@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -117,7 +118,7 @@ public class ManageGUI implements Listener {
 					String name = e.getCurrentItem().hasItemMeta() && e.getCurrentItem().getItemMeta().hasDisplayName()
 							? e.getCurrentItem().getItemMeta().getDisplayName()
 							: e.getCurrentItem().getType().toString();
-							
+
 					Inventory edit = null;
 
 					if (!(Main.getInstance().recipeBook.contains(p.getUniqueId()))) {
@@ -156,24 +157,31 @@ public class ManageGUI implements Listener {
 				break;
 			}
 
-			ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
-			ItemMeta itemM = item.getItemMeta();
+			try {
+				ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
+				ItemMeta itemM = item.getItemMeta();
 
-			if (itemM.hasLore() && hasPlaceholder())
-				itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
+				if (itemM.hasLore() && hasPlaceholder())
+					itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
 
-			itemM.setDisplayName(items.get(index));
-			item.setItemMeta(itemM);
+				itemM.setDisplayName(items.get(index));
+				item.setItemMeta(itemM);
 
-			String loc = items.get(index);
-			if (p != null && !p.hasPermission("crecipe.gui")
-					&& !p.hasPermission(getConfig(loc).getString(loc + ".Permission")))
-				continue;
+				String loc = items.get(index);
+				if (p != null && !p.hasPermission("crecipe.gui")
+						&& !p.hasPermission(getConfig(loc).getString(loc + ".Permission")))
+					continue;
 
-			inv.setItem(slots[currentSlot], item);
-			currentSlot++;
+				inv.setItem(slots[currentSlot], item);
+				currentSlot++;
+			} catch (Exception e) {
+				Main.getInstance().getLogger().log(Level.SEVERE,
+						"Can not parse itemstack for recipe "
+								+ Main.getInstance().configName
+										.get(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()))
+								+ ". Skipping for now.");
+			}
 		}
-
 		// page 1 get 1-14
 		// page 2 get 15 - 29
 		// page 3 get 30 - 44

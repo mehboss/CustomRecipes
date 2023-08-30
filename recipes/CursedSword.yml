@@ -33,6 +33,7 @@ CursedSword:
       Identifier: none
       Amount: 1
       Name: 'Wooden Board'
+  Custom-Tags: []
   Item-Flags: []
   Attribute: []
   Custom-Model-Data: none

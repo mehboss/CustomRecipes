@@ -30,6 +30,7 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import net.advancedplugins.ae.api.AEAPI;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
@@ -67,16 +68,16 @@ public class Main extends JavaPlugin implements Listener {
 	File swordYml = new File(getDataFolder() + "/recipes/CursedSword.yml");
 	FileConfiguration swordConfig = null;
 
+	Boolean hasAE = false;
 	Boolean debug = false;
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
 	RecipeAPI api;
-
+	
 	public void copyMessagesToConfig() {
 		File messagesFile = new File(getDataFolder() + "/messages.yml");
-
 		if (messagesFile.exists()) {
 			YamlConfiguration messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
 
@@ -275,6 +276,12 @@ public class Main extends JavaPlugin implements Listener {
 		api = new RecipeAPI();
 		plugin = new RecipeManager();
 
+		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
+			new Placeholders().register();
+		
+		if (Bukkit.getPluginManager().getPlugin("AdvancedEnchantments") != null)
+			hasAE = true;
+		
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
 
@@ -374,10 +381,6 @@ public class Main extends JavaPlugin implements Listener {
 		addItem = new AddGUI(this, null);
 
 		getLogger().log(Level.INFO, "Loaded " + giveRecipe.values().size() + " recipes.");
-
-		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
-			new Placeholders().register();
-
 	}
 
 	public static Main getInstance() {

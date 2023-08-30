@@ -28,7 +28,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.configuration.ConfigurationSection;
@@ -42,7 +41,7 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import me.clip.placeholderapi.PlaceholderAPI;
+import net.advancedplugins.ae.api.AEAPI;
 
 public class RecipeManager {
 
@@ -68,6 +67,13 @@ public class RecipeManager {
 
 			identifier().put(getConfig().getString(item + ".Identifier"), i);
 		}
+
+		if (getConfig().isSet(item + ".Custom-Tags")) {
+			for (String key : getConfig().getStringList(item + ".Custom-Tags")) {
+				String[] split = key.split(", ");
+				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), "CUSTOM_ITEM_IDENTIFIER");
+			}
+		}
 		return i;
 	}
 
@@ -82,14 +88,41 @@ public class RecipeManager {
 
 	ItemStack handleEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
-
 			try {
 				for (String e : getConfig().getStringList(item + ".Enchantments")) {
 					String[] breakdown = e.split(":");
 					String enchantment = breakdown[0];
 
+					if (Enchantment.getByName(enchantment) == null)
+						continue;
+
 					int lvl = Integer.parseInt(breakdown[1]);
 					i.addUnsafeEnchantment(Enchantment.getByName(enchantment), lvl);
+				}
+			} catch (Exception e) {
+				debug("Enchantment section for the recipe " + item + " is not valid. Skipping..");
+			}
+		}
+		return i;
+	}
+
+	ItemStack handleCustomEnchants(ItemStack i, String item) {
+		if (getConfig().isSet(item + ".Enchantments")) {
+
+			try {
+				for (String e : getConfig().getStringList(item + ".Enchantments")) {
+					String[] breakdown = e.split(":");
+					String enchantment = breakdown[0];
+					int lvl = Integer.parseInt(breakdown[1]);
+
+					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(enchantment.toLowerCase())) {
+
+						i = AEAPI.applyEnchant(enchantment.toLowerCase(), lvl, i);
+						continue;
+					}
+
+					if (Enchantment.getByName(enchantment) == null)
+						debug("Enchantment - " + enchantment + " for the recipe " + item + " is not valid. Skipping..");
 				}
 			} catch (Exception e) {
 				debug("Enchantment section for the recipe " + item + " is not valid. Skipping..");
@@ -142,11 +175,15 @@ public class RecipeManager {
 
 		if (getConfig().isSet(item + ".Lore")) {
 
+			if (m.hasLore() && getConfig().getBoolean(item + ".Hide-Enchants") == false) {
+				loreList = (ArrayList<String>) m.getLore();
+			}
+
 			for (String Item1Lore : getConfig().getStringList(item + ".Lore")) {
 				String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
 				loreList.add(crateLore);
 			}
-			
+
 			if (!(loreList.isEmpty())) {
 				m.setLore(loreList);
 			}
@@ -284,7 +321,7 @@ public class RecipeManager {
 				recipeConfig.set(item + ".Item-Flags", new ArrayList<String>());
 				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
 			}
-			
+
 			if (!recipeConfig.isSet(item + ".Disabled-Worlds")) {
 				recipeConfig.set(item + ".Disabled-Worlds", new ArrayList<String>());
 				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
@@ -294,6 +331,7 @@ public class RecipeManager {
 			i = handleIdentifier(i, item); // handles CustomTag
 			i = handleDurability(i, item);
 			i = handleEnchants(i, item);
+			i = handleCustomEnchants(i, item);
 
 			m = handleDisplayname(item, i); // handle Displayname
 			m = handleHideEnchants(item, m); // handles hiding enchants
@@ -512,7 +550,7 @@ public class RecipeManager {
 	HashMap<String, ItemStack> itemNames() {
 		return Main.getInstance().itemNames;
 	}
-	
+
 	HashMap<String, ItemStack> giveRecipe() {
 		return Main.getInstance().giveRecipe;
 	}

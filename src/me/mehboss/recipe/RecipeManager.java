@@ -35,11 +35,13 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.material.MaterialData;
 
 import net.advancedplugins.ae.api.AEAPI;
 
@@ -285,6 +287,7 @@ public class RecipeManager {
 
 			ShapedRecipe R = null;
 			ShapelessRecipe S = null;
+			FurnaceRecipe fRecipe = null;
 
 			HashMap<String, String> details = new HashMap<String, String>();
 			ArrayList<RecipeAPI.Ingredient> ingredients = new ArrayList<>();
@@ -293,6 +296,14 @@ public class RecipeManager {
 
 			List<String> loreList = new ArrayList<String>();
 			List<String> gridRows = getConfig().getStringList(item + ".ItemCrafting");
+			String converter = getConfig().getString(item + ".Converter");
+			if (converter != null) {
+				if (!"FURNACE".equals(converter)) {
+					getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
+							+" but expected FURNACE or null for Converter in: " + recipeFile.getName());
+					return;
+				}
+			}
 
 			String damage = getConfig().getString(item + ".Item-Damage");
 			int amount = getConfig().getInt(item + ".Amount");
@@ -355,10 +366,10 @@ public class RecipeManager {
 			configName().put(i, item);
 
 			String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-
+			NamespacedKey key = null;
 			if (!version.contains("1_7") && !version.contains("1_8") && !version.contains("1_9")
 					&& !version.contains("1_10") && !version.contains("1_11")) {
-				NamespacedKey key = new NamespacedKey(Main.getInstance(), getConfig().getString(item + ".Identifier"));
+				key = new NamespacedKey(Main.getInstance(), getConfig().getString(item + ".Identifier"));
 				R = new ShapedRecipe(key, i);
 				S = new ShapelessRecipe(key, i);
 			} else {
@@ -368,9 +379,10 @@ public class RecipeManager {
 
 			R.shape(line1, line2, line3);
 			details.put("X", "null:false:false:1");
+			float experience = 1.0f;
+			int cookTime = 200;
 
 			for (String abbreviation : getConfig().getConfigurationSection(item + ".Ingredients").getKeys(false)) {
-
 				ConfigurationSection ingredientSection = getConfig()
 						.getConfigurationSection(item + ".Ingredients." + abbreviation);
 
@@ -414,6 +426,22 @@ public class RecipeManager {
 				}
 
 				findIngredients.add(finishedMaterial);
+				if (converter != null) {
+					if (fRecipe != null) {
+						getLogger().log(Level.SEVERE, "Error loading recipe. Got "
+								+ finishedMaterial.toString()
+								+ " but expected only one ingredient since using " + converter
+								+ " as Converter in: " + recipeFile.getName());
+						return;
+					}
+				
+					if (key != null) {
+						fRecipe = new FurnaceRecipe(key, i, finishedMaterial, experience, cookTime);
+					}
+					else { // older API
+						fRecipe = new FurnaceRecipe(i, new MaterialData(finishedMaterial), experience);
+					}
+				}
 			}
 
 			ingredients().put(getConfig().getString(item + ".Identifier"), findIngredients);
@@ -453,38 +481,46 @@ public class RecipeManager {
 				ingredients
 						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
 			}
+			
+			if ("FURNACE".equals(converter)) {
+				Bukkit.getServer().addRecipe(fRecipe);
+				if (debug())
+					debug("Added "+converter+" Recipe: " + item + " " + i.getAmount());
 
-			if (getConfig().getBoolean(item + ".Shapeless") == true) {
-
-				shapeletter.add(newsplit1[0]);
-				shapeletter.add(newsplit1[1]);
-				shapeletter.add(newsplit1[2]);
-				shapeletter.add(newsplit2[0]);
-				shapeletter.add(newsplit2[1]);
-				shapeletter.add(newsplit2[2]);
-				shapeletter.add(newsplit3[0]);
-				shapeletter.add(newsplit3[1]);
-				shapeletter.add(newsplit3[2]);
-
-				for (String sl : shapeletter) {
-					if (!(sl.equalsIgnoreCase("X"))) {
-						S.addIngredient(shape.get(sl));
-
-						if (debug())
-							debug("Shapeless: true | Variable: " + sl);
-					}
-				}
-
-				Bukkit.getServer().addRecipe(S);
 			}
-
-			api().addRecipe(item, ingredients);
-
-			if (getConfig().getBoolean(item + ".Shapeless") == false)
-				Bukkit.getServer().addRecipe(R);
-
-			if (debug())
-				debug("Added Recipe: " + item + " | With Amount: " + i.getAmount());
+			else {
+				if (getConfig().getBoolean(item + ".Shapeless") == true) {
+	
+					shapeletter.add(newsplit1[0]);
+					shapeletter.add(newsplit1[1]);
+					shapeletter.add(newsplit1[2]);
+					shapeletter.add(newsplit2[0]);
+					shapeletter.add(newsplit2[1]);
+					shapeletter.add(newsplit2[2]);
+					shapeletter.add(newsplit3[0]);
+					shapeletter.add(newsplit3[1]);
+					shapeletter.add(newsplit3[2]);
+	
+					for (String sl : shapeletter) {
+						if (!(sl.equalsIgnoreCase("X"))) {
+							S.addIngredient(shape.get(sl));
+	
+							if (debug())
+								debug("Shapeless: true | Variable: " + sl);
+						}
+					}
+	
+					Bukkit.getServer().addRecipe(S);
+				}
+			
+				api().addRecipe(item, ingredients);
+	
+				if (getConfig().getBoolean(item + ".Shapeless") == false)
+					Bukkit.getServer().addRecipe(R);
+	
+				if (debug())
+					debug("Added Recipe: " + item + " | With Amount: " + i.getAmount());
+			}
 		}
 	}
 

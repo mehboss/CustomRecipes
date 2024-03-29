@@ -275,7 +275,8 @@ public class RecipeManager {
 
 			if (!(recipeConfig.isConfigurationSection(item))) {
 				Main.getInstance().getLogger().log(Level.WARNING, "Could not find configuration section " + item
-						+ " in the recipe file: " + item + ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
+						+ " in the recipe file that must match its filename: " + item
+						+ ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
 				continue;
 			}
 

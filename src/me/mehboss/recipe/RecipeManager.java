@@ -291,7 +291,7 @@ public class RecipeManager {
 			List<Material> findIngredients = new ArrayList<Material>();
 
 			List<String> loreList = new ArrayList<String>();
-			List<String> r = getConfig().getStringList(item + ".ItemCrafting");
+			List<String> gridRows = getConfig().getStringList(item + ".ItemCrafting");
 
 			String damage = getConfig().getString(item + ".Item-Damage");
 			int amount = getConfig().getInt(item + ".Amount");
@@ -341,10 +341,9 @@ public class RecipeManager {
 			m = handleLore(item, m);
 
 			i.setItemMeta(m);
-
-			String line1 = r.get(0);
-			String line2 = r.get(1);
-			String line3 = r.get(2);
+			String line1 = gridRows.get(0);
+			String line2 = gridRows.get(1);
+			String line3 = gridRows.get(2);
 
 			HashMap<String, Material> shape = new HashMap<String, Material>();
 			ArrayList<String> shapeletter = new ArrayList<String>();

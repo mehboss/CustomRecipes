@@ -569,15 +569,13 @@ public class RecipeManager {
 	
 					Bukkit.getServer().addRecipe(S);
 				}
-			
-				api().addRecipe(item, ingredients);
-	
 				if (getConfig().getBoolean(item + ".Shapeless") == false)
 					Bukkit.getServer().addRecipe(R);
 	
 				if (debug())
 					debug("Added Recipe: " + item + " | With Amount: " + i.getAmount());
 			}
+			api().addRecipe(item, ingredients);  // Have to add *every* recipe, even with Converter, or "passedCheck" loop won't run on everything
 		}
 	}
 

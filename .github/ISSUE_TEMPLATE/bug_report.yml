@@ -8,7 +8,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        There may be a delay in a response from the team due to college workload and lack of time. We apologize for any inconvenience.
   - type: textarea
     id: what-happened
     attributes:

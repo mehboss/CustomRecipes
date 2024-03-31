@@ -33,28 +33,22 @@ public class EffectsManager implements Listener {
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
-	public boolean isVersion() {
-		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-
-		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
-				|| version.contains("1_11") || version.contains("1_12"))
-			return false;
-
-		return true;
+	public boolean versionHasTrident() {
+		return Main.serverVersionAtLeast(1, 13);
 	}
 
 	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void oneffect(EntityDamageByEntityEvent p) {
 
-		if (p.getDamager() instanceof Player || (isVersion() && p.getDamager() instanceof Trident)) {
+		if (p.getDamager() instanceof Player || (versionHasTrident() && p.getDamager() instanceof Trident)) {
 
 			Player pl = null;
 
 			if (p.getDamager() instanceof Player)
 				pl = (Player) p.getDamager();
 
-			if (isVersion() && p.getDamager() instanceof Trident) {
+			if (versionHasTrident() && p.getDamager() instanceof Trident) {
 				Projectile trident = (Projectile) p.getDamager();
 				pl = trident.getShooter() instanceof Player ? (Player) trident.getShooter() : null;
 			}
@@ -99,7 +93,7 @@ public class EffectsManager implements Listener {
 					PotionEffect effect = new PotionEffect(PotionEffectType.getByName(eff), duration, amplifier);
 					LivingEntity l = (LivingEntity) p.getEntity();
 
-					if (validVersion() && l instanceof Player && ((Player) l).isBlocking())
+					if (versionHasBlocking() && l instanceof Player && ((Player) l).isBlocking())
 						return;
 
 					l.addPotionEffect(effect);
@@ -108,12 +102,12 @@ public class EffectsManager implements Listener {
 		}
 	}
 
-	boolean validVersion() {
-		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9"))
-			return false;
-
-		return true;
+	boolean versionHasBlocking() {
+		// - In 1.9 sword blocking was replaced by shield blocking.
+		// - In 1.11 shields block 100% damage/knockback/debuff
+		// - However, this function only checked for 1_7 to 1_9 as false
+		//   so only those are avoided in the new serverVersionAtLeast call.
+		return Main.serverVersionAtLeast(1, 10);
 	}
 
 	HashMap<String, ItemStack> identifier() {

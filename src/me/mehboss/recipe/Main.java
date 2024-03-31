@@ -371,10 +371,7 @@ public class Main extends JavaPlugin implements Listener {
 		PluginCommand crecipeCommand = getCommand("crecipe");
 		crecipeCommand.setExecutor(new GiveRecipe(this));
 
-		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-		if (!version.contains("1_14") && !version.contains("1_13") && !version.contains("1_12")
-				&& !version.contains("1_11") && !version.contains("1_10") && !version.contains("1_9")
-				&& !version.contains("1_8") && !version.contains("1_7")) {
+		if (Main.serverVersionAtLeast(1, 15)) {
 			TabCompletion tabCompleter = new TabCompletion();
 			crecipeCommand.setTabCompleter(tabCompleter);
 		}
@@ -541,5 +538,62 @@ public class Main extends JavaPlugin implements Listener {
 							"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate
 									+ ", &fyou are on version&c " + getDescription().getVersion() + "!"));
 		}
+	}
+
+	private int[] getServerVersionParts() {
+		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+		// ^ such as v1_20_R1
+		// which is [3] in dot-delimited "org.bukkit.craftbukkit.v1_20_R1"
+		String[] version_parts = version.split("_");
+		int version_major = -1;
+		int version_minor = -1;
+		try {
+			if (version_parts[0].startsWith("v")) {
+				// This is expected--remove "v" before the version number:
+				version_parts[0] = version_parts[0].substring(1);
+			}
+			version_major = Integer.parseInt(version_parts[0]);
+		}
+		catch (NumberFormatException e) {
+			// leave it at -1. It is not a number.
+			Main.getInstance().getLogger().log(Level.WARNING, "The major version number could not be detected in the first number before '_' in \""+version+"\". You may get API errors later.");
+		}
+		if (version_parts.length > 1) {
+			try {
+				version_major = Integer.parseInt(version_parts[1]);
+			}
+			catch (NumberFormatException e) {
+				// leave it at -1. It is not a number.
+				Main.getInstance().getLogger().log(Level.WARNING, "The minor version number could not be detected in the first number after '_' in \""+version+"\". You may get API errors later.");
+			}
+		}
+		return new int[] {version_major, version_minor};
+	}
+
+	public static boolean serverVersionBelow(int majorVersion, int minorVersion) {
+		int[] version_numbers = instance.getServerVersionParts();
+		if (version_numbers[0] < 0 || version_numbers[1] < 0) {
+			// Allow this plugin to run new API calls even if version can't be detected
+			// (A warning should already have been shown by getServerVersionParts):
+			return false;
+		}
+		if (version_numbers[0] < majorVersion) {
+			return true;
+		}
+		if (version_numbers[1] < minorVersion) {
+			return true;
+		}
+		return false;
+	}
+
+	public static boolean serverVersionAtLeast(int majorVersion, int minorVersion) {
+		int[] version_numbers = instance.getServerVersionParts();
+		if (version_numbers[0] < 0 || version_numbers[1] < 0) {
+			// Allow this plugin to run new API calls even if version can't be detected
+			// (A warning should already have been shown by getServerVersionParts):
+			return true;
+		}
+		return (version_numbers[0] >= majorVersion)
+			   && (version_numbers[1] >= minorVersion);
 	}
 }

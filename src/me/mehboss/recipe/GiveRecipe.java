@@ -128,16 +128,15 @@ public class GiveRecipe implements CommandExecutor {
 				if (Main.getInstance().recipeBook.contains(player.getUniqueId()))
 					Main.getInstance().recipeBook.remove(player.getUniqueId());
 
-				player.sendMessage(ChatColor.RED + "GUI is currently undergoing maintenance. Come back soon!");
-//				Main.recipes.show(p);
-//				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
-//				p.sendMessage(OpenMessage);
-//
-//				try {
-//					p.playSound(p.getLocation(), Sound.valueOf(debug().getString("gui.Open-Sound").toUpperCase()), 1,
-//							1);
-//				} catch (IllegalArgumentException e) {
-//				}
+				Main.recipes.show(player);
+				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
+				player.sendMessage(OpenMessage);
+
+				try {
+					player.playSound(player.getLocation(), Sound.valueOf(debug().getString("gui.Open-Sound").toUpperCase()), 1,
+							1);
+				} catch (IllegalArgumentException e) {
+				}
 				return true;
 			}
 

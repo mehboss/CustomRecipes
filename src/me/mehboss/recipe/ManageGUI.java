@@ -107,7 +107,7 @@ public class ManageGUI implements Listener {
 				}
 
 				if (e.getRawSlot() == 49
-						&& e.getCurrentItem().getItemMeta().getDisplayName().strip().equals("Add Recipe")) {
+						&& e.getCurrentItem().getItemMeta().getDisplayName().trim().equals("Add Recipe")) {
 					return;
 				}
 

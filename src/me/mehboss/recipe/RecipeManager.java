@@ -40,7 +40,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
-
+import org.bukkit.persistence.PersistentDataType;
 import net.advancedplugins.ae.api.AEAPI;
 
 public class RecipeManager {
@@ -68,11 +68,9 @@ public class RecipeManager {
 			identifier().put(getConfig().getString(item + ".Identifier"), i);
 		}
 
-		if (getConfig().isSet(item + ".Custom-Tags")) {
-			for (String key : getConfig().getStringList(item + ".Custom-Tags")) {
-				String[] split = key.split(", ");
-				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), "CUSTOM_ITEM_IDENTIFIER");
-			}
+		if (getConfig().getString(item + ".Identifier").equalsIgnoreCase("LifeStealHeart")) {
+			i.getItemMeta().getPersistentDataContainer().set(new NamespacedKey(Main.getInstance(), "heart"),
+					PersistentDataType.INTEGER, 1);
 		}
 		return i;
 	}

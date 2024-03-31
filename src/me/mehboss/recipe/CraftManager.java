@@ -219,88 +219,87 @@ public class CraftManager implements Listener {
 
 		// Remove the required items from the inventory
 
+		int itemsToAdd = Integer.MAX_VALUE;
 		int itemsToRemove = 0;
-		int itemsToAdd = 0;
 
 		if (debug())
-			debug("recipeName for amount check:" + recipeName);
+		    debug("recipeName for amount check:" + recipeName);
 
 		for (RecipeAPI.Ingredient ingredient : getIngredients(recipeName)) {
-			if (ingredient.isEmpty())
-				continue;
+		    if (ingredient.isEmpty())
+		        continue;
 
-			Material material = ingredient.getMaterial();
-			String displayName = ingredient.getDisplayName();
-			final int requiredAmount = ingredient.getAmount();
-			boolean hasIdentifier = ingredient.hasIdentifier();
+		    Material material = ingredient.getMaterial();
+		    String displayName = ingredient.getDisplayName();
+		    final int requiredAmount = ingredient.getAmount();
+		    boolean hasIdentifier = ingredient.hasIdentifier();
 
-			for (int highest = 1; highest < 10; highest++) {
-				ItemStack slot = inv.getItem(highest);
-				if (slot == null)
-					continue;
+		    for (int highest = 1; highest < 10; highest++) {
+		        ItemStack slot = inv.getItem(highest);
+		        if (slot == null)
+		            continue;
 
-				if (slot.getAmount() < requiredAmount)
-					break;
+		        if (slot.getAmount() < requiredAmount)
+		            continue; // Skip this slot if it doesn't have enough
 
-				if (itemsToRemove == 0 || (slot.getAmount() / requiredAmount) < itemsToRemove) {
-					itemsToAdd = (slot.getAmount() / requiredAmount);
-					itemsToRemove = itemsToAdd * requiredAmount;
-				}
-			}
+		        int availableItems = slot.getAmount();
+		        int possibleItemsToRemove = availableItems / requiredAmount;
 
-			if (debug()) {
-				debug("ItemsToRemove: " + itemsToRemove);
-				debug("RequiredAmount: " + requiredAmount);
-				debug("Identifier: " + ingredient.getIdentifier());
-				debug("HasIdentifier: " + hasIdentifier);
-				debug("Material: " + material.toString());
-				debug("Displayname: " + displayName);
-			}
+		        if (possibleItemsToRemove < itemsToAdd) {
+		            itemsToAdd = possibleItemsToRemove;
+		            itemsToRemove = possibleItemsToRemove * requiredAmount;
+		        }
+		    }
 
-			for (int i = 1; i < 10; i++) {
-				ItemStack item = inv.getItem(i);
-				int slot = i;
+		    if (debug()) {
+		        debug("ItemsToRemove: " + itemsToRemove);
+		        debug("RequiredAmount: " + requiredAmount);
+		        debug("Identifier: " + ingredient.getIdentifier());
+		        debug("HasIdentifier: " + hasIdentifier);
+		        debug("Material: " + material.toString());
+		        debug("Displayname: " + displayName);
+		    }
 
-				if (item == null)
-					continue;
+		    for (int i = 1; i < 10; i++) {
+		        ItemStack item = inv.getItem(i);
+		        int slot = i;
+		        
+		        if (item == null)
+		            continue;
 
-				if (debug())
-					debug(String.valueOf(hasMatchingDisplayName(recipeName, item, displayName,
-							ingredient.getIdentifier(), hasIdentifier)));
+		        if ((ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
+		                || (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
+		                        ingredient.getIdentifier(), hasIdentifier))) {
+		            int itemAmount = item.getAmount();
 
-				if ((ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
-						|| item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
-								ingredient.getIdentifier(), hasIdentifier)) {
-					int itemAmount = item.getAmount();
+		            if (itemAmount < requiredAmount)
+		                continue;
 
-					if (itemAmount < requiredAmount)
-						break;
-
-					if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-						if (item.getType().toString().contains("_BUCKET")
-								&& getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
-								&& getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket") == false) {
-							item.setType(XMaterial.BUCKET.parseMaterial());
-						} else {
-							BukkitScheduler scheduler = Bukkit.getScheduler();
-							scheduler.runTask(Main.getInstance(), () -> {
-								if ((item.getAmount() + 1) - requiredAmount == 0)
-									inv.setItem(slot, null);
-								else
-									item.setAmount((item.getAmount() + 1) - requiredAmount);
-							});
-						}
-					} else {
-						if (item.getType().toString().contains("_BUCKET")
-								&& getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
-								&& getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket") == false) {
-							item.setType(XMaterial.BUCKET.parseMaterial());
-						} else {
-							item.setAmount(item.getAmount() - itemsToRemove);
-						}
-					}
-				}
-			}
+		            if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+		                if (item.getType().toString().contains("_BUCKET")
+		                        && getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
+		                        && !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
+		                    item.setType(XMaterial.BUCKET.parseMaterial());
+		                } else {
+		                    BukkitScheduler scheduler = Bukkit.getScheduler();
+		                    scheduler.runTask(Main.getInstance(), () -> {
+		                        if ((item.getAmount() + 1) - requiredAmount == 0)
+		                            inv.setItem(slot, null);
+		                        else
+		                            item.setAmount((item.getAmount() + 1) - requiredAmount);
+		                    });
+		                }
+		            } else {
+		                if (item.getType().toString().contains("_BUCKET")
+		                        && getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
+		                        && !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
+		                    item.setType(XMaterial.BUCKET.parseMaterial());
+		                } else {
+		                    item.setAmount(item.getAmount() - itemsToRemove);
+		                }
+		            }
+		        }
+		    }
 		}
 
 		// Add the result items to the player's inventory

@@ -135,15 +135,9 @@ public class RecipeManager {
 		return i;
 	}
 
-	boolean server_below_1_14() {
-		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-		return (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
-				|| version.contains("1_11") || version.contains("1_12") || version.contains("1_13"));
-	}
-
 	ItemMeta handleFlags(String item, ItemMeta m) {
 
-		if (server_below_1_14())
+		if (Main.serverVersionBelow(1, 14))
 			return m;
 
 		if (getConfig().isSet(item + ".Item-Flags")) {
@@ -207,9 +201,7 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleCustomModelData(String item, ItemMeta m) {
-		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
-				|| version.contains("1_11") || version.contains("1_12") || version.contains("1_13"))
+		if (Main.serverVersionBelow(1, 14))
 			return m;
 
 		if (getConfig().isSet(item + ".Custom-Model-Data")
@@ -226,9 +218,7 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleAttributes(String item, ItemMeta m) {
-		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-		if (version.contains("1_7") || version.contains("1_8") || version.contains("1_9") || version.contains("1_10")
-				|| version.contains("1_11"))
+		if (Main.serverVersionBelow(1, 12))
 			return m;
 
 		if (getConfig().isSet(item + ".Attribute")) {
@@ -315,7 +305,7 @@ public class RecipeManager {
 					// always allowed
 				}
 				else if ("STONECUTTER".equals(converter)) {
-					if (server_below_1_14()) {
+					if (Main.serverVersionBelow(1, 14)) {
 						getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
 								+" but your server version is below 1.14."
 								+" Expected FURNACE or no Converter (for regular crafting) in: " + recipeFile.getName());
@@ -393,10 +383,8 @@ public class RecipeManager {
 			itemNames().put(item, i);
 			configName().put(i, item);
 
-			String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
 			NamespacedKey key = null;
-			if (!version.contains("1_7") && !version.contains("1_8") && !version.contains("1_9")
-					&& !version.contains("1_10") && !version.contains("1_11")) {
+			if (Main.serverVersionAtLeast(1, 12)) {
 				key = new NamespacedKey(Main.getInstance(), getConfig().getString(item + ".Identifier"));
 				R = new ShapedRecipe(key, i);
 				S = new ShapelessRecipe(key, i);
@@ -530,7 +518,8 @@ public class RecipeManager {
 			}
 			else if ("STONECUTTER".equals(converter)) {
 				org.bukkit.inventory.StonecuttingRecipe scRecipe = null;
-				// ^ Use full name to avoid import (importing StonecutterRecipe prevents backward compatibility < 1.14)
+				// ^ Use full name to avoid import (importing it would break all versions below
+				//   (1.14 since StonecuttingRecipe is only defined if server >= 1.14).
 				if (key != null) {
 					scRecipe = new org.bukkit.inventory.StonecuttingRecipe(key, i, findIngredients.get(0));
 				}

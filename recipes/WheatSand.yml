@@ -1,0 +1,21 @@
+WheatSand:
+  Enabled: true
+  Shapeless: true
+  Item: SAND
+  Amount: 1
+  Identifier: WHEATSAND
+  Converter: FURNACE
+  ItemCrafting:
+  - WXX
+  - XXX
+  - XXX
+  Ingredients:
+    W:
+      Material: WHEAT_SEEDS
+      Identifier: none
+      Amount: 1
+  Item-Flags: []
+  Attribute: []
+  Disabled-Worlds: []
+  Placeable: true
+  Ignore-Model-Data: false

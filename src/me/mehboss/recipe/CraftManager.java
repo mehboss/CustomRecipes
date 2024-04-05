@@ -223,83 +223,83 @@ public class CraftManager implements Listener {
 		int itemsToRemove = 0;
 
 		if (debug())
-		    debug("recipeName for amount check:" + recipeName);
+			debug("recipeName for amount check:" + recipeName);
 
 		for (RecipeAPI.Ingredient ingredient : getIngredients(recipeName)) {
-		    if (ingredient.isEmpty())
-		        continue;
+			if (ingredient.isEmpty())
+				continue;
 
-		    Material material = ingredient.getMaterial();
-		    String displayName = ingredient.getDisplayName();
-		    final int requiredAmount = ingredient.getAmount();
-		    boolean hasIdentifier = ingredient.hasIdentifier();
+			Material material = ingredient.getMaterial();
+			String displayName = ingredient.getDisplayName();
+			final int requiredAmount = ingredient.getAmount();
+			boolean hasIdentifier = ingredient.hasIdentifier();
 
-		    for (int highest = 1; highest < 10; highest++) {
-		        ItemStack slot = inv.getItem(highest);
-		        if (slot == null)
-		            continue;
+			for (int highest = 1; highest < 10; highest++) {
+				ItemStack slot = inv.getItem(highest);
+				if (slot == null)
+					continue;
 
-		        if (slot.getAmount() < requiredAmount)
-		            continue; // Skip this slot if it doesn't have enough
+				if (slot.getAmount() < requiredAmount)
+					continue; // Skip this slot if it doesn't have enough
 
-		        int availableItems = slot.getAmount();
-		        int possibleItemsToRemove = availableItems / requiredAmount;
+				int availableItems = slot.getAmount();
+				int possibleItemsToRemove = availableItems / requiredAmount;
 
-		        if (possibleItemsToRemove < itemsToAdd) {
-		            itemsToAdd = possibleItemsToRemove;
-		            itemsToRemove = possibleItemsToRemove * requiredAmount;
-		        }
-		    }
+				if (possibleItemsToRemove < itemsToAdd) {
+					itemsToAdd = possibleItemsToRemove;
+					itemsToRemove = possibleItemsToRemove * requiredAmount;
+				}
+			}
 
-		    if (debug()) {
-		        debug("ItemsToRemove: " + itemsToRemove);
-		        debug("RequiredAmount: " + requiredAmount);
-		        debug("Identifier: " + ingredient.getIdentifier());
-		        debug("HasIdentifier: " + hasIdentifier);
-		        debug("Material: " + material.toString());
-		        debug("Displayname: " + displayName);
-		    }
+			if (debug()) {
+				debug("ItemsToRemove: " + itemsToRemove);
+				debug("RequiredAmount: " + requiredAmount);
+				debug("Identifier: " + ingredient.getIdentifier());
+				debug("HasIdentifier: " + hasIdentifier);
+				debug("Material: " + material.toString());
+				debug("Displayname: " + displayName);
+			}
 
-		    for (int i = 1; i < 10; i++) {
-		        ItemStack item = inv.getItem(i);
-		        int slot = i;
-		        
-		        if (item == null)
-		            continue;
+			for (int i = 1; i < 10; i++) {
+				ItemStack item = inv.getItem(i);
+				int slot = i;
 
-		        if ((ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
-		                || (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
-		                        ingredient.getIdentifier(), hasIdentifier))) {
-		            int itemAmount = item.getAmount();
+				if (item == null)
+					continue;
 
-		            if (itemAmount < requiredAmount)
-		                continue;
+				if ((ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
+						|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
+								ingredient.getIdentifier(), hasIdentifier))) {
+					int itemAmount = item.getAmount();
 
-		            if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-		                if (item.getType().toString().contains("_BUCKET")
-		                        && getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
-		                        && !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
-		                    item.setType(XMaterial.BUCKET.parseMaterial());
-		                } else {
-		                    BukkitScheduler scheduler = Bukkit.getScheduler();
-		                    scheduler.runTask(Main.getInstance(), () -> {
-		                        if ((item.getAmount() + 1) - requiredAmount == 0)
-		                            inv.setItem(slot, null);
-		                        else
-		                            item.setAmount((item.getAmount() + 1) - requiredAmount);
-		                    });
-		                }
-		            } else {
-		                if (item.getType().toString().contains("_BUCKET")
-		                        && getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
-		                        && !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
-		                    item.setType(XMaterial.BUCKET.parseMaterial());
-		                } else {
-		                    item.setAmount(item.getAmount() - itemsToRemove);
-		                }
-		            }
-		        }
-		    }
+					if (itemAmount < requiredAmount)
+						continue;
+
+					if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+						if (item.getType().toString().contains("_BUCKET")
+								&& getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
+								&& !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
+							item.setType(XMaterial.BUCKET.parseMaterial());
+						} else {
+							BukkitScheduler scheduler = Bukkit.getScheduler();
+							scheduler.runTask(Main.getInstance(), () -> {
+								if ((item.getAmount() + 1) - requiredAmount == 0)
+									inv.setItem(slot, null);
+								else
+									item.setAmount((item.getAmount() + 1) - requiredAmount);
+							});
+						}
+					} else {
+						if (item.getType().toString().contains("_BUCKET")
+								&& getConfig(recipeName).isSet(recipeName + ".Consume-Bucket")
+								&& !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
+							item.setType(XMaterial.BUCKET.parseMaterial());
+						} else {
+							item.setAmount(item.getAmount() - itemsToRemove);
+						}
+					}
+				}
+			}
 		}
 
 		// Add the result items to the player's inventory
@@ -389,6 +389,9 @@ public class CraftManager implements Listener {
 		ArrayList<String> invMaterials = new ArrayList<>();
 
 		for (ItemStack contents : inv.getMatrix()) {
+			if (invMaterials.size() == 9)
+				break;
+
 			if (contents == null || contents.getType() == Material.AIR) {
 				invMaterials.add("null");
 				continue;
@@ -399,14 +402,20 @@ public class CraftManager implements Listener {
 
 		ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipeName);
 		int slot = 0;
-		
+
 		for (RecipeAPI.Ingredient ingredient : recipeIngredients) {
 
 			if (ingredient.getMaterial() == null && !invMaterials.get(slot).equals("null")) {
+				if (debug())
+					debug("[Line 407] findIngredients method is a FAIL for " + recipeName);
 				return false;
 			}
 			if (ingredient.getMaterial() != null
 					&& !invMaterials.get(slot).equals(ingredient.getMaterial().toString())) {
+
+				if (debug())
+					debug("[Line 414] findIngredients method is a FAIL for " + recipeName);
+
 				return false;
 			}
 
@@ -414,6 +423,10 @@ public class CraftManager implements Listener {
 		}
 
 		if (invMaterials.size() != 9) {
+
+			if (debug())
+				debug("[Line 425] findIngredients method is a FAIL for " + recipeName);
+
 			return false;
 		}
 		return true;
@@ -424,6 +437,10 @@ public class CraftManager implements Listener {
 		ArrayList<String> ingMaterials = new ArrayList<>();
 
 		for (ItemStack contents : inv.getMatrix()) {
+
+			if (invMaterials.size() == 9)
+				break;
+
 			if (contents == null || contents.getType() == Material.AIR) {
 				invMaterials.add("null");
 				continue;
@@ -443,11 +460,20 @@ public class CraftManager implements Listener {
 
 		if (inv.getType() == InventoryType.WORKBENCH
 				&& (invMaterials.size() != 9 || ingMaterials.size() != 9 || !invMaterials.containsAll(ingMaterials))) {
+
+			if (debug())
+				debug("[Line 458] hasIngredients method is a FAIL for " + recipeName);
+
 			return false;
 		}
 
-		if (inv.getType() == InventoryType.CRAFTING && !invMaterials.containsAll(ingMaterials))
+		if (inv.getType() == InventoryType.CRAFTING && !invMaterials.containsAll(ingMaterials)) {
+
+			if (debug())
+				debug("[Line 466] hasIngredients method is a FAIL for " + recipeName);
+
 			return false;
+		}
 
 		return true;
 	}

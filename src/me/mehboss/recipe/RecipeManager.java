@@ -41,14 +41,10 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
-// import org.bukkit.inventory.StonecuttingRecipe;  // For backward compatibility, use only if >=1.14 (using fully-qualified name) instead
+import org.bukkit.inventory.StonecuttingRecipe;  // For backward compatibility, use only if >=1.14 (using fully-qualified name) instead
 import org.bukkit.inventory.meta.ItemMeta;
-<<<<<<< HEAD
 import org.bukkit.persistence.PersistentDataType;
-=======
 import org.bukkit.material.MaterialData;
-
->>>>>>> 90081a2088284cb4882dd7f68bef71062c5af702
 import net.advancedplugins.ae.api.AEAPI;
 
 public class RecipeManager {
@@ -457,7 +453,7 @@ public class RecipeManager {
 						fRecipe = new FurnaceRecipe(key, i, finishedMaterial, experience, cookTime);
 					}
 					else { // older API
-						fRecipe = new FurnaceRecipe(i, new MaterialData(finishedMaterial), experience);
+						fRecipe = new FurnaceRecipe(i, finishedMaterial);
 					}
 				}
 			}

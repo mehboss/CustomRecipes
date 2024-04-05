@@ -9,6 +9,7 @@ CursedSword:
   Ignore-Model-Data: false
   Custom-Tagged: true
   Identifier: 'CURSED_SWORD'
+  Converter: none
   Permission: 'crecipe.recipe.cursedsword'
   Name: '&eCursed Sword'
   Lore:

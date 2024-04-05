@@ -10,6 +10,7 @@ CursedPick:
   Custom-Tagged: true # Whether or not you want this item to be tagged with a custom item tag.
   Durability: '100' # 1-100. Remove section if not needed.
   Identifier: 'CURSED_PICKAXE' # Give your new recipe an identifier :).
+  Converter: none # Set to FURNACE or STONECUTTER to create recipes for those tools.
   Permission: 'crecipe.recipe.cursedpick' # Give a player this permission to allow them to craft this item. Remove section if no permission wanted.
   Name: '&4&lCursed Pick' # Name of the item, you can use color codes. Remove if not needed
   Lore:

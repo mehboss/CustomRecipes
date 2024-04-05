@@ -41,7 +41,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
-import org.bukkit.inventory.StonecuttingRecipe;  // For backward compatibility, use only if >=1.14 (using fully-qualified name) instead
+import org.bukkit.inventory.StonecuttingRecipe; // For backward compatibility, use only if >=1.14 (using fully-qualified name) instead
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.material.MaterialData;
@@ -261,12 +261,9 @@ public class RecipeManager {
 
 		File[] recipeFiles = recipeFolder.listFiles();
 		if (recipeFiles == null) {
+			debug("NO RECIPES WERE FOUND.");
 			return;
 		}
-
-		Map<String, Integer> converterSlotCounts = new HashMap<String, Integer>();
-		converterSlotCounts.put("FURNACE", 1);
-		converterSlotCounts.put("STONECUTTER", 1);
 
 		for (File recipeFile : recipeFiles) {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
@@ -274,9 +271,10 @@ public class RecipeManager {
 			String item = recipeFile.getName().replace(".yml", "");
 
 			if (!(recipeConfig.isConfigurationSection(item))) {
-				Main.getInstance().getLogger().log(Level.WARNING, "Could not find configuration section " + item
-						+ " in the recipe file that must match its filename: " + item
-						+ ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
+				Main.getInstance().getLogger().log(Level.WARNING,
+						"Could not find configuration section " + item
+								+ " in the recipe file that must match its filename: " + item
+								+ ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
 				continue;
 			}
 
@@ -291,35 +289,27 @@ public class RecipeManager {
 			ArrayList<RecipeAPI.Ingredient> ingredients = new ArrayList<>();
 
 			List<Material> findIngredients = new ArrayList<Material>();
-
-			List<String> loreList = new ArrayList<String>();
 			List<String> gridRows = getConfig().getStringList(item + ".ItemCrafting");
+
 			String converter = getConfig().getString(item + ".Converter");
-			String converterMsg = converter;
-			int converterSlotCount = 9;
-			if (converter != null) {
-				converterSlotCount = converterSlotCounts.get(converter);
-				if ("FURNACE".equals(converter)) {
-					// always allowed
+			int amountRequirement = 9;
+
+			if (converter != null && converter.equalsIgnoreCase("STONECUTTER")) {
+				if (Main.serverVersionBelow(1, 14)) {
+					getLogger().log(Level.SEVERE,
+							"Error loading recipe. Got " + converter + " but your server version is below 1.14."
+									+ " Expected FURNACE or no Converter (for regular crafting) in: "
+									+ recipeFile.getName());
+					continue;
 				}
-				else if ("STONECUTTER".equals(converter)) {
-					if (Main.serverVersionBelow(1, 14)) {
-						getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
-								+" but your server version is below 1.14."
-								+" Expected FURNACE or no Converter (for regular crafting) in: " + recipeFile.getName());
-						return;
-					}
-				}
-				else {
-					getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
-							+" but expected FURNACE, STONECUTTER or no Converter (for regular crafting) in: "
-							+ recipeFile.getName());
-					return;
-				}
+				amountRequirement = 1;
 			}
-			else {
-				converterMsg = "null (crafting)";
-			}
+
+			if (converter != null && converter.equalsIgnoreCase("FURNACE"))
+				amountRequirement = 1;
+
+			if (converter == null)
+				converter = "null (crafting)";
 
 			String damage = getConfig().getString(item + ".Item-Damage");
 			int amount = getConfig().getInt(item + ".Amount");
@@ -441,23 +431,23 @@ public class RecipeManager {
 				}
 
 				findIngredients.add(finishedMaterial);
-				if (findIngredients.size() > converterSlotCount) {
-					getLogger().log(Level.SEVERE, "Error loading recipe. Got "
-							+ finishedMaterial.toString()
-							+ " but expected only one entry in Ingredients since using " + converter
-							+ " as Converter in: " + recipeFile.getName());
-					return;
+				if (findIngredients.size() > amountRequirement) {
+					getLogger().log(Level.SEVERE,
+							"Error loading recipe. Got " + finishedMaterial.toString()
+									+ " but expected only one entry in Ingredients since using " + converter
+									+ " as Converter in: " + recipeFile.getName());
+					continue;
 				}
-				if ("FURNACE".equals(converter)) {
+
+				if (converter.equalsIgnoreCase("FURNACE")) {
 					if (key != null) {
 						fRecipe = new FurnaceRecipe(key, i, finishedMaterial, experience, cookTime);
-					}
-					else { // older API
+					} else { // older API
 						fRecipe = new FurnaceRecipe(i, finishedMaterial);
 					}
 				}
 			}
-			
+
 			ingredients().put(getConfig().getString(item + ".Identifier"), findIngredients);
 			recipe().add(R);
 
@@ -486,12 +476,13 @@ public class RecipeManager {
 
 				if (itemMaterial != null) {
 					count++;
-					if (count > converterSlotCount) {
-						getLogger().log(Level.SEVERE, "Error loading recipe. Got "
-								+ handleIngredients
-								+ " but Converter is " + converter + " so use only one slot"
-								+ " (X for others) for ItemCrafting in: " + recipeFile.getName());
-						return;
+
+					if (count > amountRequirement) {
+						getLogger().log(Level.SEVERE,
+								"Error loading recipe. Got " + handleIngredients + " but Converter is " + converter
+										+ " so use only one slot" + " (X for others) for ItemCrafting in: "
+										+ recipeFile.getName());
+						continue;
 					}
 				}
 
@@ -507,34 +498,33 @@ public class RecipeManager {
 				ingredients
 						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
 			}
-			
-			if ("FURNACE".equals(converter)) {
+
+			if (converter.equalsIgnoreCase("FURNACE")) {
 				Bukkit.getServer().addRecipe(fRecipe);
 				if (debug())
-					debug("Added "+converterMsg+" Recipe: " + item + " " + i.getAmount());
+					debug("Added " + converter + " Recipe: " + item + " " + i.getAmount());
 
-			}
-			else if ("STONECUTTER".equals(converter)) {
+			} else if (converter.equalsIgnoreCase("STONECUTTER")) {
 				org.bukkit.inventory.StonecuttingRecipe scRecipe = null;
 				// ^ Use full name to avoid import (importing it would break all versions below
-				//   (1.14 since StonecuttingRecipe is only defined if server >= 1.14).
+				// (1.14 since StonecuttingRecipe is only defined if server >= 1.14).
 				if (key != null) {
 					scRecipe = new org.bukkit.inventory.StonecuttingRecipe(key, i, findIngredients.get(0));
-				}
-				else {
-					// There is no StonecuttingRecipe without a key (NamespacedKey predates Stonecutter)
+				} else {
+					// There is no StonecuttingRecipe without a key (NamespacedKey predates
+					// Stonecutter)
 					getLogger().log(Level.SEVERE, "Error loading recipe. Your API version is >= 1.14"
 							+ " but does not support NameSpacedKey or the plugin failed to create one.");
-					
+
 					return;
 				}
 				if (debug())
-					debug("Added "+converterMsg+" Recipe: " + item + " " + i.getAmount());
+					debug("Added " + converter + " Recipe: " + item + " " + i.getAmount());
 				Bukkit.getServer().addRecipe(scRecipe);
-			}
-			else {
+
+			} else {
 				if (getConfig().getBoolean(item + ".Shapeless") == true) {
-	
+
 					shapeletter.add(newsplit1[0]);
 					shapeletter.add(newsplit1[1]);
 					shapeletter.add(newsplit1[2]);
@@ -544,25 +534,26 @@ public class RecipeManager {
 					shapeletter.add(newsplit3[0]);
 					shapeletter.add(newsplit3[1]);
 					shapeletter.add(newsplit3[2]);
-	
+
 					for (String sl : shapeletter) {
 						if (!(sl.equalsIgnoreCase("X"))) {
 							S.addIngredient(shape.get(sl));
-	
+
 							if (debug())
 								debug("Shapeless: true | Variable: " + sl);
 						}
 					}
-	
+
 					Bukkit.getServer().addRecipe(S);
 				}
 				if (getConfig().getBoolean(item + ".Shapeless") == false)
 					Bukkit.getServer().addRecipe(R);
-	
+
 				if (debug())
 					debug("Added Recipe: " + item + " | With Amount: " + i.getAmount());
 			}
-			api().addRecipe(item, ingredients);  // Have to add *every* recipe, even with Converter, or "passedCheck" loop won't run on everything
+			api().addRecipe(item, ingredients); // Have to add *every* recipe, even with Converter, or "passedCheck"
+												// loop won't run on everything
 		}
 	}
 

@@ -39,11 +39,4 @@ CursedSword:
   Attribute: []
   Custom-Model-Data: none
   Disabled-Worlds: []
-  NBT-Data:
-    template-entry:
-      type: INTEGER
-      value: 33
-    uuid-entry
-      type: UUID
-      value: 'abcedfh-1234-5678-9000-ijklmnopqrstuv'
    

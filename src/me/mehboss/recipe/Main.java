@@ -541,39 +541,34 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	private int[] getServerVersionParts() {
-	    String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-	    // ^ such as v1_20_R1
-	    // which is [3] in dot-delimited "org.bukkit.craftbukkit.v1_20_R1"
-	    String[] version_parts = version.split("_");
+	    String version = Bukkit.getServer().getBukkitVersion();
+	    // Example version: 1.14-R0.1-SNAPSHOT
 	    int version_major = -1;
 	    int version_minor = -1;
-	    try {
-	        if (version_parts[0].startsWith("v")) {
-	            // This is expected--remove "v" before the version number:
-	            version_parts[0] = version_parts[0].substring(1);
-	        }
-	        version_major = Integer.parseInt(version_parts[0]);
-	    } catch (NumberFormatException e) {
-	        // leave it at -1. It is not a number.
-	        Main.getInstance().getLogger().log(Level.WARNING, "The major version number could not be detected in the first number before '_' in \"" + version + "\". You may get API errors later.");
-	    }
-	    if (version_parts.length > 1) {
+
+	    // Split by "-" to get the version part before the hyphen
+	    String[] parts = version.split("-");
+	    if (parts.length > 0) {
+	        String[] version_parts = parts[0].split("\\."); // Split by dot to separate major and minor versions
 	        try {
-	            version_minor = Integer.parseInt(version_parts[1]);
+	            if (version_parts.length > 0) {
+	                version_major = Integer.parseInt(version_parts[0]);
+	            }
+	            if (version_parts.length > 1) {
+	                version_minor = Integer.parseInt(version_parts[1]);
+	            }
 	        } catch (NumberFormatException e) {
-	            // leave it at -1. It is not a number.
-	            Main.getInstance().getLogger().log(Level.WARNING, "The minor version number could not be detected in the first number after '_' in \"" + version + "\". You may get API errors later.");
+	            Main.getInstance().getLogger().log(Level.WARNING, "Error parsing version numbers from Bukkit version: " + version);
 	        }
 	    }
+
 	    return new int[]{version_major, version_minor};
 	}
-
+	
 	public static boolean serverVersionBelow(int majorVersion, int minorVersion) {
 	    int[] version_numbers = instance.getServerVersionParts();
 	    if (version_numbers[0] < 0 || version_numbers[1] < 0) {
-	        // Allow this plugin to run new API calls even if version can't be detected
-	        // (A warning should already have been shown by getServerVersionParts):
-	        return false;
+	        return false; // Allow plugin to continue even if version detection failed
 	    }
 	    if (version_numbers[0] < majorVersion) {
 	        return true;
@@ -587,9 +582,7 @@ public class Main extends JavaPlugin implements Listener {
 	public static boolean serverVersionAtLeast(int majorVersion, int minorVersion) {
 	    int[] version_numbers = instance.getServerVersionParts();
 	    if (version_numbers[0] < 0 || version_numbers[1] < 0) {
-	        // Allow this plugin to run new API calls even if version can't be detected
-	        // (A warning should already have been shown by getServerVersionParts):
-	        return true;
+	        return true; // Allow plugin to continue even if version detection failed
 	    }
 	    return (version_numbers[0] > majorVersion)
 	            || (version_numbers[0] == majorVersion && version_numbers[1] >= minorVersion);

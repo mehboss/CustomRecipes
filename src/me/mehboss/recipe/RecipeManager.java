@@ -19,7 +19,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -67,7 +66,7 @@ public class RecipeManager {
 	ItemStack handleIdentifier(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Identifier")) {
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
-				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), "CUSTOM_ITEM_IDENTIFIER");
+				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 
 			identifier().put(getConfig().getString(item + ".Identifier"), i);
 		}
@@ -155,12 +154,9 @@ public class RecipeManager {
 	ItemMeta handleDisplayname(String item, ItemStack recipe) {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
-		if (debug())
-			debug("Attempting displayname for: " + item);
-
 		if (getConfig().isSet(item + ".Name")) {
 			if (debug()) {
-				debug("Applied displayname for: " + item);
+				debug("Applying displayname..");
 				debug("Displayname: " + getConfig().getString(item + ".Name"));
 			}
 
@@ -215,6 +211,7 @@ public class RecipeManager {
 		return m;
 	}
 
+	@SuppressWarnings("removal")
 	ItemMeta handleAttributes(String item, ItemMeta m) {
 		if (Main.serverVersionBelow(1, 12))
 			return m;
@@ -305,6 +302,9 @@ public class RecipeManager {
 				amountRequirement = 1;
 			}
 
+			if (debug())
+				debug("Attempting to add the recipe " + item + "..");
+			
 			if (converter != null && converter.equalsIgnoreCase("FURNACE"))
 				amountRequirement = 1;
 
@@ -519,7 +519,7 @@ public class RecipeManager {
 					return;
 				}
 				if (debug())
-					debug("Added " + converter + " Recipe: " + item + " " + i.getAmount());
+					debug("Successfully added " + converter + " recipe " + item + ".. (" + i.getAmount() + ")");
 				Bukkit.getServer().addRecipe(scRecipe);
 
 			} else {
@@ -540,7 +540,7 @@ public class RecipeManager {
 							S.addIngredient(shape.get(sl));
 
 							if (debug())
-								debug("Shapeless: true | Variable: " + sl);
+								debug("Adding shapeless letters.. Letter: " + sl);
 						}
 					}
 
@@ -550,7 +550,7 @@ public class RecipeManager {
 					Bukkit.getServer().addRecipe(R);
 
 				if (debug())
-					debug("Added Recipe: " + item + " | With Amount: " + i.getAmount());
+					debug("Successfully added " + item + " with the amount output of " + i.getAmount());
 			}
 			api().addRecipe(item, ingredients); // Have to add *every* recipe, even with Converter, or "passedCheck"
 												// loop won't run on everything
@@ -558,15 +558,7 @@ public class RecipeManager {
 	}
 
 	void debug(String st) {
-		if (debug()) {
-			getLogger().log(Level.WARNING, "-----------------");
-			getLogger().log(Level.WARNING, "DEBUG IS TURNED ON! PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE");
-		}
-
 		getLogger().log(Level.WARNING, st);
-
-		if (debug())
-			getLogger().log(Level.WARNING, "-----------------");
 	}
 
 	boolean checkAbsent(String letterIngredient) {

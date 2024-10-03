@@ -9,7 +9,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SpawnEggMeta;
-import org.bukkit.potion.Potion;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -1884,10 +1883,6 @@ public enum XMaterial {
 
         // Potions used the items data value to store
         // information about the type of potion in 1.8
-        if (!supports(9) && material.endsWith("ION")) {
-            // There's also 16000+ data value technique, but this is more reliable.
-            return Potion.fromItemStack(item).isSplash() ? SPLASH_POTION : POTION;
-        }
 
         // Refer to the enum for info.
         // Currently, these are the only materials with a non-zero data value

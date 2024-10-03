@@ -6,10 +6,10 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/timot/Desktop/jupiter/Rituals-GIFs/PlaceholderAPI-2.11.2.jar"/>
-	<classpathentry kind="lib" path="C:/Users/timot/Desktop/plugins/AdvancedEnchantments-8.7.4.jar"/>
-	<classpathentry kind="lib" path="C:/Users/timot/Desktop/plugins/GreatLifeSteal.v2.0-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="C:/Users/timot/Documents/FLASH DRIVE STUFF/TIMS/Plugins/BungeeCord.jar"/>
-	<classpathentry kind="lib" path="C:/Users/timot/Desktop/plugins/spigot-api-1.18.1-R0.1-20220228.150432-81-shaded.jar"/>
+	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/PlaceholderAPI-2.11.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/GreatLifeSteal.v2.0-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/BungeeCord.jar"/>
+	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/AdvancedEnchantments-8.7.4.jar"/>
+	<classpathentry kind="lib" path="C:/Users/timot/Downloads/Spigot/Spigot-API/target/spigot-api-1.21.1-R0.1-SNAPSHOT.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

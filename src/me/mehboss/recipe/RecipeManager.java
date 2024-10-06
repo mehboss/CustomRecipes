@@ -43,7 +43,12 @@ import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.StonecuttingRecipe; // For backward compatibility, use only if >=1.14 (using fully-qualified name) instead
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.material.MaterialData;
+
+import com.cryptomorin.xseries.XMaterial;
+import com.willfp.ecoenchants.enchant.EcoEnchant;
+import com.willfp.ecoenchants.enchant.EcoEnchants;
+
+import io.github.bananapuncher714.nbteditor.NBTEditor;
 import net.advancedplugins.ae.api.AEAPI;
 
 public class RecipeManager {
@@ -66,9 +71,11 @@ public class RecipeManager {
 	ItemStack handleIdentifier(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Identifier")) {
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
-				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), NBTEditor.CUSTOM_DATA,
+						"CUSTOM_ITEM_IDENTIFIER");
 
 			identifier().put(getConfig().getString(item + ".Identifier"), i);
+
 		}
 
 		if (getConfig().getString(item + ".Identifier").equalsIgnoreCase("LifeStealHeart")) {
@@ -87,6 +94,7 @@ public class RecipeManager {
 		return i;
 	}
 
+	@SuppressWarnings("deprecation")
 	ItemStack handleEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
 			try {
@@ -106,7 +114,8 @@ public class RecipeManager {
 		}
 		return i;
 	}
-
+	
+	@SuppressWarnings("deprecation")
 	ItemStack handleCustomEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
 
@@ -115,10 +124,19 @@ public class RecipeManager {
 					String[] breakdown = e.split(":");
 					String enchantment = breakdown[0];
 					int lvl = Integer.parseInt(breakdown[1]);
-
+					
+					EcoEnchants ee = EcoEnchants.INSTANCE;
+					
 					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(enchantment.toLowerCase())) {
-
 						i = AEAPI.applyEnchant(enchantment.toLowerCase(), lvl, i);
+						continue;
+					}
+
+					if (Main.getInstance().hasEE && ee.getByName(enchantment) != null) {
+						EcoEnchant name = ee.getByName(item);
+						
+						Enchantment enchant = Enchantment.getByKey(name.getEnchantmentKey());
+						i.addEnchantment(enchant, lvl);
 						continue;
 					}
 
@@ -136,9 +154,9 @@ public class RecipeManager {
 
 		if (Main.serverVersionBelow(1, 14))
 			return m;
-
+		
 		if (getConfig().isSet(item + ".Item-Flags")) {
-			for (String flag : getConfig().getStringList(item + ".Item-Flags")) {
+			for (String flag : getConfig().getStringList(item + ".Item-Flags")) {   
 				try {
 					m.addItemFlags(ItemFlag.valueOf(flag));
 				} catch (IllegalArgumentException e) {
@@ -164,7 +182,7 @@ public class RecipeManager {
 		}
 		return itemMeta;
 	}
-
+	
 	ItemMeta handleLore(String item, ItemMeta m) {
 
 		ArrayList<String> loreList = new ArrayList<String>();
@@ -304,7 +322,7 @@ public class RecipeManager {
 
 			if (debug())
 				debug("Attempting to add the recipe " + item + "..");
-			
+
 			if (converter != null && converter.equalsIgnoreCase("FURNACE"))
 				amountRequirement = 1;
 

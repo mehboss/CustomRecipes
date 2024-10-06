@@ -15,6 +15,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import com.cryptomorin.xseries.XMaterial;
+
 public class AddGUI implements Listener {
 
 	// *** this menu is the GUI for adding a new recipe

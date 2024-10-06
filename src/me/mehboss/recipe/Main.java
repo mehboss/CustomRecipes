@@ -30,6 +30,8 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.cryptomorin.xseries.XMaterial;
+
 import io.github.zrdzn.minecraft.greatlifesteal.GreatLifeStealPlugin;
 import io.github.zrdzn.minecraft.greatlifesteal.spigot.V1_12R1SpigotServer;
 import net.advancedplugins.ae.api.AEAPI;
@@ -71,6 +73,8 @@ public class Main extends JavaPlugin implements Listener {
 	FileConfiguration swordConfig = null;
 
 	Boolean hasAE = false;
+	Boolean hasEE = false;
+	Boolean hasEEnchants = false;
 	Boolean debug = false;
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
@@ -283,6 +287,12 @@ public class Main extends JavaPlugin implements Listener {
 		
 		if (Bukkit.getPluginManager().getPlugin("AdvancedEnchantments") != null)
 			hasAE = true;
+		
+		if (Bukkit.getPluginManager().getPlugin("EcoEnchants") != null)
+			hasEE = true;
+		
+		if (Bukkit.getPluginManager().getPlugin("ExcellentEnchants") != null)
+			hasEEnchants = true;
 		
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");

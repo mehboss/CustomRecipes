@@ -20,6 +20,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import io.github.bananapuncher714.nbteditor.NBTEditor;
+
 public class EffectsManager implements Listener {
 
 	FileConfiguration getConfig(String recipeName) {

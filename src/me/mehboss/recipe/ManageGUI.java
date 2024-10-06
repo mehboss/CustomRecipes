@@ -22,6 +22,9 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
+import com.cryptomorin.xseries.XMaterial;
+
+import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public class ManageGUI implements Listener {

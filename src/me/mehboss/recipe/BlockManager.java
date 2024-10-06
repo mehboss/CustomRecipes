@@ -12,6 +12,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
+import io.github.bananapuncher714.nbteditor.NBTEditor;
+
 public class BlockManager implements Listener {
 
 	@EventHandler

@@ -27,10 +27,15 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
+import com.cryptomorin.xseries.XMaterial;
+
+import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public class EditGUI implements Listener {
@@ -127,8 +132,9 @@ public class EditGUI implements Listener {
 
 		}
 
-		ItemStack result = NBTEditor.contains(item, "CUSTOM_ITEM_IDENTIFIER")
-				? Main.getInstance().identifier.get(NBTEditor.getString(item, "CUSTOM_ITEM_IDENTIFIER"))
+		ItemStack result = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+				? Main.getInstance().identifier
+						.get(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
 				: Main.getInstance().giveRecipe.get(configname.toLowerCase());
 
 		ItemMeta resultM = result.getItemMeta();
@@ -527,15 +533,18 @@ public class EditGUI implements Listener {
 			return;
 
 		Player p = (Player) e.getWhoClicked();
-		if (e.getInventory() != null && e.getView().getTitle() != null
-				&& e.getView().getTitle().contains("VIEWING: ")) {
+		InventoryView view = e.getView();
+		String inventoryTitle = view.getTitle();
+
+		if (e.getInventory() != null && inventoryTitle != null && inventoryTitle.contains("VIEWING: ")) {
 			e.setCancelled(true);
 
-			if (e.getCurrentItem() == null || e.getRawSlot() == 23)
+			if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR || e.getRawSlot() == 23)
 				return;
 
-			if (NBTEditor.contains(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER") && Main.getInstance().identifier
-					.containsKey(NBTEditor.getString(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER"))) {
+			if (NBTEditor.contains(e.getCurrentItem(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+					&& Main.getInstance().identifier.containsKey(
+							NBTEditor.getString(e.getCurrentItem(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))) {
 
 				String name = Main.getInstance().configName.containsKey(e.getCurrentItem())
 						? Main.getInstance().configName.get(e.getCurrentItem())
@@ -563,10 +572,9 @@ public class EditGUI implements Listener {
 			return;
 		}
 
-		if (e.getInventory() != null && e.getView().getTitle() != null
-				&& e.getView().getTitle().contains("EDITING: ")) {
+		if (e.getInventory() != null && inventoryTitle != null && inventoryTitle.contains("EDITING: ")) {
 
-			String[] split = e.getView().getTitle().split("EDITING: ");
+			String[] split = inventoryTitle.split("EDITING: ");
 			String recipe = split[1];
 
 			if (e.getRawSlot() != 10 && e.getRawSlot() != 11 && e.getRawSlot() != 12 && e.getRawSlot() != 19
@@ -1058,8 +1066,8 @@ public class EditGUI implements Listener {
 	}
 
 	String getCustomIdentifier(ItemStack itemStack) {
-		if (itemStack != null && NBTEditor.contains(itemStack, "CUSTOM_ITEM_IDENTIFIER")) {
-			return NBTEditor.getString(itemStack, "CUSTOM_ITEM_IDENTIFIER");
+		if (itemStack != null && NBTEditor.contains(itemStack, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
+			return NBTEditor.getString(itemStack, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 		}
 		return "none";
 	}

@@ -10,6 +10,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import io.github.bananapuncher714.nbteditor.NBTEditor;
+
 public class NBTCommands implements CommandExecutor {
 
 	@SuppressWarnings("deprecation")

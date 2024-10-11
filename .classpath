@@ -25,6 +25,5 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/timot/Downloads/ExcellentEnchants-4.2.2.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

@@ -114,7 +114,7 @@ public class RecipeManager {
 		}
 		return i;
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	ItemStack handleCustomEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
@@ -124,20 +124,23 @@ public class RecipeManager {
 					String[] breakdown = e.split(":");
 					String enchantment = breakdown[0];
 					int lvl = Integer.parseInt(breakdown[1]);
-					
-					EcoEnchants ee = EcoEnchants.INSTANCE;
-					
+
 					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(enchantment.toLowerCase())) {
 						i = AEAPI.applyEnchant(enchantment.toLowerCase(), lvl, i);
 						continue;
 					}
 
-					if (Main.getInstance().hasEE && ee.getByName(enchantment) != null) {
-						EcoEnchant name = ee.getByName(item);
-						
-						Enchantment enchant = Enchantment.getByKey(name.getEnchantmentKey());
-						i.addEnchantment(enchant, lvl);
-						continue;
+					if (Main.getInstance().hasEE) {
+
+						EcoEnchants ee = EcoEnchants.INSTANCE;
+
+						if (ee.getByName(enchantment) != null) {
+							EcoEnchant name = ee.getByName(enchantment);
+
+							Enchantment enchant = Enchantment.getByKey(name.getEnchantmentKey());
+							i.addEnchantment(enchant, lvl);
+							continue;
+						}
 					}
 
 					if (Enchantment.getByName(enchantment) == null)
@@ -154,9 +157,9 @@ public class RecipeManager {
 
 		if (Main.serverVersionBelow(1, 14))
 			return m;
-		
+
 		if (getConfig().isSet(item + ".Item-Flags")) {
-			for (String flag : getConfig().getStringList(item + ".Item-Flags")) {   
+			for (String flag : getConfig().getStringList(item + ".Item-Flags")) {
 				try {
 					m.addItemFlags(ItemFlag.valueOf(flag));
 				} catch (IllegalArgumentException e) {
@@ -182,7 +185,7 @@ public class RecipeManager {
 		}
 		return itemMeta;
 	}
-	
+
 	ItemMeta handleLore(String item, ItemMeta m) {
 
 		ArrayList<String> loreList = new ArrayList<String>();
@@ -276,7 +279,7 @@ public class RecipeManager {
 
 		File[] recipeFiles = recipeFolder.listFiles();
 		if (recipeFiles == null) {
-			debug("NO RECIPES WERE FOUND.");
+			debug("No recipes were found to load");
 			return;
 		}
 
@@ -565,7 +568,14 @@ public class RecipeManager {
 					Bukkit.getServer().addRecipe(S);
 				}
 				if (getConfig().getBoolean(item + ".Shapeless") == false)
-					Bukkit.getServer().addRecipe(R);
+
+					try {
+						Bukkit.getServer().addRecipe(R);
+					} catch (IllegalStateException e) {
+						Main.getInstance().getLogger().log(Level.SEVERE,
+								"Duplicate identifier " + key + "has been found, skipping..");
+						continue;
+					}
 
 				if (debug())
 					debug("Successfully added " + item + " with the amount output of " + i.getAmount());

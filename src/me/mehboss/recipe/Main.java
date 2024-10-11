@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -49,7 +48,7 @@ public class Main extends JavaPlugin implements Listener {
 	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
 
 	HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
-	
+
 	HashMap<String, ItemStack> itemNames = new HashMap<String, ItemStack>();
 	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
@@ -81,7 +80,7 @@ public class Main extends JavaPlugin implements Listener {
 	String newupdate = null;
 
 	RecipeAPI api;
-	
+
 	public void copyMessagesToConfig() {
 		File messagesFile = new File(getDataFolder() + "/messages.yml");
 		if (messagesFile.exists()) {
@@ -284,16 +283,16 @@ public class Main extends JavaPlugin implements Listener {
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
-		
+
 		if (Bukkit.getPluginManager().getPlugin("AdvancedEnchantments") != null)
 			hasAE = true;
-		
+
 		if (Bukkit.getPluginManager().getPlugin("EcoEnchants") != null)
 			hasEE = true;
-		
+
 		if (Bukkit.getPluginManager().getPlugin("ExcellentEnchants") != null)
 			hasEEnchants = true;
-		
+
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
 
@@ -314,8 +313,6 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		});
 
-		getLogger().log(Level.INFO, "Loading Recipes..");
-
 		int pluginId = 17989;
 		Metrics metrics = new Metrics(this, pluginId);
 		metrics.addCustomChart(new Metrics.MultiLineChart("players_and_servers", new Callable<Map<String, Integer>>() {
@@ -328,6 +325,8 @@ public class Main extends JavaPlugin implements Listener {
 				return valueMap;
 			}
 		}));
+
+		getLogger().log(Level.INFO, "Loading Recipes..");
 
 		if (getConfig().isSet("firstLoad"))
 			isFirstLoad = getConfig().getBoolean("firstLoad");
@@ -357,17 +356,7 @@ public class Main extends JavaPlugin implements Listener {
 		debug = getConfig().getBoolean("Debug");
 
 		removeRecipes();
-
-		for (Iterator<Recipe> iterator = Bukkit.recipeIterator(); iterator.hasNext();) {
-			Recipe type = iterator.next();
-			vanillaRecipes.add(type);
-		}
-
-		Bukkit.clearRecipes();
 		plugin.addItems();
-
-		for (Recipe vanilla : vanillaRecipes)
-			Bukkit.addRecipe(vanilla);
 
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
@@ -401,6 +390,16 @@ public class Main extends JavaPlugin implements Listener {
 		reloadConfig();
 		saveConfig();
 
+		if (serverVersionAtLeast(1, 12))
+			for (String key : identifier.keySet()) {
+				if (key == null)
+					continue;
+
+				if (NamespacedKey.fromString(key) != null && Bukkit.getRecipe(NamespacedKey.fromString(key)) != null)
+					Bukkit.removeRecipe(NamespacedKey.fromString(key));
+
+			}
+
 		disabledrecipe.clear();
 		recipe.clear();
 		giveRecipe.clear();
@@ -427,12 +426,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 
-		Bukkit.clearRecipes();
 		plugin.addItems();
-
-		for (Recipe vanilla : vanillaRecipes)
-			Bukkit.addRecipe(vanilla);
-
 		removeRecipes();
 
 		recipes = new ManageGUI(this, null);
@@ -551,50 +545,51 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	private int[] getServerVersionParts() {
-	    String version = Bukkit.getServer().getBukkitVersion();
-	    // Example version: 1.14-R0.1-SNAPSHOT
-	    int version_major = -1;
-	    int version_minor = -1;
+		String version = Bukkit.getServer().getBukkitVersion();
+		// Example version: 1.14-R0.1-SNAPSHOT
+		int version_major = -1;
+		int version_minor = -1;
 
-	    // Split by "-" to get the version part before the hyphen
-	    String[] parts = version.split("-");
-	    if (parts.length > 0) {
-	        String[] version_parts = parts[0].split("\\."); // Split by dot to separate major and minor versions
-	        try {
-	            if (version_parts.length > 0) {
-	                version_major = Integer.parseInt(version_parts[0]);
-	            }
-	            if (version_parts.length > 1) {
-	                version_minor = Integer.parseInt(version_parts[1]);
-	            }
-	        } catch (NumberFormatException e) {
-	            Main.getInstance().getLogger().log(Level.WARNING, "Error parsing version numbers from Bukkit version: " + version);
-	        }
-	    }
+		// Split by "-" to get the version part before the hyphen
+		String[] parts = version.split("-");
+		if (parts.length > 0) {
+			String[] version_parts = parts[0].split("\\."); // Split by dot to separate major and minor versions
+			try {
+				if (version_parts.length > 0) {
+					version_major = Integer.parseInt(version_parts[0]);
+				}
+				if (version_parts.length > 1) {
+					version_minor = Integer.parseInt(version_parts[1]);
+				}
+			} catch (NumberFormatException e) {
+				Main.getInstance().getLogger().log(Level.WARNING,
+						"Error parsing version numbers from Bukkit version: " + version);
+			}
+		}
 
-	    return new int[]{version_major, version_minor};
+		return new int[] { version_major, version_minor };
 	}
-	
+
 	public static boolean serverVersionBelow(int majorVersion, int minorVersion) {
-	    int[] version_numbers = instance.getServerVersionParts();
-	    if (version_numbers[0] < 0 || version_numbers[1] < 0) {
-	        return false; // Allow plugin to continue even if version detection failed
-	    }
-	    if (version_numbers[0] < majorVersion) {
-	        return true;
-	    }
-	    if (version_numbers[0] == majorVersion && version_numbers[1] < minorVersion) {
-	        return true;
-	    }
-	    return false;
+		int[] version_numbers = instance.getServerVersionParts();
+		if (version_numbers[0] < 0 || version_numbers[1] < 0) {
+			return false; // Allow plugin to continue even if version detection failed
+		}
+		if (version_numbers[0] < majorVersion) {
+			return true;
+		}
+		if (version_numbers[0] == majorVersion && version_numbers[1] < minorVersion) {
+			return true;
+		}
+		return false;
 	}
 
 	public static boolean serverVersionAtLeast(int majorVersion, int minorVersion) {
-	    int[] version_numbers = instance.getServerVersionParts();
-	    if (version_numbers[0] < 0 || version_numbers[1] < 0) {
-	        return true; // Allow plugin to continue even if version detection failed
-	    }
-	    return (version_numbers[0] > majorVersion)
-	            || (version_numbers[0] == majorVersion && version_numbers[1] >= minorVersion);
+		int[] version_numbers = instance.getServerVersionParts();
+		if (version_numbers[0] < 0 || version_numbers[1] < 0) {
+			return true; // Allow plugin to continue even if version detection failed
+		}
+		return (version_numbers[0] > majorVersion)
+				|| (version_numbers[0] == majorVersion && version_numbers[1] >= minorVersion);
 	}
 }

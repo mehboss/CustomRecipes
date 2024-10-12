@@ -64,7 +64,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	File swordYml = new File(getDataFolder() + "/recipes/CursedSword.yml");
 	FileConfiguration swordConfig = null;
-	
+
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
 	FileConfiguration bagConfig = null;
 
@@ -72,7 +72,7 @@ public class Main extends JavaPlugin implements Listener {
 	Boolean hasEE = false;
 	Boolean hasEEnchants = false;
 	Boolean hasHavenBags = false;
-	
+
 	Boolean debug = false;
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
@@ -92,7 +92,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (isFirstLoad && !swordYml.exists()) {
 			saveResource("recipes/CursedSword.yml", false);
 		}
-		
+
 		if (!bagYml.exists()) {
 			saveResource("recipes/HavenBag.yml", false);
 		}
@@ -166,7 +166,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (Bukkit.getPluginManager().getPlugin("HavenBags") != null) {
 			hasHavenBags = true;
 		}
-		
+
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
 
@@ -210,7 +210,7 @@ public class Main extends JavaPlugin implements Listener {
 		saveCustomYml(swordConfig, swordYml);
 		saveCustomYml(bagConfig, bagYml);
 		initCustomYml();
-		
+
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 
@@ -267,21 +267,34 @@ public class Main extends JavaPlugin implements Listener {
 		saveConfig();
 
 		if (serverVersionAtLeast(1, 12))
-			for (String key : identifier.keySet()) {
-				if (key == null)
+			for (String getKey : identifier.keySet()) {
+				if (getKey == null)
 					continue;
 
-				if (NamespacedKey.fromString(key) != null && Bukkit.getRecipe(NamespacedKey.fromString(key)) != null)
-					Bukkit.removeRecipe(NamespacedKey.fromString(key));
+				String key = getKey.toLowerCase();
+		        NamespacedKey customKey = NamespacedKey.fromString("customrecipes:" + key);
+				
+				if (customKey != null && Bukkit.getRecipe(customKey) != null)
+					Bukkit.removeRecipe(customKey);
 
+				if (debug) {
+					getLogger().log(Level.SEVERE, "Reloading recipe: " + key);
+					getLogger().log(Level.SEVERE, "Foundkey: " + customKey);
+					getLogger().log(Level.SEVERE, "Foundrecipe: " + Bukkit.getRecipe(customKey));
+				}
 			}
 
-		disabledrecipe.clear();
-		recipe.clear();
-		giveRecipe.clear();
+		recipeBook.clear();
+		vanillaRecipes.clear();
+		saveInventory.clear();
+		itemNames.clear();
 		configName.clear();
-		addRecipe.clear();
+		giveRecipe.clear();
 		identifier.clear();
+		ingredients.clear();
+		recipe.clear();
+		addRecipe.clear();
+		disabledrecipe.clear();
 		addItem = null;
 		recipes = null;
 	}

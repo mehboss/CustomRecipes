@@ -470,7 +470,7 @@ public class RecipeManager {
 					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
 							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
 							+ "ENUM into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
-					break;
+					return;
 				}
 
 				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
@@ -611,7 +611,7 @@ public class RecipeManager {
 					Bukkit.getServer().addRecipe(R);
 				} catch (Exception e) {
 					Main.getInstance().getLogger().log(Level.SEVERE,
-							"An exception has occurred. Possible duplicate identifier " + key + "has been found, skipping..");
+							"An exception has occurred. Possible duplicate identifier " + key + " has been found, skipping..");
 					continue;
 				}
 

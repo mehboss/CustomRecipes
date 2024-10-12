@@ -49,7 +49,7 @@ import me.mehboss.recipe.RecipeAPI.Ingredient;
 public class CraftManager implements Listener {
 
 	ArrayList<Player> inInventory = new ArrayList<Player>();
-	
+
 	boolean matchedRecipe(CraftingInventory inv) {
 		if (inv.getResult() == null || inv.getResult() == new ItemStack(Material.AIR)) {
 			if (debug())
@@ -185,14 +185,13 @@ public class CraftManager implements Listener {
 		return false;
 	}
 
-	// Updated handleShiftClicks method
-	@EventHandler
+	@EventHandler(priority = EventPriority.HIGHEST)
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 
 		if (!(matchedRecipe(inv)))
 			return;
-		
+
 		if (!(getRecipe().containsValue(inv.getResult())))
 			return;
 
@@ -236,14 +235,15 @@ public class CraftManager implements Listener {
 			debug("[handleShiftClicks] Paired it to a custom recipe. Running crafting amount calculations..");
 
 		final String recipeName = findName;
-
-		if (e.getCursor().equals(result) && result.getMaxStackSize() <= 1)
-			return;
-
-		// Remove the required items from the inventory
-
 		int itemsToAdd = Integer.MAX_VALUE;
 		int itemsToRemove = 0;
+
+		if (e.isCancelled()) {
+			debug("Couldn't complete craftItemEvent for recipe " + recipeName
+					+ ", the event was unexpectedly cancelled.");
+			debug("Please seek support or open a ticket https://github.com/mehboss/CustomRecipes/issues");
+			return;
+		}
 
 		if (debug())
 			debug("[handleShiftClicks] Checking amount requirements for " + recipeName);
@@ -256,34 +256,7 @@ public class CraftManager implements Listener {
 			String displayName = ingredient.getDisplayName();
 			final int requiredAmount = ingredient.getAmount();
 			boolean hasIdentifier = ingredient.hasIdentifier();
-
-			for (int highest = 1; highest < 10; highest++) {
-				ItemStack slot = inv.getItem(highest);
-				if (slot == null)
-					continue;
-
-				if (slot.getAmount() < requiredAmount)
-					continue; // Skip this slot if it doesn't have enough
-
-				int availableItems = slot.getAmount();
-				int possibleItemsToRemove = availableItems / requiredAmount;
-
-				if (possibleItemsToRemove < itemsToAdd) {
-					itemsToAdd = possibleItemsToRemove;
-					itemsToRemove = possibleItemsToRemove * requiredAmount;
-				}
-			}
-
-			if (debug()) {
-				debug("[handleShiftClicks] Handling recipe " + recipeName);
-				debug("[handleShiftClicks] ItemsToRemove: " + itemsToRemove);
-				debug("[handleShiftClicks] RequiredAmount: " + requiredAmount);
-				debug("[handleShiftClicks] Identifier: " + ingredient.getIdentifier());
-				debug("[handleShiftClicks] HasIdentifier: " + hasIdentifier);
-				debug("[handleShiftClicks] Material: " + material.toString());
-				debug("[handleShiftClicks] Displayname: " + displayName);
-			}
-
+			int possibleItemsToRemove = 64;
 			for (int i = 1; i < 10; i++) {
 				ItemStack item = inv.getItem(i);
 				int slot = i;
@@ -297,8 +270,30 @@ public class CraftManager implements Listener {
 				if ((ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
 						|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
 								ingredient.getIdentifier(), hasIdentifier, false))) {
-					int itemAmount = item.getAmount();
 
+					if (item.getAmount() < requiredAmount)
+						continue;
+
+					int availableItems = item.getAmount();
+
+					if ((availableItems / requiredAmount) < possibleItemsToRemove)
+						possibleItemsToRemove = availableItems / requiredAmount;
+
+					itemsToRemove = possibleItemsToRemove * requiredAmount;
+					itemsToAdd = possibleItemsToRemove;
+
+					if (debug()) {
+						debug("[handleShiftClicks] Handling recipe " + recipeName);
+						debug("[handleShiftClicks] ItemsToRemove: " + itemsToRemove);
+						debug("[handleShiftClicks] ItemAmount: " + availableItems);
+						debug("[handleShiftClicks] RequiredAmount: " + requiredAmount);
+						debug("[handleShiftClicks] Identifier: " + ingredient.getIdentifier());
+						debug("[handleShiftClicks] HasIdentifier: " + hasIdentifier);
+						debug("[handleShiftClicks] Material: " + material.toString());
+						debug("[handleShiftClicks] Displayname: " + displayName);
+					}
+
+					int itemAmount = item.getAmount();
 					if (itemAmount < requiredAmount)
 						continue;
 
@@ -845,7 +840,7 @@ public class CraftManager implements Listener {
 			}
 
 			inv.setResult(finalItem);
-			
+
 			if (!inInventory.contains(p))
 				inInventory.add(p);
 		}

@@ -35,10 +35,6 @@ public class EffectsManager implements Listener {
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
-	public boolean versionHasTrident() {
-		return Main.serverVersionAtLeast(1, 13);
-	}
-
 	@SuppressWarnings("deprecation")
 	@EventHandler
 	public void oneffect(EntityDamageByEntityEvent p) {
@@ -105,11 +101,11 @@ public class EffectsManager implements Listener {
 	}
 
 	boolean versionHasBlocking() {
-		// - In 1.9 sword blocking was replaced by shield blocking.
-		// - In 1.11 shields block 100% damage/knockback/debuff
-		// - However, this function only checked for 1_7 to 1_9 as false
-		//   so only those are avoided in the new serverVersionAtLeast call.
-		return Main.serverVersionAtLeast(1, 10);
+		return Main.getInstance().serverVersionAtLeast(1, 10);
+	}
+
+	public boolean versionHasTrident() {
+		return Main.getInstance().serverVersionAtLeast(1, 13);
 	}
 
 	HashMap<String, ItemStack> identifier() {

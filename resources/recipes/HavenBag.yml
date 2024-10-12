@@ -1,0 +1,26 @@
+Satchel: 
+  Enabled: true
+  Shapeless: false
+  Identifier: 'havenbags:custom_satchel'
+  Permission: 'crecipe.recipe.satchel'
+  Material: PLAYER_HEAD
+  Bag-Texture: 'none'
+  Model-Data: 0 # 0 to ignore
+  Bag-Size: 3
+  Can-Bind: true
+  ItemCrafting:
+   - 'DDD'
+   - 'DPD'
+   - 'DDD'
+  Ingredients:
+    D:
+      Material: DIAMOND
+      Identifier: none
+      Amount: 2
+      Name: 'Diamond Shrine'
+    P:
+      Material: OAK_PLANKS
+      Identifier: none
+      Amount: 1
+      Name: 'Wooden Board'
+  Disabled-Worlds: []

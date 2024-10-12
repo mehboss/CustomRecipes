@@ -50,8 +50,42 @@ import com.willfp.ecoenchants.enchant.EcoEnchants;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import net.advancedplugins.ae.api.AEAPI;
+import valorless.havenbags.hooks.CustomRecipes;
+import valorless.havenbags.hooks.CustomRecipes.BagInfo;
 
 public class RecipeManager {
+
+	boolean isHavenBag(String item) {
+		if (!(Main.getInstance().hasHavenBags))
+			return false;
+
+		if (getConfig().isSet(item + ".Identifier")
+				&& getConfig().getString(item + ".Identifier").split(":")[0].contains("havenbags:"))
+			return true;
+
+		return false;
+	}
+
+	ItemStack handleBagCreation(Material bagMaterial, String item) {
+		String bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
+				: "none";
+		boolean canBind = getConfig().isBoolean(item + ".Can-Bind") ? getConfig().getBoolean(item + ".Can-Bind") : true;
+		int bagSize = getConfig().isInt(item + ".Bag-Size") ? getConfig().getInt(item + ".Bag-Size") : 1;
+		int bagCMD = 0;
+
+		CustomRecipes havenBags = new CustomRecipes();
+		BagInfo bInfo = havenBags.new BagInfo(null, bagMaterial, bagSize, canBind, bagTexture);
+
+		if (Main.getInstance().serverVersionAtLeast(1, 14) && getConfig().isSet(item + ".Custom-Model-Data")
+				&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
+			bagCMD = getConfig().getInt(item + ".Custom-Model-Data");
+		}
+
+		bInfo.setModelData(bagCMD);
+
+		ItemStack bag = CustomRecipes.CreateBag(bInfo);
+		return bag;
+	}
 
 	@SuppressWarnings("deprecation")
 	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
@@ -69,28 +103,28 @@ public class RecipeManager {
 	}
 
 	ItemStack handleIdentifier(ItemStack i, String item) {
-		if (getConfig().isSet(item + ".Identifier")) {
-			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
-				i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), NBTEditor.CUSTOM_DATA,
-						"CUSTOM_ITEM_IDENTIFIER");
+		if (!getConfig().isSet(item + ".Identifier"))
+			return i;
 
-			identifier().put(getConfig().getString(item + ".Identifier"), i);
+		identifier().put(getConfig().getString(item + ".Identifier"), i);
 
-		}
+		if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
+			i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), NBTEditor.CUSTOM_DATA,
+					"CUSTOM_ITEM_IDENTIFIER");
 
-		if (getConfig().getString(item + ".Identifier").equalsIgnoreCase("LifeStealHeart")) {
+		if (getConfig().getString(item + ".Identifier").equalsIgnoreCase("LifeStealHeart"))
 			i.getItemMeta().getPersistentDataContainer().set(new NamespacedKey(Main.getInstance(), "heart"),
 					PersistentDataType.INTEGER, 1);
-		}
+
 		return i;
 	}
 
 	@SuppressWarnings("deprecation")
 	ItemStack handleDurability(ItemStack i, String item) {
-		if (getConfig().isSet(item + ".Durability")) {
+		if (getConfig().isSet(item + ".Durability"))
 			if (!getConfig().getString(item + ".Durability").equals("100"))
 				i.setDurability(Short.valueOf(getConfig().getString(item + ".Durability")));
-		}
+
 		return i;
 	}
 
@@ -155,7 +189,7 @@ public class RecipeManager {
 
 	ItemMeta handleFlags(String item, ItemMeta m) {
 
-		if (Main.serverVersionBelow(1, 14))
+		if (!(Main.getInstance().serverVersionAtLeast(1, 14)))
 			return m;
 
 		if (getConfig().isSet(item + ".Item-Flags")) {
@@ -190,21 +224,22 @@ public class RecipeManager {
 
 		ArrayList<String> loreList = new ArrayList<String>();
 
-		if (getConfig().isSet(item + ".Lore")) {
+		if (!getConfig().isSet(item + ".Lore"))
+			return m;
 
-			if (m.hasLore() && getConfig().getBoolean(item + ".Hide-Enchants") == false) {
-				loreList = (ArrayList<String>) m.getLore();
-			}
-
-			for (String Item1Lore : getConfig().getStringList(item + ".Lore")) {
-				String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
-				loreList.add(crateLore);
-			}
-
-			if (!(loreList.isEmpty())) {
-				m.setLore(loreList);
-			}
+		if (m.hasLore() && getConfig().getBoolean(item + ".Hide-Enchants") == false) {
+			loreList = (ArrayList<String>) m.getLore();
 		}
+
+		for (String Item1Lore : getConfig().getStringList(item + ".Lore")) {
+			String crateLore = (Item1Lore.replaceAll("(&([a-fk-o0-9]))", "\u00A7$2"));
+			loreList.add(crateLore);
+		}
+
+		if (!(loreList.isEmpty())) {
+			m.setLore(loreList);
+		}
+
 		return m;
 	}
 
@@ -216,7 +251,7 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleCustomModelData(String item, ItemMeta m) {
-		if (Main.serverVersionBelow(1, 14))
+		if (!(Main.getInstance().serverVersionAtLeast(1, 14)))
 			return m;
 
 		if (getConfig().isSet(item + ".Custom-Model-Data")
@@ -232,9 +267,8 @@ public class RecipeManager {
 		return m;
 	}
 
-	@SuppressWarnings("removal")
 	ItemMeta handleAttributes(String item, ItemMeta m) {
-		if (Main.serverVersionBelow(1, 12))
+		if (!(Main.getInstance().serverVersionAtLeast(1, 12)))
 			return m;
 
 		if (getConfig().isSet(item + ".Attribute")) {
@@ -312,12 +346,11 @@ public class RecipeManager {
 			String converter = getConfig().getString(item + ".Converter");
 			int amountRequirement = 9;
 
-			if (converter != null && converter.equalsIgnoreCase("STONECUTTER")) {
-				if (Main.serverVersionBelow(1, 14)) {
-					getLogger().log(Level.SEVERE,
-							"Error loading recipe. Got " + converter + " but your server version is below 1.14."
-									+ " Expected FURNACE or no Converter (for regular crafting) in: "
-									+ recipeFile.getName());
+			if (converter != null && converter.equalsIgnoreCase("stonecutter")) {
+				if (Main.getInstance().serverVersionAtLeast(1, 14)) {
+					getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
+							+ ", but your server version is below 1.14. Expected furnace or no converter (for regular crafting) in: "
+							+ recipeFile.getName());
 					continue;
 				}
 				amountRequirement = 1;
@@ -326,8 +359,14 @@ public class RecipeManager {
 			if (debug())
 				debug("Attempting to add the recipe " + item + "..");
 
-			if (converter != null && converter.equalsIgnoreCase("FURNACE"))
+			if (converter != null && converter.equalsIgnoreCase("furnace"))
 				amountRequirement = 1;
+
+			if (converter != null && isHavenBag(item)) {
+				getLogger().log(Level.SEVERE,
+						"Error loading recipe. Got " + converter + ", but the recipe is a havenbag recipe! Skipping..");
+				continue;
+			}
 
 			if (converter == null)
 				converter = "null (crafting)";
@@ -346,40 +385,24 @@ public class RecipeManager {
 				continue;
 			}
 
-			if (!recipeConfig.isSet(item + ".Placeable")) {
-				recipeConfig.set(item + ".Placeable", true);
-				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
-			}
-
-			if (!recipeConfig.isSet(item + ".Ignore-Model-Data")) {
-				recipeConfig.set(item + ".Ignore-Model-Data", false);
-				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
-			}
-
-			if (!recipeConfig.isSet(item + ".Item-Flags")) {
-				recipeConfig.set(item + ".Item-Flags", new ArrayList<String>());
-				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
-			}
-
-			if (!recipeConfig.isSet(item + ".Disabled-Worlds")) {
-				recipeConfig.set(item + ".Disabled-Worlds", new ArrayList<String>());
-				Main.getInstance().saveCustomYml(recipeConfig, recipeFile);
-			}
-
-			i = handleItemDamage(i, item, damage, type, amount); // handles ItemDamage
-			i = handleIdentifier(i, item); // handles CustomTag
+			i = handleItemDamage(i, item, damage, type, amount);
+			i = handleIdentifier(i, item);
 			i = handleDurability(i, item);
 			i = handleEnchants(i, item);
 			i = handleCustomEnchants(i, item);
 
-			m = handleDisplayname(item, i); // handle Displayname
-			m = handleHideEnchants(item, m); // handles hiding enchants
-			m = handleCustomModelData(item, m); // handles custom model data
+			m = handleDisplayname(item, i);
+			m = handleHideEnchants(item, m);
+			m = handleCustomModelData(item, m);
 			m = handleAttributes(item, m);
 			m = handleFlags(item, m);
 			m = handleLore(item, m);
 
 			i.setItemMeta(m);
+
+			if (isHavenBag(item))
+				i = handleBagCreation(i.getType(), item);
+
 			String line1 = gridRows.get(0);
 			String line2 = gridRows.get(1);
 			String line3 = gridRows.get(2);
@@ -387,13 +410,12 @@ public class RecipeManager {
 			HashMap<String, Material> shape = new HashMap<String, Material>();
 			ArrayList<String> shapeletter = new ArrayList<String>();
 
-			menui().add(i);
 			giveRecipe().put(item.toLowerCase(), i);
 			itemNames().put(item, i);
 			configName().put(i, item);
 
 			NamespacedKey key = null;
-			if (Main.serverVersionAtLeast(1, 12)) {
+			if (Main.getInstance().serverVersionAtLeast(1, 12)) {
 				key = new NamespacedKey(Main.getInstance(), getConfig().getString(item + ".Identifier"));
 				R = new ShapedRecipe(key, i);
 				S = new ShapelessRecipe(key, i);
@@ -443,15 +465,9 @@ public class RecipeManager {
 					debug("Ingredient Identifier: " + identifier);
 				}
 
-				if (!(ingredientSection.isSet("Name"))) {
-					details.put(abbreviation,
-							finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
-				} else {
-					details.put(abbreviation,
-							finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
-				}
-
+				details.put(abbreviation, finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
 				findIngredients.add(finishedMaterial);
+
 				if (findIngredients.size() > amountRequirement) {
 					getLogger().log(Level.SEVERE,
 							"Error loading recipe. Got " + finishedMaterial.toString()
@@ -460,12 +476,12 @@ public class RecipeManager {
 					continue;
 				}
 
-				if (converter.equalsIgnoreCase("FURNACE")) {
-					if (key != null) {
+				if (converter.equalsIgnoreCase("furnace")) {
+					if (key != null)
 						fRecipe = new FurnaceRecipe(key, i, finishedMaterial, experience, cookTime);
-					} else { // older API
+					else
 						fRecipe = new FurnaceRecipe(i, finishedMaterial);
-					}
+
 				}
 			}
 
@@ -500,7 +516,7 @@ public class RecipeManager {
 
 					if (count > amountRequirement) {
 						getLogger().log(Level.SEVERE,
-								"Error loading recipe. Got " + handleIngredients + " but Converter is " + converter
+								"Error loading recipe. Got " + handleIngredients + " but converter is " + converter
 										+ " so use only one slot" + " (X for others) for ItemCrafting in: "
 										+ recipeFile.getName());
 						continue;
@@ -514,74 +530,73 @@ public class RecipeManager {
 				boolean isEmpty = checkAbsent(handleIngredients);
 
 				if (debug())
-					debug("HandlingIngredient: " + itemIdentifier);
+					debug("[HandlingIngredient] " + itemIdentifier);
 
 				ingredients
 						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
 			}
 
-			if (converter.equalsIgnoreCase("FURNACE")) {
+			if (converter.equalsIgnoreCase("furnace")) {
 				Bukkit.getServer().addRecipe(fRecipe);
+
 				if (debug())
 					debug("Added " + converter + " Recipe: " + item + " " + i.getAmount());
 
-			} else if (converter.equalsIgnoreCase("STONECUTTER")) {
-				org.bukkit.inventory.StonecuttingRecipe scRecipe = null;
-				// ^ Use full name to avoid import (importing it would break all versions below
-				// (1.14 since StonecuttingRecipe is only defined if server >= 1.14).
-				if (key != null) {
-					scRecipe = new org.bukkit.inventory.StonecuttingRecipe(key, i, findIngredients.get(0));
-				} else {
-					// There is no StonecuttingRecipe without a key (NamespacedKey predates
-					// Stonecutter)
+			}
+
+			if (converter.equalsIgnoreCase("stonecutter")) {
+				if (!(Main.getInstance().serverVersionAtLeast(1, 14))) {
 					getLogger().log(Level.SEVERE, "Error loading recipe. Your API version is >= 1.14"
 							+ " but does not support NameSpacedKey or the plugin failed to create one.");
-
-					return;
+					break;
 				}
+
 				if (debug())
 					debug("Successfully added " + converter + " recipe " + item + ".. (" + i.getAmount() + ")");
+
+				StonecuttingRecipe scRecipe = new StonecuttingRecipe(key, i, findIngredients.get(0));
 				Bukkit.getServer().addRecipe(scRecipe);
 
-			} else {
-				if (getConfig().getBoolean(item + ".Shapeless") == true) {
-
-					shapeletter.add(newsplit1[0]);
-					shapeletter.add(newsplit1[1]);
-					shapeletter.add(newsplit1[2]);
-					shapeletter.add(newsplit2[0]);
-					shapeletter.add(newsplit2[1]);
-					shapeletter.add(newsplit2[2]);
-					shapeletter.add(newsplit3[0]);
-					shapeletter.add(newsplit3[1]);
-					shapeletter.add(newsplit3[2]);
-
-					for (String sl : shapeletter) {
-						if (!(sl.equalsIgnoreCase("X"))) {
-							S.addIngredient(shape.get(sl));
-
-							if (debug())
-								debug("Adding shapeless letters.. Letter: " + sl);
-						}
-					}
-
-					Bukkit.getServer().addRecipe(S);
-				}
-				if (getConfig().getBoolean(item + ".Shapeless") == false)
-
-					try {
-						Bukkit.getServer().addRecipe(R);
-					} catch (IllegalStateException e) {
-						Main.getInstance().getLogger().log(Level.SEVERE,
-								"Duplicate identifier " + key + "has been found, skipping..");
-						continue;
-					}
-
-				if (debug())
-					debug("Successfully added " + item + " with the amount output of " + i.getAmount());
 			}
-			api().addRecipe(item, ingredients); // Have to add *every* recipe, even with Converter, or "passedCheck"
-												// loop won't run on everything
+
+			if (getConfig().getBoolean(item + ".Shapeless") == true) {
+
+				shapeletter.add(newsplit1[0]);
+				shapeletter.add(newsplit1[1]);
+				shapeletter.add(newsplit1[2]);
+				shapeletter.add(newsplit2[0]);
+				shapeletter.add(newsplit2[1]);
+				shapeletter.add(newsplit2[2]);
+				shapeletter.add(newsplit3[0]);
+				shapeletter.add(newsplit3[1]);
+				shapeletter.add(newsplit3[2]);
+
+				for (String sl : shapeletter) {
+					if (!(sl.equalsIgnoreCase("X"))) {
+						S.addIngredient(shape.get(sl));
+
+						if (debug())
+							debug("Adding shapeless letters.. Letter: " + sl);
+					}
+				}
+
+				Bukkit.getServer().addRecipe(S);
+			}
+
+			if (getConfig().getBoolean(item + ".Shapeless") == false)
+
+				try {
+					Bukkit.getServer().addRecipe(R);
+				} catch (IllegalStateException e) {
+					Main.getInstance().getLogger().log(Level.SEVERE,
+							"Duplicate identifier " + key + "has been found, skipping..");
+					continue;
+				}
+
+			if (debug())
+				debug("Successfully added " + item + " with the amount output of " + i.getAmount());
+
+			api().addRecipe(item, ingredients);
 		}
 	}
 
@@ -626,10 +641,6 @@ public class RecipeManager {
 
 	HashMap<String, ItemStack> identifier() {
 		return Main.getInstance().identifier;
-	}
-
-	ArrayList<ItemStack> menui() {
-		return Main.getInstance().menui;
 	}
 
 	ArrayList<ShapedRecipe> recipe() {

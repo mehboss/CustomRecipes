@@ -1,5 +1,5 @@
 WheatSand:
-  Enabled: true
+  Enabled: false
   Shapeless: true
   Item: SAND
   Amount: 1

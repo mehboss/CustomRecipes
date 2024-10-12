@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Keyed;
@@ -79,6 +81,53 @@ public class Main extends JavaPlugin implements Listener {
 	String newupdate = null;
 
 	RecipeAPI api;
+
+	void registerCommands() {
+		PluginCommand crecipeCommand = getCommand("crecipe");
+		crecipeCommand.setExecutor(new GiveRecipe(this));
+
+		if (serverVersionAtLeast(1, 15)) {
+			TabCompletion tabCompleter = new TabCompletion();
+			crecipeCommand.setTabCompleter(tabCompleter);
+		}
+
+		getCommand("edititem").setExecutor(new NBTCommands());
+	}
+
+	void registerUpdateChecker() {
+		new UpdateChecker(this, 36925).getVersion(version -> {
+
+			newupdate = version;
+
+			if (getDescription().getVersion().compareTo(version) >= 0) {
+				getLogger().log(Level.INFO, "Checking for updates..");
+				getLogger().log(Level.INFO,
+						"We are all up to date with the latest version. Thank you for using custom recipes :)");
+			} else {
+				getLogger().log(Level.INFO, "Checking for updates..");
+				getLogger().log(Level.WARNING,
+						"An update has been found! This could be bug fixes or additional features. Please update CustomRecipes at https://www.spigotmc.org/resources/authors/mehboss.139036/");
+				uptodate = false;
+
+			}
+		});
+
+	}
+
+	void registerBstats() {
+		int pluginId = 17989;
+		Metrics metrics = new Metrics(this, pluginId);
+		metrics.addCustomChart(new Metrics.MultiLineChart("players_and_servers", new Callable<Map<String, Integer>>() {
+
+			@Override
+			public Map<String, Integer> call() throws Exception {
+				Map<String, Integer> valueMap = new HashMap<>();
+				valueMap.put("servers", 1);
+				valueMap.put("players", Bukkit.getOnlinePlayers().size());
+				return valueMap;
+			}
+		}));
+	}
 
 	public void saveCustomYml(FileConfiguration ymlConfig, File ymlFile) {
 		if (!customYml.exists()) {
@@ -169,37 +218,6 @@ public class Main extends JavaPlugin implements Listener {
 
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
-
-		new UpdateChecker(this, 36925).getVersion(version -> {
-
-			newupdate = version;
-
-			if (getDescription().getVersion().compareTo(version) >= 0) {
-				getLogger().log(Level.INFO, "Checking for updates..");
-				getLogger().log(Level.INFO,
-						"We are all up to date with the latest version. Thank you for using custom recipes :)");
-			} else {
-				getLogger().log(Level.INFO, "Checking for updates..");
-				getLogger().log(Level.WARNING,
-						"An update has been found! This could be bug fixes or additional features. Please update CustomRecipes at https://www.spigotmc.org/resources/authors/mehboss.139036/");
-				uptodate = false;
-
-			}
-		});
-
-		int pluginId = 17989;
-		Metrics metrics = new Metrics(this, pluginId);
-		metrics.addCustomChart(new Metrics.MultiLineChart("players_and_servers", new Callable<Map<String, Integer>>() {
-
-			@Override
-			public Map<String, Integer> call() throws Exception {
-				Map<String, Integer> valueMap = new HashMap<>();
-				valueMap.put("servers", 1);
-				valueMap.put("players", Bukkit.getOnlinePlayers().size());
-				return valueMap;
-			}
-		}));
-
 		getLogger().log(Level.INFO, "Loading Recipes..");
 
 		if (getConfig().isSet("firstLoad"))
@@ -219,18 +237,18 @@ public class Main extends JavaPlugin implements Listener {
 			saveCustomYml(customConfig, customYml);
 		}
 
-		saveAllCustomYml();
-
 		if (isFirstLoad && getConfig().isSet("firstLoad"))
 			getConfig().set("firstLoad", false);
 
 		if (!getConfig().isSet("Messages.No-Perm-Place"))
 			getConfig().set("Messages.No-Perm-Place", "&cYou cannot place an unplaceable block!");
 
-		saveConfig();
-
 		debug = getConfig().getBoolean("Debug");
 
+		saveAllCustomYml();
+		saveConfig();
+		registerUpdateChecker();
+		registerBstats();
 		removeRecipes();
 		plugin.addItems();
 
@@ -242,18 +260,9 @@ public class Main extends JavaPlugin implements Listener {
 
 		recipes = new ManageGUI(this, null);
 		editItem = new EditGUI(Main.getInstance(), null);
-
-		PluginCommand crecipeCommand = getCommand("crecipe");
-		crecipeCommand.setExecutor(new GiveRecipe(this));
-
-		if (serverVersionAtLeast(1, 15)) {
-			TabCompletion tabCompleter = new TabCompletion();
-			crecipeCommand.setTabCompleter(tabCompleter);
-		}
-
-		getCommand("edititem").setExecutor(new NBTCommands());
 		addItem = new AddGUI(this, null);
 
+		registerCommands();
 		getLogger().log(Level.INFO, "Loaded " + giveRecipe.values().size() + " recipes.");
 	}
 
@@ -272,15 +281,15 @@ public class Main extends JavaPlugin implements Listener {
 					continue;
 
 				String key = getKey.toLowerCase();
-		        NamespacedKey customKey = NamespacedKey.fromString("customrecipes:" + key);
-				
+				NamespacedKey customKey = NamespacedKey.fromString("customrecipes:" + key);
+
 				if (customKey != null && Bukkit.getRecipe(customKey) != null)
 					Bukkit.removeRecipe(customKey);
 
 				if (debug) {
-					getLogger().log(Level.SEVERE, "Reloading recipe: " + key);
-					getLogger().log(Level.SEVERE, "Foundkey: " + customKey);
-					getLogger().log(Level.SEVERE, "Foundrecipe: " + Bukkit.getRecipe(customKey));
+					debug("Reloading recipe: " + key);
+					debug("Foundkey: " + customKey);
+					debug("Foundrecipe: " + Bukkit.getRecipe(customKey));
 				}
 			}
 
@@ -338,7 +347,7 @@ public class Main extends JavaPlugin implements Listener {
 					continue;
 
 				if (debug)
-					getLogger().log(Level.SEVERE, "foundRecipes: " + foundRecipes);
+					debug("foundRecipes: " + foundRecipes);
 
 				try {
 					Bukkit.removeRecipe(NamespacedKey.minecraft(rKey.getKey().getKey()));
@@ -465,5 +474,10 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return (version_numbers[0] > majorVersion)
 				|| (version_numbers[0] == majorVersion && version_numbers[1] >= minorVersion);
+	}
+
+	void debug(String st) {
+		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+
 	}
 }

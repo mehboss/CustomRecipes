@@ -44,6 +44,7 @@ import org.bukkit.inventory.StonecuttingRecipe; // For backward compatibility, u
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
 import com.willfp.ecoenchants.enchant.EcoEnchant;
 import com.willfp.ecoenchants.enchant.EcoEnchants;
@@ -131,7 +132,6 @@ public class RecipeManager {
 		return i;
 	}
 
-	@SuppressWarnings("deprecation")
 	ItemStack handleEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
 			try {
@@ -139,11 +139,12 @@ public class RecipeManager {
 					String[] breakdown = e.split(":");
 					String enchantment = breakdown[0];
 
-					if (Enchantment.getByName(enchantment) == null)
+					if (!(XEnchantment.matchXEnchantment(enchantment).isPresent()))
 						continue;
 
+					Enchantment parsedEnchant = XEnchantment.matchXEnchantment(enchantment).get().getEnchant();
 					int lvl = Integer.parseInt(breakdown[1]);
-					i.addUnsafeEnchantment(Enchantment.getByName(enchantment), lvl);
+					i.addUnsafeEnchantment(parsedEnchant, lvl);
 				}
 			} catch (Exception e) {
 				debug("Enchantment section for the recipe " + item + " is not valid. Skipping..");
@@ -180,7 +181,8 @@ public class RecipeManager {
 						}
 					}
 
-					if (Enchantment.getByName(enchantment) == null)
+					if (Enchantment.getByName(enchantment) == null
+							&& !(XEnchantment.matchXEnchantment(enchantment).isPresent()))
 						debug("Enchantment - " + enchantment + " for the recipe " + item + " is not valid. Skipping..");
 				}
 			} catch (Exception e) {
@@ -358,7 +360,7 @@ public class RecipeManager {
 						"Found a havenbag recipe, but can not find the havenbags plugin. Skipping recipe..");
 				continue;
 			}
-			
+
 			if (converter != null && isHavenBag(item)) {
 				getLogger().log(Level.SEVERE,
 						"Error loading recipe. Got " + converter + ", but the recipe is a havenbag recipe! Skipping..");
@@ -374,7 +376,7 @@ public class RecipeManager {
 				}
 				amountRequirement = 1;
 			}
-			
+
 			if (converter != null && converter.equalsIgnoreCase("furnace"))
 				amountRequirement = 1;
 
@@ -398,7 +400,6 @@ public class RecipeManager {
 			}
 
 			i = handleItemDamage(i, item, damage, type, amount);
-			i = handleIdentifier(i, item);
 			i = handleDurability(i, item);
 			i = handleEnchants(i, item);
 			i = handleCustomEnchants(i, item);
@@ -415,6 +416,8 @@ public class RecipeManager {
 			if (isHavenBag(item))
 				i = handleBagCreation(i.getType(), item);
 
+			i = handleIdentifier(i, item);
+			
 			if (i == null || i.getType() == Material.AIR) {
 				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
 				getLogger().log(Level.SEVERE,
@@ -611,7 +614,8 @@ public class RecipeManager {
 					Bukkit.getServer().addRecipe(R);
 				} catch (Exception e) {
 					Main.getInstance().getLogger().log(Level.SEVERE,
-							"An exception has occurred. Possible duplicate identifier " + key + " has been found, skipping..");
+							"An exception has occurred. Possible duplicate identifier " + key
+									+ " has been found, skipping..");
 					continue;
 				}
 
@@ -623,7 +627,7 @@ public class RecipeManager {
 	}
 
 	void debug(String st) {
-		getLogger().log(Level.WARNING, st);
+		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 
 	boolean checkAbsent(String letterIngredient) {

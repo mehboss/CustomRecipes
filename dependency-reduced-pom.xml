@@ -46,7 +46,6 @@
               <excludes>
                 <exclude>com/cryptomorin/xseries/XBiome*</exclude>
                 <exclude>com/cryptomorin/xseries/XBlock*</exclude>
-                <exclude>com/cryptomorin/xseries/XEnchantment*</exclude>
                 <exclude>com/cryptomorin/xseries/XEntity*</exclude>
                 <exclude>com/cryptomorin/xseries/XEntityType*</exclude>
                 <exclude>com/cryptomorin/xseries/XItemStack*</exclude>

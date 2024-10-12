@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -112,16 +113,17 @@ public class CraftManager implements Listener {
 
 				if (debug() && debug == true)
 					debug("[hasMatchingDisplayName] Checking slot " + i + " for the recipe " + recipeName + ".. ");
+
 				if (item != null && item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
 						ingredient.getIdentifier(), ingredient.hasIdentifier(), true)) {
 
-					if (debug() && debug == true) {
-						debug("[amountsMatch] Item amount: " + item.getAmount());
-						debug("[amountsMatch] Required amount: " + requiredAmount);
-					}
-
-					if (item.getAmount() < requiredAmount)
+					if (item.getAmount() < requiredAmount) {
+						if (debug() && debug == true) {
+							debug("[amountsMatch] Item amount: " + item.getAmount());
+							debug("[amountsMatch] Required amount: " + requiredAmount);
+						}
 						return false;
+					}
 				}
 			}
 		}
@@ -198,7 +200,7 @@ public class CraftManager implements Listener {
 		if (debug())
 			debug("[handleShiftClicks] Passed containsValue boolean check.");
 
-		if (e.getCurrentItem() == null)
+		if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 			return;
 
 		String findName = configName().get(inv.getResult());
@@ -248,39 +250,72 @@ public class CraftManager implements Listener {
 		if (debug())
 			debug("[handleShiftClicks] Checking amount requirements for " + recipeName);
 
+		int maxReq = 1;
+
 		for (RecipeAPI.Ingredient ingredient : getIngredients(recipeName)) {
 			if (ingredient.isEmpty())
 				continue;
 
 			Material material = ingredient.getMaterial();
 			String displayName = ingredient.getDisplayName();
-			final int requiredAmount = ingredient.getAmount();
+			int requiredAmount = ingredient.getAmount();
 			boolean hasIdentifier = ingredient.hasIdentifier();
-			int possibleItemsToRemove = 64;
+
+			for (int highest = 1; highest < 10; highest++) {
+				ItemStack slot = inv.getItem(highest);
+
+				if (slot == null || slot.getType() == Material.AIR)
+					continue;
+
+				if ((ingredient.hasIdentifier()
+						&& NBTEditor.contains(slot, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+						&& ingredient.getIdentifier()
+								.equals(NBTEditor.getString(slot, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
+						|| (ingredient.hasIdentifier() && slot.isSimilar(identifier().get(ingredient.getIdentifier())))
+						|| (slot.getType() == material && hasMatchingDisplayName(recipeName, slot, displayName,
+								ingredient.getIdentifier(), hasIdentifier, false))) {
+
+					if (slot.getAmount() < requiredAmount)
+						continue;
+
+					int availableItems = slot.getAmount();
+					int possibleItemsToRemove = availableItems / requiredAmount;
+
+					// Keep track of the lowest possible items to add.
+					itemsToAdd = Math.min(itemsToAdd, possibleItemsToRemove);
+				}
+			}
+
+			if (itemsToAdd == Integer.MAX_VALUE) {
+				e.setResult(null);
+				e.setCancelled(true);
+				return;
+			}
+
 			for (int i = 1; i < 10; i++) {
 				ItemStack item = inv.getItem(i);
 				int slot = i;
 
-				if (item == null)
+				if (item == null || item.getType() == Material.AIR)
 					continue;
 
 				if (debug())
 					debug("[handleShiftClicks] Checking slot " + i + " for the recipe " + recipeName);
 
-				if ((ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
+				if ((ingredient.hasIdentifier()
+						&& NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+						&& ingredient.getIdentifier()
+								.equals(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
+						|| (ingredient.hasIdentifier() && item.isSimilar(identifier().get(ingredient.getIdentifier())))
 						|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
-								ingredient.getIdentifier(), hasIdentifier, false))) {
+								ingredient.getIdentifier(), hasIdentifier, true))) {
 
 					if (item.getAmount() < requiredAmount)
 						continue;
 
+					itemsToRemove = itemsToAdd * requiredAmount;
+
 					int availableItems = item.getAmount();
-
-					if ((availableItems / requiredAmount) < possibleItemsToRemove)
-						possibleItemsToRemove = availableItems / requiredAmount;
-
-					itemsToRemove = possibleItemsToRemove * requiredAmount;
-					itemsToAdd = possibleItemsToRemove;
 
 					if (debug()) {
 						debug("[handleShiftClicks] Handling recipe " + recipeName);
@@ -303,13 +338,10 @@ public class CraftManager implements Listener {
 								&& !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
 							item.setType(XMaterial.BUCKET.parseMaterial());
 						} else {
-							BukkitScheduler scheduler = Bukkit.getScheduler();
-							scheduler.runTask(Main.getInstance(), () -> {
-								if ((item.getAmount() + 1) - requiredAmount == 0)
-									inv.setItem(slot, null);
-								else
-									item.setAmount((item.getAmount() + 1) - requiredAmount);
-							});
+							if ((item.getAmount() + 1) - requiredAmount == 0)
+								inv.setItem(slot, null);
+							else
+								item.setAmount((item.getAmount() + 1) - requiredAmount);
 						}
 					} else {
 						if (item.getType().toString().contains("_BUCKET")
@@ -317,11 +349,18 @@ public class CraftManager implements Listener {
 								&& !getConfig(recipeName).getBoolean(recipeName + ".Consume-Bucket")) {
 							item.setType(XMaterial.BUCKET.parseMaterial());
 						} else {
+							if ((item.getAmount() - itemsToRemove) <= 0) {
+								inv.setItem(slot, null);
+								continue;
+							}
+
 							item.setAmount(item.getAmount() - itemsToRemove);
 						}
 					}
 				}
 			}
+
+			maxReq = requiredAmount;
 		}
 
 		// Add the result items to the player's inventory
@@ -330,25 +369,25 @@ public class CraftManager implements Listener {
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 			if (debug())
 				debug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");
-			return;
-		}
+		} else {
 
-		// Check if the result can be added to the player's inventory
-		// Set the cursor item to null (to prevent duplication)
+			e.setCancelled(true);
+			inv.setResult(new ItemStack(Material.AIR));
 
-		e.setCancelled(true);
-		inv.setResult(new ItemStack(Material.AIR));
+			if (debug())
+				debug("[handleShiftClicks] Shift click detected. Adding " + itemsToAdd + " to inventory.");
 
-		for (int i = 0; i < itemsToAdd; i++) {
-			if (player.getInventory().firstEmpty() == -1) {
-				player.getLocation().getWorld().dropItem(player.getLocation(), result);
-				continue;
-			}
+			for (int i = 0; i < itemsToAdd; i++) {
+				if (player.getInventory().firstEmpty() == -1) {
+					player.getLocation().getWorld().dropItem(player.getLocation(), result);
+					continue;
+				}
 
-			player.getInventory().addItem(result);
-			if (debug()) {
-				debug("[handleShiftClicks] Detected shift click and successfully removed items.");
-				debug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
+				player.getInventory().addItem(result);
+				if (debug()) {
+					debug("[handleShiftClicks] Detected shift click and successfully removed items.");
+					debug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
+				}
 			}
 		}
 	}
@@ -378,8 +417,12 @@ public class CraftManager implements Listener {
 				&& getConfig(recipeName).getBoolean(recipeName + ".Ignore-Data") == true)
 			return true;
 
-		if (hasIdentifier)
-			return item.isSimilar(identifier().get(identifier));
+		String recipeIdentifier = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+				? NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+				: "none";
+
+		if (hasIdentifier && identifier.equals(recipeIdentifier))
+			return true;
 
 		if (displayName == null || displayName.equals("false")) {
 			if (debug() && debug == true)
@@ -533,6 +576,7 @@ public class CraftManager implements Listener {
 		recipeName = configName().get(inv.getResult());
 
 		for (String recipes : api().getRecipes()) {
+
 			ArrayList<RecipeAPI.Ingredient> recipeIngredients = api().getIngredients(recipes);
 
 			passedCheck = true;
@@ -723,7 +767,6 @@ public class CraftManager implements Listener {
 						ItemMeta meta = inv.getItem(i).getItemMeta();
 
 						if (ingredient.hasIdentifier() && identifier().containsKey(ingredient.getIdentifier())
-								&& identifier().get(ingredient.getIdentifier()).isSimilar(inv.getItem(i))
 								&& (NBTEditor.contains(inv.getItem(i), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
 										&& NBTEditor.getString(inv.getItem(i), NBTEditor.CUSTOM_DATA,
 												"CUSTOM_ITEM_IDENTIFIER").equals(ingredient.getIdentifier()))) {
@@ -735,9 +778,17 @@ public class CraftManager implements Listener {
 
 						} else if (ingredient.hasIdentifier()) {
 
-							if (debug())
-								debug("[handleCrafting] Skipping recipe.. We should never reach this line of code.. please reach out for support.. Recipe: "
-										+ recipeName);
+							debug("[handleCrafting] Skipping recipe.. We should never reach this line of code.. please reach out for support.. Recipe: "
+									+ recipeName);
+							if (debug()) {
+								debug("[handleCrafting] identifierAPI.contains(): "
+										+ identifier().containsKey(ingredient.getIdentifier()));
+								debug("[handleCrafting] identifierAPI.isSimilar(): "
+										+ identifier().get(ingredient.getIdentifier()).isSimilar(inv.getItem(i)));
+								debug("[handleCrafting] recipeIngredient identifier is " + NBTEditor
+										.getString(inv.getItem(i), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"));
+								debug("[handleCrafting] ingredientIdentifier is " + ingredient.getIdentifier());
+							}
 
 							passedCheck = false;
 							break;
@@ -864,7 +915,7 @@ public class CraftManager implements Listener {
 	}
 
 	void debug(String st) {
-		getLogger().log(Level.WARNING, st);
+		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 
 	void sendMessages(Player p, String s) {

@@ -126,7 +126,7 @@ public class CraftManager implements Listener {
 			}
 		}
 
-		return true; // All required amounts are present in the inventory
+		return true;
 	}
 
 	@SuppressWarnings("deprecation")
@@ -192,6 +192,7 @@ public class CraftManager implements Listener {
 
 		if (!(matchedRecipe(inv)))
 			return;
+		
 		if (!(getRecipe().containsValue(inv.getResult())))
 			return;
 

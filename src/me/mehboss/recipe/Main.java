@@ -93,7 +93,7 @@ public class Main extends JavaPlugin implements Listener {
 			saveResource("recipes/CursedSword.yml", false);
 		}
 		
-		if (isFirstLoad && !swordYml.exists()) {
+		if (!bagYml.exists()) {
 			saveResource("recipes/HavenBag.yml", false);
 		}
 

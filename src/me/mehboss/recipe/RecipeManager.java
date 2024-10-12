@@ -55,12 +55,15 @@ import valorless.havenbags.hooks.CustomRecipes.BagInfo;
 
 public class RecipeManager {
 
-	boolean isHavenBag(String item) {
-		if (!(Main.getInstance().hasHavenBags))
-			return false;
+	boolean hasHavenBag() {
+		if (Main.getInstance().hasHavenBags)
+			return true;
+		return false;
+	}
 
+	boolean isHavenBag(String item) {
 		if (getConfig().isSet(item + ".Identifier")
-				&& getConfig().getString(item + ".Identifier").split(":")[0].contains("havenbags:"))
+				&& getConfig().getString(item + ".Identifier").split("-")[0].contains("havenbags"))
 			return true;
 
 		return false;
@@ -346,6 +349,22 @@ public class RecipeManager {
 			String converter = getConfig().getString(item + ".Converter");
 			int amountRequirement = 9;
 
+			if (debug())
+				debug("Attempting to add the recipe " + item + "..");
+
+			if (isHavenBag(item) && !(hasHavenBag())) {
+				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
+				getLogger().log(Level.SEVERE,
+						"Found a havenbag recipe, but can not find the havenbags plugin. Skipping recipe..");
+				continue;
+			}
+			
+			if (converter != null && isHavenBag(item)) {
+				getLogger().log(Level.SEVERE,
+						"Error loading recipe. Got " + converter + ", but the recipe is a havenbag recipe! Skipping..");
+				continue;
+			}
+
 			if (converter != null && converter.equalsIgnoreCase("stonecutter")) {
 				if (Main.getInstance().serverVersionAtLeast(1, 14)) {
 					getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
@@ -355,18 +374,9 @@ public class RecipeManager {
 				}
 				amountRequirement = 1;
 			}
-
-			if (debug())
-				debug("Attempting to add the recipe " + item + "..");
-
+			
 			if (converter != null && converter.equalsIgnoreCase("furnace"))
 				amountRequirement = 1;
-
-			if (converter != null && isHavenBag(item)) {
-				getLogger().log(Level.SEVERE,
-						"Error loading recipe. Got " + converter + ", but the recipe is a havenbag recipe! Skipping..");
-				continue;
-			}
 
 			if (converter == null)
 				converter = "null (crafting)";
@@ -374,9 +384,11 @@ public class RecipeManager {
 			String damage = getConfig().getString(item + ".Item-Damage");
 			int amount = getConfig().getInt(item + ".Amount");
 
-			Optional<XMaterial> type = XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase());
+			Optional<XMaterial> type = getConfig().isString(item + ".Item")
+					? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
+					: null;
 
-			if (!type.isPresent()) {
+			if (type == null || !type.isPresent()) {
 				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
 				getLogger().log(Level.SEVERE, "We are having trouble matching the material "
 						+ getConfig().getString(item + ".Item").toUpperCase()
@@ -402,6 +414,13 @@ public class RecipeManager {
 
 			if (isHavenBag(item))
 				i = handleBagCreation(i.getType(), item);
+
+			if (i == null || i.getType() == Material.AIR) {
+				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
+				getLogger().log(Level.SEVERE,
+						"The itemstack is null. Please double check your recipe.yml or contact Mehboss on Spigot for support.");
+				continue;
+			}
 
 			String line1 = gridRows.get(0);
 			String line2 = gridRows.get(1);
@@ -451,7 +470,7 @@ public class RecipeManager {
 					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
 							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
 							+ "ENUM into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
-					return;
+					break;
 				}
 
 				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
@@ -463,6 +482,7 @@ public class RecipeManager {
 					debug("Ingredient Amount: " + inAmount);
 					debug("Ingredient Displayname: " + name);
 					debug("Ingredient Identifier: " + identifier);
+					debug("Ingredient Type: " + materialString);
 				}
 
 				details.put(abbreviation, finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
@@ -529,8 +549,10 @@ public class RecipeManager {
 				int itemAmount = Integer.parseInt(details.get(handleIngredients).split(":")[3]);
 				boolean isEmpty = checkAbsent(handleIngredients);
 
-				if (debug())
-					debug("[HandlingIngredient] " + itemIdentifier);
+				if (debug()) {
+					debug("[HandlingIngredient] Ingredient Identifier: " + itemIdentifier);
+					debug("[HandlingIngredient] Ingredient Type: " + itemMaterial);
+				}
 
 				ingredients
 						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
@@ -587,9 +609,9 @@ public class RecipeManager {
 
 				try {
 					Bukkit.getServer().addRecipe(R);
-				} catch (IllegalStateException e) {
+				} catch (Exception e) {
 					Main.getInstance().getLogger().log(Level.SEVERE,
-							"Duplicate identifier " + key + "has been found, skipping..");
+							"An exception has occurred. Possible duplicate identifier " + key + "has been found, skipping..");
 					continue;
 				}
 

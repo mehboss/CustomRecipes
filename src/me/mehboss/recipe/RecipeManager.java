@@ -384,7 +384,7 @@ public class RecipeManager {
 				converter = "null (crafting)";
 
 			String damage = getConfig().getString(item + ".Item-Damage");
-			int amount = getConfig().getInt(item + ".Amount");
+			int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
 
 			Optional<XMaterial> type = getConfig().isString(item + ".Item")
 					? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())

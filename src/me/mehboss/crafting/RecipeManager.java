@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.crafting;
 
 import java.io.File;
 
@@ -40,7 +40,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
-import org.bukkit.inventory.StonecuttingRecipe; // For backward compatibility, use only if >=1.14 (using fully-qualified name) instead
+import org.bukkit.inventory.StonecuttingRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -50,6 +50,8 @@ import com.willfp.ecoenchants.enchant.EcoEnchant;
 import com.willfp.ecoenchants.enchant.EcoEnchants;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import me.mehboss.recipe.Main;
+import me.mehboss.recipe.RecipeAPI;
 import net.advancedplugins.ae.api.AEAPI;
 import valorless.havenbags.hooks.CustomRecipes;
 import valorless.havenbags.hooks.CustomRecipes.BagInfo;
@@ -104,6 +106,24 @@ public class RecipeManager {
 				return new ItemStack(type.get().parseMaterial(), amount);
 			}
 		}
+	}
+
+	ItemStack handleCustomTags(ItemStack i, String item) {
+		if (!getConfig().isSet(item + ".Custom-Tags"))
+			return i;
+
+		for (String tag : getConfig().getStringList(item + ".Custom-Tags")) {
+			String[] customTags = tag.split(":");
+
+			if (customTags.length != 2)
+				return i;
+
+			try {
+				i = NBTEditor.set(i, customTags[1], NBTEditor.CUSTOM_DATA, customTags[0]);
+			} catch (Exception e) {
+			}
+		}
+		return i;
 	}
 
 	ItemStack handleIdentifier(ItemStack i, String item) {
@@ -417,7 +437,7 @@ public class RecipeManager {
 				i = handleBagCreation(i.getType(), item);
 
 			i = handleIdentifier(i, item);
-			
+
 			if (i == null || i.getType() == Material.AIR) {
 				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
 				getLogger().log(Level.SEVERE,

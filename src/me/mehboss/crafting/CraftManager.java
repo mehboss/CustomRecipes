@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.crafting;
 
 import java.io.File;
 
@@ -38,6 +38,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitScheduler;
 
@@ -45,6 +46,8 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.mehboss.recipe.Main;
+import me.mehboss.recipe.RecipeAPI;
 import me.mehboss.recipe.RecipeAPI.Ingredient;
 
 public class CraftManager implements Listener {

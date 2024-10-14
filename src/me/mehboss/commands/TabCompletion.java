@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.commands;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,6 +10,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
+
+import me.mehboss.recipe.Main;
 
 public class TabCompletion implements TabCompleter {
 

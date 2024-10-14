@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.listeners;
 
 import java.io.File;
 import java.util.HashMap;
@@ -13,6 +13,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import me.mehboss.recipe.Main;
 
 public class BlockManager implements Listener {
 
@@ -27,8 +28,8 @@ public class BlockManager implements Listener {
 		boolean found = false;
 		ItemStack item = e.getItemInHand();
 
-		if (NBTEditor.contains(item, "CUSTOM_ITEM_IDENTIFIER")) {
-			foundID = NBTEditor.getString(item, "CUSTOM_ITEM_IDENTIFIER");
+		if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
+			foundID = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 			found = true;
 		}
 

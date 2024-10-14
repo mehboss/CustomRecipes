@@ -32,34 +32,47 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.cryptomorin.xseries.XMaterial;
 
+import me.mehboss.commands.GiveRecipe;
+import me.mehboss.commands.NBTCommands;
+import me.mehboss.commands.TabCompletion;
+import me.mehboss.crafting.CraftManager;
+import me.mehboss.crafting.RecipeManager;
+import me.mehboss.gui.AddGUI;
+import me.mehboss.gui.EditGUI;
+import me.mehboss.gui.ManageGUI;
+import me.mehboss.listeners.BlockManager;
+import me.mehboss.listeners.EffectsManager;
+import me.mehboss.utils.Metrics;
+import me.mehboss.utils.Placeholders;
+import me.mehboss.utils.UpdateChecker;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
 	private RecipeManager plugin;
 
-	static ManageGUI recipes;
+	public static ManageGUI recipes;
 	AddGUI addItem;
 	EditGUI editItem;
 
-	ArrayList<UUID> recipeBook = new ArrayList<UUID>();
-	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
+	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
+	public ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
 
-	HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
+	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
 
-	HashMap<String, ItemStack> itemNames = new HashMap<String, ItemStack>();
-	HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
-	HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
-	HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
-	HashMap<String, List<Material>> ingredients = new HashMap<String, List<Material>>();
+	public HashMap<String, ItemStack> itemNames = new HashMap<String, ItemStack>();
+	public HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
+	public HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
+	public HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
+	public HashMap<String, List<Material>> ingredients = new HashMap<String, List<Material>>();
 
-	ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
-	ArrayList<String> addRecipe = new ArrayList<String>();
-	ArrayList<String> disabledrecipe = new ArrayList<String>();
+	public ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
+	public ArrayList<String> addRecipe = new ArrayList<String>();
+	public ArrayList<String> disabledrecipe = new ArrayList<String>();
 	// add three more shapelessname, amount, and ID specifically for config.
 
 	File customYml = new File(getDataFolder() + "/blacklisted.yml");
-	FileConfiguration customConfig = null;
+	public FileConfiguration customConfig = null;
 
 	File cursedYml = new File(getDataFolder() + "/recipes/CursedPick.yml");
 	FileConfiguration cursedConfig = null;
@@ -70,17 +83,17 @@ public class Main extends JavaPlugin implements Listener {
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
 	FileConfiguration bagConfig = null;
 
-	Boolean hasAE = false;
-	Boolean hasEE = false;
+	public Boolean hasAE = false;
+	public Boolean hasEE = false;
 	Boolean hasEEnchants = false;
-	Boolean hasHavenBags = false;
+	public Boolean hasHavenBags = false;
 
-	Boolean debug = false;
+	public Boolean debug = false;
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
-	RecipeAPI api;
+	public RecipeAPI api;
 
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
@@ -289,7 +302,6 @@ public class Main extends JavaPlugin implements Listener {
 				if (debug) {
 					debug("Reloading recipe: " + key);
 					debug("Foundkey: " + customKey);
-					debug("Foundrecipe: " + Bukkit.getRecipe(customKey));
 				}
 			}
 

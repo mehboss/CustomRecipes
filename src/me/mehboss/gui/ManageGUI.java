@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.gui;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -26,6 +26,7 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.mehboss.recipe.Main;
 
 public class ManageGUI implements Listener {
 

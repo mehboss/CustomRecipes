@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.commands;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -11,6 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import me.mehboss.gui.EditGUI;
 
 public class NBTCommands implements CommandExecutor {
 

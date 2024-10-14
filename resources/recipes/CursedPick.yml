@@ -1,7 +1,7 @@
 CursedPick:
   Enabled: true # Whether or not this recipe is enabled
   Shapeless: false # Whether or not you want it to have specific order in crafting
-  Item: 'DIAMOND_PICKAXE' # Item ID
+  Item: 'DIAMOND_PICKAXE' # Item ENUM
   Item-Damage: 'none' # Used for when you need a specific type of item with a "19/00" or "13:4". leave to none if non exists.
   Amount: 1 # When you craft this item, this is the amount you will get from it.
   Placeable: true # If it is a block, you can choose to make it unplaceable.

@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.gui;
 
 import java.util.HashMap;
 import org.bukkit.Bukkit;
@@ -16,6 +16,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import com.cryptomorin.xseries.XMaterial;
+
+import me.mehboss.recipe.Main;
 
 public class AddGUI implements Listener {
 

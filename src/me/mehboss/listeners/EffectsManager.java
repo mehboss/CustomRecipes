@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.listeners;
 
 import java.io.File;
 import java.util.HashMap;
@@ -21,6 +21,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import me.mehboss.recipe.Main;
 
 public class EffectsManager implements Listener {
 
@@ -59,8 +60,8 @@ public class EffectsManager implements Listener {
 			String identifier = null;
 			String configName = null;
 
-			if (NBTEditor.contains(item, "CUSTOM_ITEM_IDENTIFIER"))
-				identifier = NBTEditor.getString(item, "CUSTOM_ITEM_IDENTIFIER");
+			if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
+				identifier = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 
 			if (identifier != null && identifier().containsKey(identifier))
 				foundItem = identifier().get(identifier);

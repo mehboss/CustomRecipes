@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.commands;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -18,6 +18,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import me.mehboss.recipe.Main;
 
 public class GiveRecipe implements CommandExecutor {
 

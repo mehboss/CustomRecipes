@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.utils;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;

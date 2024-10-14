@@ -1,4 +1,4 @@
-package me.mehboss.recipe;
+package me.mehboss.gui;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -37,12 +37,13 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.mehboss.recipe.Main;
 
 public class EditGUI implements Listener {
 
 	// *** this menu is the GUI for adding a new recipe
+	public HashMap<UUID, String> editmeta = new HashMap<UUID, String>();
 	HashMap<UUID, Inventory> inventoryinstance = new HashMap<UUID, Inventory>();
-	HashMap<UUID, String> editmeta = new HashMap<UUID, String>();
 	HashMap<UUID, String> getr = new HashMap<UUID, String>();
 	HashMap<UUID, String> getnewid = new HashMap<UUID, String>();
 
@@ -735,7 +736,7 @@ public class EditGUI implements Listener {
 		}
 	}
 
-	void sendLoremsg(Player p) {
+	public void sendLoremsg(Player p) {
 
 		int num = 1;
 

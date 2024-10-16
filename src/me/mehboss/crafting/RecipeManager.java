@@ -30,7 +30,6 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
@@ -51,13 +50,18 @@ import com.willfp.ecoenchants.enchant.EcoEnchants;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
-import me.mehboss.recipe.RecipeAPI;
+import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import net.advancedplugins.ae.api.AEAPI;
 import valorless.havenbags.hooks.CustomRecipes;
 import valorless.havenbags.hooks.CustomRecipes.BagInfo;
 
 public class RecipeManager {
 
+
+	FileConfiguration recipeConfig = null;
+	
 	boolean hasHavenBag() {
 		if (Main.getInstance().hasHavenBags)
 			return true;
@@ -129,8 +133,6 @@ public class RecipeManager {
 	ItemStack handleIdentifier(ItemStack i, String item) {
 		if (!getConfig().isSet(item + ".Identifier"))
 			return i;
-
-		identifier().put(getConfig().getString(item + ".Identifier"), i);
 
 		if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
 			i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), NBTEditor.CUSTOM_DATA,
@@ -235,7 +237,7 @@ public class RecipeManager {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
 		if (getConfig().isSet(item + ".Name")) {
-			if (debug()) {
+			if (isDebug()) {
 				debug("Applying displayname..");
 				debug("Displayname: " + getConfig().getString(item + ".Name"));
 			}
@@ -325,12 +327,9 @@ public class RecipeManager {
 		return m;
 	}
 
-	FileConfiguration recipeConfig = null;
+	public void addRecipes() {
 
-	@SuppressWarnings("deprecation")
-	public void addItems() {
-		disableRecipes();
-
+		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 		File recipeFolder = new File(Main.getInstance().getDataFolder(), "recipes");
 		if (!recipeFolder.exists()) {
 			recipeFolder.mkdirs();
@@ -338,13 +337,12 @@ public class RecipeManager {
 
 		File[] recipeFiles = recipeFolder.listFiles();
 		if (recipeFiles == null) {
-			debug("No recipes were found to load");
+			debug("Could not add recipes because none were found to load!");
 			return;
 		}
 
 		for (File recipeFile : recipeFiles) {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
-
 			String item = recipeFile.getName().replace(".yml", "");
 
 			if (!(recipeConfig.isConfigurationSection(item))) {
@@ -355,67 +353,74 @@ public class RecipeManager {
 				continue;
 			}
 
+			Recipe recipe = new Recipe(recipeFile.getName());
+
 			ItemStack i = null;
 			ItemMeta m = null;
-
-			ShapedRecipe R = null;
-			ShapelessRecipe S = null;
-			FurnaceRecipe fRecipe = null;
-
-			HashMap<String, String> details = new HashMap<String, String>();
-			ArrayList<RecipeAPI.Ingredient> ingredients = new ArrayList<>();
-
-			List<Material> findIngredients = new ArrayList<Material>();
+			
 			List<String> gridRows = getConfig().getStringList(item + ".ItemCrafting");
-
-			String converter = getConfig().getString(item + ".Converter");
+			String converter = getConfig().isString(item + ".Converter")
+					? getConfig().getString(item + ".Converter").toLowerCase()
+					: "converterNotDefined";
 			int amountRequirement = 9;
 
-			if (debug())
+			if (isDebug())
 				debug("Attempting to add the recipe " + item + "..");
 
-			if (isHavenBag(item) && !(hasHavenBag())) {
+			if (!(hasHavenBag()) && isHavenBag(item)) {
 				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
 				getLogger().log(Level.SEVERE,
 						"Found a havenbag recipe, but can not find the havenbags plugin. Skipping recipe..");
 				continue;
 			}
 
-			if (converter != null && isHavenBag(item)) {
-				getLogger().log(Level.SEVERE,
-						"Error loading recipe. Got " + converter + ", but the recipe is a havenbag recipe! Skipping..");
+			if (!getConfig().isConfigurationSection(item + ".Ingredients")) {
+				debug("Error adding recipe " + item + " because could not locate the ingredient section.");
+				debug("Please double check formatting. Skipping recipe..");
 				continue;
 			}
 
-			if (converter != null && converter.equalsIgnoreCase("stonecutter")) {
+			switch (converter) {
+			case "stonecutter":
 				if (Main.getInstance().serverVersionAtLeast(1, 14)) {
 					getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
 							+ ", but your server version is below 1.14. Expected furnace or no converter (for regular crafting) in: "
 							+ recipeFile.getName());
 					continue;
 				}
+
+				recipe.setType(RecipeType.STONECUTTER);
 				amountRequirement = 1;
+				break;
+			case "furnace":
+				recipe.setType(RecipeType.FURNACE);
+				amountRequirement = 1;
+				break;
+			default:
+				if (getConfig().isBoolean(item + ".Shapeless") && getConfig().getBoolean(item + ".Shapeless") == true) {
+					recipe.setType(RecipeType.SHAPELESS);
+					break;
+				} else {
+					recipe.addIngredient(new RecipeUtil.Ingredient("X", Material.AIR));
+					recipe.setType(RecipeType.SHAPED);
+					break;
+				}
 			}
 
-			if (converter != null && converter.equalsIgnoreCase("furnace"))
-				amountRequirement = 1;
-
-			if (converter == null)
-				converter = "null (crafting)";
+			// HavenBag detected, but converter is not SHAPED or SHAPELESS
+			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS && isHavenBag(item)) {
+				getLogger().log(Level.SEVERE, "Error loading recipe. Got " + recipe.getType()
+						+ ", but the recipe is a havenbag recipe! Skipping..");
+				continue;
+			}
 
 			String damage = getConfig().getString(item + ".Item-Damage");
 			int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
-
 			Optional<XMaterial> type = getConfig().isString(item + ".Item")
 					? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
 					: null;
 
-			if (type == null || !type.isPresent()) {
-				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
-				getLogger().log(Level.SEVERE, "We are having trouble matching the material "
-						+ getConfig().getString(item + ".Item").toUpperCase()
-						+ " to a minecraft item. Please double check you have inputted the correct material enum into the 'Item'"
-						+ " section and try again. If this problem persists please contact Mehboss on Spigot!");
+			if (!(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
 				continue;
 			}
 
@@ -445,215 +450,218 @@ public class RecipeManager {
 				continue;
 			}
 
-			String line1 = gridRows.get(0);
-			String line2 = gridRows.get(1);
-			String line3 = gridRows.get(2);
+			ArrayList<String> slotsAbbreviations = new ArrayList<String>();
+			String[] row1 = gridRows.get(0).split("");
+			String[] row2 = gridRows.get(1).split("");
+			String[] row3 = gridRows.get(2).split("");
+			slotsAbbreviations.add(row1[0]);
+			slotsAbbreviations.add(row1[1]);
+			slotsAbbreviations.add(row1[2]);
 
-			HashMap<String, Material> shape = new HashMap<String, Material>();
-			ArrayList<String> shapeletter = new ArrayList<String>();
+			slotsAbbreviations.add(row2[0]);
+			slotsAbbreviations.add(row2[1]);
+			slotsAbbreviations.add(row2[2]);
+
+			slotsAbbreviations.add(row3[0]);
+			slotsAbbreviations.add(row3[1]);
+			slotsAbbreviations.add(row3[2]);
 
 			giveRecipe().put(item.toLowerCase(), i);
-			itemNames().put(item, i);
-			configName().put(i, item);
+			
+			int slot = 0;
+			int count = 0;
 
-			NamespacedKey key = null;
-			if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-				key = new NamespacedKey(Main.getInstance(), getConfig().getString(item + ".Identifier"));
-				R = new ShapedRecipe(key, i);
-				S = new ShapelessRecipe(key, i);
-			} else {
-				R = new ShapedRecipe(i);
-				S = new ShapelessRecipe(i);
-			}
+			for (String abbreviation : slotsAbbreviations) {
+				// Iterate through the specified 9x9 grid and get it from the Ingredients section..
+				slot++;
 
-			R.shape(line1, line2, line3);
-			details.put("X", "null:false:false:1");
-			float experience = 1.0f;
-			int cookTime = 200;
+				RecipeUtil.Ingredient recipeIngredient;
 
-			for (String abbreviation : getConfig().getConfigurationSection(item + ".Ingredients").getKeys(false)) {
-				ConfigurationSection ingredientSection = getConfig()
-						.getConfigurationSection(item + ".Ingredients." + abbreviation);
-				// Iterate through the specified item declaration.
-
-				String materialString = ingredientSection.getString("Material");
-				int inAmount = 1;
-
-				if (ingredientSection.isSet("Amount") && isInt(ingredientSection.getString("Amount")))
-					inAmount = Integer.parseInt(ingredientSection.getString("Amount"));
-
-				Optional<XMaterial> ingredientMaterial = XMaterial.matchXMaterial(materialString);
-
-				String identifier = ingredientSection.isSet("Identifier") ? ingredientSection.getString("Identifier")
-						: "false";
-				String name = ingredientSection.isSet("Name") ? ingredientSection.getString("Name") : "false";
-
-				if (!ingredientMaterial.isPresent()) {
-					getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
-					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + materialString
-							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
-							+ "ENUM into the Ingredients section of the config and try again. If this problem persists please contact Mehboss on Spigot!");
-					return;
-				}
-
-				Material finishedMaterial = ingredientMaterial.get().parseMaterial();
-
-				R.setIngredient(abbreviation.charAt(0), finishedMaterial);
-				shape.put(abbreviation, finishedMaterial);
-
-				if (debug()) {
-					debug("Ingredient Amount: " + inAmount);
-					debug("Ingredient Displayname: " + name);
-					debug("Ingredient Identifier: " + identifier);
-					debug("Ingredient Type: " + materialString);
-				}
-
-				details.put(abbreviation, finishedMaterial.toString() + ":" + name + ":" + identifier + ":" + inAmount);
-				findIngredients.add(finishedMaterial);
-
-				if (findIngredients.size() > amountRequirement) {
-					getLogger().log(Level.SEVERE,
-							"Error loading recipe. Got " + finishedMaterial.toString()
-									+ " but expected only one entry in Ingredients since using " + converter
-									+ " as Converter in: " + recipeFile.getName());
+				// adds the abbreviation for AIR automatically to the recipe
+				if (abbreviation.equalsIgnoreCase("x")) {
+					recipeIngredient = new RecipeUtil.Ingredient("X", Material.AIR);
+					recipeIngredient.setSlot(slot);
+					recipe.addIngredient(recipeIngredient);
 					continue;
 				}
 
-				if (converter.equalsIgnoreCase("furnace")) {
-					if (key != null)
-						fRecipe = new FurnaceRecipe(key, i, finishedMaterial, experience, cookTime);
-					else
-						fRecipe = new FurnaceRecipe(i, finishedMaterial);
+				String configPath = recipe.getName() + ".Ingredients." + abbreviation;
+				String material = getConfig().getString(configPath + ".Material");
+				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
 
-				}
-			}
-
-			ingredients().put(getConfig().getString(item + ".Identifier"), findIngredients);
-			recipe().add(R);
-
-			String[] newsplit1 = line1.split("");
-			String[] newsplit2 = line2.split("");
-			String[] newsplit3 = line3.split("");
-
-			ArrayList<String> newSlots = new ArrayList<String>();
-			newSlots.add(newsplit1[0]);
-			newSlots.add(newsplit1[1]);
-			newSlots.add(newsplit1[2]);
-			newSlots.add(newsplit2[0]);
-			newSlots.add(newsplit2[1]);
-			newSlots.add(newsplit2[2]);
-			newSlots.add(newsplit3[0]);
-			newSlots.add(newsplit3[1]);
-			newSlots.add(newsplit3[2]);
-
-			int slot = 0;
-			int count = 0;
-			for (String handleIngredients : newSlots) {
-				// Iterate through the specified 9x9 grid.
-				slot++;
-				Material itemMaterial = details.get(handleIngredients).split(":")[0].equals("null") ? null
-						: Material.matchMaterial(details.get(handleIngredients).split(":")[0]);
-
-				if (itemMaterial != null) {
-					count++;
-
-					if (count > amountRequirement) {
-						getLogger().log(Level.SEVERE,
-								"Error loading recipe. Got " + handleIngredients + " but converter is " + converter
-										+ " so use only one slot" + " (X for others) for ItemCrafting in: "
-										+ recipeFile.getName());
-						continue;
-					}
+				if (!validMaterial(recipe.getName(), material, rawMaterial)) {
+					continue;
 				}
 
-				String itemName = details.get(handleIngredients).split(":")[1];
-				String itemIdentifier = details.get(handleIngredients).split(":")[2];
+				Material ingredientMaterial = rawMaterial.get().parseMaterial();
 
-				int itemAmount = Integer.parseInt(details.get(handleIngredients).split(":")[3]);
-				boolean isEmpty = checkAbsent(handleIngredients);
-
-				if (debug()) {
-					debug("[HandlingIngredient] Ingredient Identifier: " + itemIdentifier);
-					debug("[HandlingIngredient] Ingredient Type: " + itemMaterial);
+				count++;
+				if (count > amountRequirement) {
+					getLogger().log(Level.SEVERE,
+							"Error loading recipe. Found " + amountRequirement + " slots but converter is " + converter
+									+ " so use only one slot" + " (X for others) for ItemCrafting in: "
+									+ recipeFile.getName());
+					continue;
 				}
 
-				ingredients
-						.add(api().new Ingredient(itemMaterial, itemName, itemIdentifier, itemAmount, slot, isEmpty));
+				String ingredientName = getConfig().isString(configPath + ".Name")
+						? getConfig().getString(configPath + ".Name")
+						: null;
+				String ingredientIdentifier = getConfig().isString(configPath + ".Identifier")
+						? getConfig().getString(configPath + ".Identifier")
+						: null;
+				int ingredientAmount = getConfig().isInt(configPath + ".Amount")
+						? getConfig().getInt(configPath + ".Amount")
+						: 1;
+
+				if (isDebug()) {
+					debug("[HandlingIngredient] Ingredient Name: " + ingredientName);
+					debug("[HandlingIngredient] Ingredient Identifier: " + ingredientIdentifier);
+					debug("[HandlingIngredient] Ingredient Type: " + ingredientMaterial);
+					debug("[HandlingIngredient] Ingredient Amount: " + ingredientAmount);
+				}
+
+				recipeIngredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
+				recipeIngredient.setDisplayName(ingredientName);
+				recipeIngredient.setIdentifier(ingredientIdentifier);
+				recipeIngredient.setAmount(ingredientAmount);
+				recipeIngredient.setSlot(slot);
+				recipe.addIngredient(recipeIngredient);
 			}
+			
+			if (isDebug())
+				debug("Successfully added " + item + " with the amount output of " + i.getAmount());
 
-			if (converter.equalsIgnoreCase("furnace")) {
-				Bukkit.getServer().addRecipe(fRecipe);
+			recipeUtil.createRecipe(recipe);
+		}
+		
+		recipeUtil.reloadRecipes();
+	}
 
-				if (debug())
-					debug("Added " + converter + " Recipe: " + item + " " + i.getAmount());
+	public void addRecipesFromAPI() {
+		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes();
 
-			}
+		for (Recipe recipe : recipeList.values()) {
+			try {
+				ShapedRecipe shapedRecipe = null;
+				ShapelessRecipe shapelessRecipe = null;
+				FurnaceRecipe furnaceRecipe = null;
+				StonecuttingRecipe sCutterRecipe = null;
 
-			if (converter.equalsIgnoreCase("stonecutter")) {
-				if (!(Main.getInstance().serverVersionAtLeast(1, 14))) {
-					getLogger().log(Level.SEVERE, "Error loading recipe. Your API version is >= 1.14"
-							+ " but does not support NameSpacedKey or the plugin failed to create one.");
+				ArrayList<Material> ingredientMaterials = new ArrayList<>();
+				List<RecipeUtil.Ingredient> ingredients = recipe.getIngredients();
+
+				// Populate ingredient materials and API ingredients
+				for (RecipeUtil.Ingredient ingredient : ingredients) {
+					ingredientMaterials.add(ingredient.getMaterial());
+				}
+
+				// Create recipes based on type
+				switch (recipe.getType()) {
+				case SHAPELESS:
+					shapelessRecipe = createShapelessRecipe(recipe);
+					break;
+				case SHAPED:
+					shapedRecipe = createShapedRecipe(recipe);
+					break;
+				case FURNACE:
+					furnaceRecipe = createFurnaceRecipe(recipe);
+					break;
+				case STONECUTTER:
+					sCutterRecipe = createStonecuttingRecipe(recipe);
 					break;
 				}
 
-				if (debug())
-					debug("Successfully added " + converter + " recipe " + item + ".. (" + i.getAmount() + ")");
+				// Add recipes to relevant lists
+				addRecipeToMaps(recipe, ingredientMaterials);
 
-				StonecuttingRecipe scRecipe = new StonecuttingRecipe(key, i, findIngredients.get(0));
-				Bukkit.getServer().addRecipe(scRecipe);
+				// Register recipes with the server
+				if (shapedRecipe != null)
+					Bukkit.getServer().addRecipe(shapedRecipe);
+				if (shapelessRecipe != null)
+					Bukkit.getServer().addRecipe(shapelessRecipe);
+				if (furnaceRecipe != null)
+					Bukkit.getServer().addRecipe(furnaceRecipe);
+				if (sCutterRecipe != null)
+					Bukkit.getServer().addRecipe(sCutterRecipe);
 
+			} catch (Exception e) {
+				getLogger().log(Level.SEVERE, "Error loading recipe: " + e.getMessage(), e);
 			}
-
-			if (getConfig().getBoolean(item + ".Shapeless") == true) {
-
-				shapeletter.add(newsplit1[0]);
-				shapeletter.add(newsplit1[1]);
-				shapeletter.add(newsplit1[2]);
-				shapeletter.add(newsplit2[0]);
-				shapeletter.add(newsplit2[1]);
-				shapeletter.add(newsplit2[2]);
-				shapeletter.add(newsplit3[0]);
-				shapeletter.add(newsplit3[1]);
-				shapeletter.add(newsplit3[2]);
-
-				for (String sl : shapeletter) {
-					if (!(sl.equalsIgnoreCase("X"))) {
-						S.addIngredient(shape.get(sl));
-
-						if (debug())
-							debug("Adding shapeless letters.. Letter: " + sl);
-					}
-				}
-
-				Bukkit.getServer().addRecipe(S);
-			}
-
-			if (getConfig().getBoolean(item + ".Shapeless") == false)
-
-				try {
-					Bukkit.getServer().addRecipe(R);
-				} catch (Exception e) {
-					Main.getInstance().getLogger().log(Level.SEVERE,
-							"An exception has occurred. Possible duplicate identifier " + key
-									+ " has been found, skipping..");
-					continue;
-				}
-
-			if (debug())
-				debug("Successfully added " + item + " with the amount output of " + i.getAmount());
-
-			api().addRecipe(item, ingredients);
 		}
 	}
 
-	void debug(String st) {
-		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+	@SuppressWarnings("deprecation")
+	private ShapelessRecipe createShapelessRecipe(Recipe recipe) {
+		ShapelessRecipe shapelessRecipe;
+
+		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+			shapelessRecipe = new ShapelessRecipe(createNamespacedKey(recipe), recipe.getResult());
+		} else {
+			shapelessRecipe = new ShapelessRecipe(recipe.getResult());
+		}
+
+		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
+			shapelessRecipe.addIngredient(ingredient.getMaterial());
+		}
+		return shapelessRecipe;
 	}
 
-	boolean checkAbsent(String letterIngredient) {
-		if (letterIngredient.equals("X"))
-			return true;
-		return false;
+	@SuppressWarnings("deprecation")
+	private ShapedRecipe createShapedRecipe(Recipe recipe) {
+		ShapedRecipe shapedRecipe;
+
+		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+			shapedRecipe = new ShapedRecipe(createNamespacedKey(recipe), recipe.getResult());
+		} else {
+			shapedRecipe = new ShapedRecipe(recipe.getResult());
+		}
+
+		shapedRecipe.shape(recipe.getRow(1), recipe.getRow(2), recipe.getRow(3));
+		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
+			shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterial());
+		}
+		return shapedRecipe;
+	}
+
+	@SuppressWarnings("deprecation")
+	private FurnaceRecipe createFurnaceRecipe(Recipe recipe) {
+		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+			return new FurnaceRecipe(createNamespacedKey(recipe), recipe.getResult(), recipe.getSlot(1).getMaterial(),
+					recipe.getExperience(), recipe.getCookTime());
+		} else {
+			return new FurnaceRecipe(recipe.getResult(), recipe.getSlot(1).getMaterial());
+		}
+	}
+
+	private StonecuttingRecipe createStonecuttingRecipe(Recipe recipe) {
+		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
+			getLogger().log(Level.SEVERE, "Error loading recipe. Your server version does not support NameSpacedKey.");
+			return null;
+		}
+
+		return new StonecuttingRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
+				recipe.getSlot(1).getMaterial());
+	}
+
+	private NamespacedKey createNamespacedKey(Recipe recipe) {
+		return new NamespacedKey(Main.getInstance(), recipe.getKey());
+	}
+
+	private void addRecipeToMaps(Recipe recipe, ArrayList<Material> ingredientMaterials) {
+		giveRecipe().put(recipe.getKey().toLowerCase(), recipe.getResult());
+	}
+
+	boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
+		if (type == null || !type.isPresent()) {
+			getLogger().log(Level.SEVERE, "Error loading recipe: " + recipe);
+			getLogger().log(Level.SEVERE, "We are having trouble matching the material " + materialInput.toUpperCase()
+					+ " to a minecraft item. Please double check you have inputted the correct material enum into the 'Item'"
+					+ " section and try again. If this problem persists please contact Mehboss on Spigot!");
+			return false;
+		}
+		return true;
 	}
 
 	boolean isInt(String s) {
@@ -665,8 +673,12 @@ public class RecipeManager {
 		return true;
 	}
 
-	boolean debug() {
+	boolean isDebug() {
 		return Main.getInstance().debug;
+	}
+	
+	void debug(String st) {
+		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 
 	void disableRecipes() {
@@ -681,31 +693,11 @@ public class RecipeManager {
 		return Main.getInstance().getLogger();
 	}
 
-	HashMap<String, List<Material>> ingredients() {
-		return Main.getInstance().ingredients;
-	}
-
-	HashMap<String, ItemStack> identifier() {
-		return Main.getInstance().identifier;
-	}
-
 	ArrayList<ShapedRecipe> recipe() {
 		return Main.getInstance().recipe;
 	}
 
-	HashMap<String, ItemStack> itemNames() {
-		return Main.getInstance().itemNames;
-	}
-
 	HashMap<String, ItemStack> giveRecipe() {
 		return Main.getInstance().giveRecipe;
-	}
-
-	HashMap<ItemStack, String> configName() {
-		return Main.getInstance().configName;
-	}
-
-	RecipeAPI api() {
-		return Main.getInstance().api;
 	}
 }

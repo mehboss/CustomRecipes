@@ -1,13 +1,9 @@
 package me.mehboss.listeners;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -22,6 +18,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeUtil;
 
 public class EffectsManager implements Listener {
 
@@ -35,6 +32,8 @@ public class EffectsManager implements Listener {
 
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
+
+	RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 
 	@SuppressWarnings("deprecation")
 	@EventHandler
@@ -63,11 +62,11 @@ public class EffectsManager implements Listener {
 			if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
 				identifier = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 
-			if (identifier != null && identifier().containsKey(identifier))
-				foundItem = identifier().get(identifier);
+			if (identifier != null && recipeUtil.getRecipeFromKey(identifier) != null)
+				foundItem = recipeUtil.getRecipeFromKey(identifier).getResult();
 
-			if (foundItem != null && configName().containsKey(foundItem))
-				configName = configName().get(foundItem);
+			if (foundItem != null && recipeUtil.getRecipeFromKey(identifier) != null)
+				configName = recipeUtil.getRecipeFromKey(identifier).getName();
 
 			if (configName == null || foundItem == null || identifier == null || getConfig(configName) == null)
 				return;
@@ -107,13 +106,5 @@ public class EffectsManager implements Listener {
 
 	public boolean versionHasTrident() {
 		return Main.getInstance().serverVersionAtLeast(1, 13);
-	}
-
-	HashMap<String, ItemStack> identifier() {
-		return Main.getInstance().identifier;
-	}
-
-	HashMap<ItemStack, String> configName() {
-		return Main.getInstance().configName;
 	}
 }

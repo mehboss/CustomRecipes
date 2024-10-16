@@ -19,9 +19,8 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
-
-import net.md_5.bungee.api.ChatColor;
 
 public class RecipeAPI {
 	private HashMap<String, ArrayList<Ingredient>> recipeIngredients = new HashMap<>();
@@ -29,7 +28,15 @@ public class RecipeAPI {
 	public void addRecipe(String recipeName, ArrayList<Ingredient> ingredients) {
 		recipeIngredients.put(recipeName, ingredients);
 	}
+	
+	public void removeRecipe(String recipeName) {
+		recipeIngredients.remove(recipeName);
+	}
 
+	public boolean isRecipe(String recipeName) {
+		return recipeIngredients.containsKey(recipeName);
+	}
+	
 	public Boolean hasRecipe(String recipeName) {
 		if (recipeIngredients.containsKey(recipeName))
 			return true;
@@ -75,11 +82,6 @@ public class RecipeAPI {
 	        return material == other.material &&
 	                amount == other.amount &&
 	                slot == other.slot;
-	    }
-
-	    @Override
-	    public int hashCode() {
-	        return Objects.hash(material, amount, slot);
 	    }
 	    
 		public String getDisplayName() {

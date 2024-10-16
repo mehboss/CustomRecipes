@@ -38,6 +38,7 @@ import com.cryptomorin.xseries.XMaterial;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeUtil;
 
 public class EditGUI implements Listener {
 
@@ -49,6 +50,7 @@ public class EditGUI implements Listener {
 
 	List<String> lore = new ArrayList<>();
 
+	RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 	private static EditGUI instance;
 
 	Plugin config = Bukkit.getPluginManager().getPlugin("CustomRecipes");
@@ -134,8 +136,9 @@ public class EditGUI implements Listener {
 		}
 
 		ItemStack result = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				? Main.getInstance().identifier
-						.get(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
+				? recipeUtil
+						.getRecipeFromKey(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
+						.getResult()
 				: Main.getInstance().giveRecipe.get(configname.toLowerCase());
 
 		ItemMeta resultM = result.getItemMeta();
@@ -454,9 +457,9 @@ public class EditGUI implements Listener {
 
 		if (ingredientsSection.isSet("Identifier")
 				&& !ingredientsSection.getString("Identifier").equalsIgnoreCase("none")
-				&& identifier().containsKey(ingredientsSection.getString("Identifier"))) {
+				&& recipeUtil.getRecipeFromKey(ingredientsSection.getString("Identifier")) != null) {
 
-			ItemStack item = identifier().get(ingredientsSection.getString("Identifier"));
+			ItemStack item = recipeUtil.getRecipeFromKey(ingredientsSection.getString("Identifier")).getResult();
 			ItemMeta itemM = item.getItemMeta();
 
 			if (item.hasItemMeta() && itemM.hasLore() && hasPlaceholder()) {
@@ -467,10 +470,6 @@ public class EditGUI implements Listener {
 			return item;
 		}
 		return null;
-	}
-
-	HashMap<String, ItemStack> identifier() {
-		return Main.getInstance().identifier;
 	}
 
 	public String getNames(String recipename, int slot) {
@@ -544,11 +543,11 @@ public class EditGUI implements Listener {
 				return;
 
 			if (NBTEditor.contains(e.getCurrentItem(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-					&& Main.getInstance().identifier.containsKey(
-							NBTEditor.getString(e.getCurrentItem(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))) {
+					&& recipeUtil.getRecipeFromKey(NBTEditor.getString(e.getCurrentItem(), NBTEditor.CUSTOM_DATA,
+							"CUSTOM_ITEM_IDENTIFIER")) != null) {
 
-				String name = Main.getInstance().configName.containsKey(e.getCurrentItem())
-						? Main.getInstance().configName.get(e.getCurrentItem())
+				String name = recipeUtil.getRecipeFromResult(e.getCurrentItem()) != null
+						? recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName()
 						: null;
 
 				Inventory edit = Bukkit.getServer().createInventory(null, 54,

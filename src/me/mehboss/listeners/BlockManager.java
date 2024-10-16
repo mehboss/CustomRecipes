@@ -1,7 +1,6 @@
 package me.mehboss.listeners;
 
 import java.io.File;
-import java.util.HashMap;
 
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -14,8 +13,11 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeUtil;
 
 public class BlockManager implements Listener {
+
+	RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 
 	@EventHandler
 	public void onPlace(BlockPlaceEvent e) {
@@ -33,16 +35,13 @@ public class BlockManager implements Listener {
 			found = true;
 		}
 
-		if (foundID != null && identifier().containsKey(foundID))
-			configName = configName().get(identifier().get(foundID));
+		if (foundID != null && recipeUtil.getRecipeFromKey(foundID) != null)
+			configName = recipeUtil.getRecipeFromKey(foundID).getName();
 
 		if (foundID == null && !found)
-			for (ItemStack recipes : configName().keySet()) {
-				if (item.isSimilar(recipes)) {
-					configName = configName().get(recipes);
-					found = true;
-					break;
-				}
+			if (recipeUtil.getRecipeFromResult(item) != null) {
+				configName = recipeUtil.getRecipeFromResult(item).getName();
+				found = true;
 			}
 
 		FileConfiguration recipeConfig = getConfig(configName);
@@ -69,16 +68,8 @@ public class BlockManager implements Listener {
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
-	HashMap<ItemStack, String> configName() {
-		return Main.getInstance().configName;
-	}
-
 	FileConfiguration getConfig() {
 		return Main.getInstance().getConfig();
-	}
-
-	HashMap<String, ItemStack> identifier() {
-		return Main.getInstance().identifier;
 	}
 
 	void sendMessage(Player p) {

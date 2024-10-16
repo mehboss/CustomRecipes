@@ -44,12 +44,13 @@ import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
 import me.mehboss.utils.Metrics;
 import me.mehboss.utils.Placeholders;
+import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.UpdateChecker;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
-	private RecipeManager plugin;
+	public RecipeManager plugin;
 
 	public static ManageGUI recipes;
 	AddGUI addItem;
@@ -59,12 +60,7 @@ public class Main extends JavaPlugin implements Listener {
 	public ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
 
 	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
-
-	public HashMap<String, ItemStack> itemNames = new HashMap<String, ItemStack>();
-	public HashMap<ItemStack, String> configName = new HashMap<ItemStack, String>();
 	public HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
-	public HashMap<String, ItemStack> identifier = new HashMap<String, ItemStack>();
-	public HashMap<String, List<Material>> ingredients = new HashMap<String, List<Material>>();
 
 	public ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
 	public ArrayList<String> addRecipe = new ArrayList<String>();
@@ -93,7 +89,11 @@ public class Main extends JavaPlugin implements Listener {
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
-	public RecipeAPI api;
+	public RecipeUtil recipeUtil;
+
+	public RecipeUtil getRecipeUtil() {
+		return recipeUtil;
+	}
 
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
@@ -155,7 +155,7 @@ public class Main extends JavaPlugin implements Listener {
 			saveResource("recipes/CursedSword.yml", false);
 		}
 
-		if (!bagYml.exists()) {
+		if (isFirstLoad && !bagYml.exists()) {
 			saveResource("recipes/HavenBag.yml", false);
 		}
 
@@ -210,7 +210,7 @@ public class Main extends JavaPlugin implements Listener {
 	public void onEnable() {
 
 		instance = this;
-		api = new RecipeAPI();
+		recipeUtil = new RecipeUtil();
 		plugin = new RecipeManager();
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
@@ -263,7 +263,7 @@ public class Main extends JavaPlugin implements Listener {
 		registerUpdateChecker();
 		registerBstats();
 		removeRecipes();
-		plugin.addItems();
+		plugin.addRecipes();
 
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
@@ -284,35 +284,13 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	public void clear() {
-
 		reloadConfig();
 		saveConfig();
-
-		if (serverVersionAtLeast(1, 12))
-			for (String getKey : identifier.keySet()) {
-				if (getKey == null)
-					continue;
-
-				String key = getKey.toLowerCase();
-				NamespacedKey customKey = NamespacedKey.fromString("customrecipes:" + key);
-
-				if (customKey != null && Bukkit.getRecipe(customKey) != null)
-					Bukkit.removeRecipe(customKey);
-
-				if (debug) {
-					debug("Reloading recipe: " + key);
-					debug("Foundkey: " + customKey);
-				}
-			}
 
 		recipeBook.clear();
 		vanillaRecipes.clear();
 		saveInventory.clear();
-		itemNames.clear();
-		configName.clear();
 		giveRecipe.clear();
-		identifier.clear();
-		ingredients.clear();
 		recipe.clear();
 		addRecipe.clear();
 		disabledrecipe.clear();
@@ -335,7 +313,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 
-		plugin.addItems();
+		plugin.addRecipes();
 		removeRecipes();
 
 		recipes = new ManageGUI(this, null);
@@ -488,7 +466,7 @@ public class Main extends JavaPlugin implements Listener {
 				|| (version_numbers[0] == majorVersion && version_numbers[1] >= minorVersion);
 	}
 
-	void debug(String st) {
+	public void debug(String st) {
 		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 
 	}

@@ -187,7 +187,7 @@ public class GiveRecipe implements CommandExecutor {
 					}
 				}
 
-				List<String> recipes = new ArrayList<>(Main.getInstance().itemNames.keySet());
+				List<String> recipes = new ArrayList<>(Main.getInstance().getRecipeUtil().getRecipeNames());
 
 				// Sort the recipes alphabetically
 				Collections.sort(recipes, String.CASE_INSENSITIVE_ORDER);

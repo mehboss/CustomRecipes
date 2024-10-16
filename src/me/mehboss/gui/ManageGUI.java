@@ -150,7 +150,7 @@ public class ManageGUI implements Listener {
 	private void items(Player p, Inventory inv, int page) {
 
 		int[] slots = { 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34 };
-		ArrayList<String> items = new ArrayList<>(Main.getInstance().itemNames.keySet());
+		ArrayList<String> items = new ArrayList<>(Main.getInstance().recipeUtil.getRecipeNames());
 		Collections.sort(items);
 
 		int startSlot = page * slots.length;
@@ -180,10 +180,7 @@ public class ManageGUI implements Listener {
 				currentSlot++;
 			} catch (Exception e) {
 				Main.getInstance().getLogger().log(Level.SEVERE,
-						"Can not parse itemstack for recipe "
-								+ Main.getInstance().configName
-										.get(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()))
-								+ ". Skipping for now.");
+						"Can not parse itemstack for recipe " + items.get(index).toLowerCase() + ". Skipping for now.");
 			}
 		}
 		// page 1 get 1-14

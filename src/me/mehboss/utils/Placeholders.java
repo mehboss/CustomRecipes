@@ -1,15 +1,12 @@
 package me.mehboss.utils;
 
-import java.util.ArrayList;
-import java.util.logging.Level;
+import java.util.List;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.mehboss.recipe.Main;
-import me.mehboss.recipe.RecipeAPI;
-import me.mehboss.recipe.RecipeAPI.Ingredient;
 
 public class Placeholders extends PlaceholderExpansion {
 
@@ -64,11 +61,11 @@ public class Placeholders extends PlaceholderExpansion {
 			String recipe = split[0];
 			int ingredient = Integer.parseInt(split[2]) - 1;
 
-			if (!Main.getInstance().configName.containsValue(recipe))
+			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
 				return null;
 
-			RecipeAPI api = Main.getInstance().api;
-			ArrayList<Ingredient> ingredients = api.getIngredients(recipe);
+			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return ingredients.get(ingredient).getMaterial().toString();
 		}
@@ -78,11 +75,11 @@ public class Placeholders extends PlaceholderExpansion {
 			String recipe = split[0];
 			int ingredient = Integer.parseInt(split[3]) - 1;
 
-			if (!Main.getInstance().configName.containsValue(recipe))
+			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
 				return null;
 
-			RecipeAPI api = Main.getInstance().api;
-			ArrayList<Ingredient> ingredients = api.getIngredients(recipe);
+			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return ingredients.get(ingredient).getDisplayName();
 		}
@@ -92,11 +89,11 @@ public class Placeholders extends PlaceholderExpansion {
 			String recipe = split[0];
 			int ingredient = Integer.parseInt(split[3]) - 1;
 
-			if (!Main.getInstance().configName.containsValue(recipe))
+			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
 				return null;
 
-			RecipeAPI api = Main.getInstance().api;
-			ArrayList<Ingredient> ingredients = api.getIngredients(recipe);
+			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return String.valueOf(ingredients.get(ingredient).getAmount());
 		}
@@ -107,11 +104,11 @@ public class Placeholders extends PlaceholderExpansion {
 			String recipe = split[0];
 			int ingredient = Integer.parseInt(split[3]) - 1;
 
-			if (!Main.getInstance().configName.containsValue(recipe))
+			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
 				return null;
 
-			RecipeAPI api = Main.getInstance().api;
-			ArrayList<Ingredient> ingredients = api.getIngredients(recipe);
+			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return String.valueOf(ingredients.get(ingredient).getIdentifier());
 		}

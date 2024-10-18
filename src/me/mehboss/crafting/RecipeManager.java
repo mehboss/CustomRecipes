@@ -644,7 +644,7 @@ public class RecipeManager {
 
 	private StonecuttingRecipe createStonecuttingRecipe(Recipe recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-			logError("Error loading recipe. Your server version does not support NameSpacedKey.");
+			logError("Error loading recipe " + recipe.getName() + ". Your server version does not support NameSpacedKey.");
 			return null;
 		}
 

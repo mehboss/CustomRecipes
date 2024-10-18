@@ -254,25 +254,23 @@ public class AmountManager implements Listener {
 		Player player = (Player) e.getWhoClicked();
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-
 			logDebug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");
+			
 		} else {
 
 			e.setCancelled(true);
 			inv.setResult(new ItemStack(Material.AIR));
-
-			logDebug("[handleShiftClicks] Shift click detected. Adding " + itemsToAdd + " to inventory.");
 
 			for (int i = 0; i < itemsToAdd; i++) {
 				if (player.getInventory().firstEmpty() == -1) {
 					player.getLocation().getWorld().dropItem(player.getLocation(), result);
 					continue;
 				}
-
 				player.getInventory().addItem(result);
-				logDebug("[handleShiftClicks] Detected shift click and successfully removed items.");
-				logDebug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
 			}
+			
+			logDebug("[handleShiftClicks] Shift click detected. Adding " + itemsToAdd + " to inventory.");
+			logDebug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
 		}
 	}
 }

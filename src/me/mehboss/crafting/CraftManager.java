@@ -51,6 +51,53 @@ public class CraftManager implements Listener {
 	RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 	ArrayList<Player> inInventory = new ArrayList<Player>();
 
+	ArrayList<String> disabledrecipe() {
+		return Main.getInstance().disabledrecipe;
+	}
+
+	HashMap<String, ItemStack> getRecipe() {
+		return Main.getInstance().giveRecipe;
+	}
+
+	Logger getLogger() {
+		return Main.getInstance().getLogger();
+	}
+
+	FileConfiguration customConfig() {
+		return Main.getInstance().customConfig;
+	}
+
+	FileConfiguration getCnfig(String recipeName) {
+		File dataFolder = Main.getInstance().getDataFolder();
+		File recipesFolder = new File(dataFolder, "recipes");
+		File recipeFile = new File(recipesFolder, recipeName + ".yml");
+
+		return YamlConfiguration.loadConfiguration(recipeFile);
+	}
+
+	boolean isInt(String s) {
+		try {
+			Integer.parseInt(s);
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
+	}
+
+	void logDebug(String st) {
+		if (Main.getInstance().debug)
+			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
+	}
+
+	void sendMessages(Player p, String s) {
+		Main.getInstance().sendMessages(p, s);
+	}
+
+	void sendNoPermsMessage(Player p) {
+		logDebug("Player " + p.getName() + " does not have required recipe crafting permissions for recipe");
+		Main.getInstance().sendMessage(p);
+	}
+
 	boolean matchedRecipe(CraftingInventory inv) {
 		if (inv.getResult() == null || inv.getResult() == new ItemStack(Material.AIR)) {
 
@@ -325,18 +372,15 @@ public class CraftManager implements Listener {
 		if (inv.getType() == InventoryType.WORKBENCH
 				&& (invMaterials.size() != 9 || ingMaterials.size() != 9 || !invMaterials.containsAll(ingMaterials))) {
 
-			logDebug("[hasAllIngredients] Recipe ingredient requirements not met for the recipe " + recipeName);
-			logDebug("Ingredients size is " + ingMaterials.size() + ", Inventory size is " + invMaterials.size()
-					+ " for the recipe " + recipeName);
+			logDebug("[hasAllIngredients] Ingredients size is " + ingMaterials.size() + ", Inventory size is "
+					+ invMaterials.size() + " for the recipe " + recipeName);
 
 			return false;
 		}
 
 		// handles 4x4 slot
 		if (inv.getType() == InventoryType.CRAFTING && !invMaterials.containsAll(ingMaterials)) {
-
 			logDebug("[hasAllIngredients] Recipe ingredient requirements not met for the recipe " + recipeName);
-
 			return false;
 		}
 
@@ -690,52 +734,5 @@ public class CraftManager implements Listener {
 			if (!inInventory.contains(p))
 				inInventory.add(p);
 		}
-	}
-
-	boolean isInt(String s) {
-		try {
-			Integer.parseInt(s);
-		} catch (NumberFormatException nfe) {
-			return false;
-		}
-		return true;
-	}
-
-	void logDebug(String st) {
-		if (Main.getInstance().debug)
-			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
-	}
-
-	void sendMessages(Player p, String s) {
-		Main.getInstance().sendMessages(p, s);
-	}
-
-	void sendNoPermsMessage(Player p) {
-		logDebug("Player " + p.getName() + " does not have required recipe crafting permissions for recipe");
-		Main.getInstance().sendMessage(p);
-	}
-
-	ArrayList<String> disabledrecipe() {
-		return Main.getInstance().disabledrecipe;
-	}
-
-	HashMap<String, ItemStack> getRecipe() {
-		return Main.getInstance().giveRecipe;
-	}
-
-	Logger getLogger() {
-		return Main.getInstance().getLogger();
-	}
-
-	FileConfiguration customConfig() {
-		return Main.getInstance().customConfig;
-	}
-
-	FileConfiguration getCnfig(String recipeName) {
-		File dataFolder = Main.getInstance().getDataFolder();
-		File recipesFolder = new File(dataFolder, "recipes");
-		File recipeFile = new File(recipesFolder, recipeName + ".yml");
-
-		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 }

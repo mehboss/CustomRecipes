@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -14,7 +13,6 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Keyed;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -35,9 +33,9 @@ import com.cryptomorin.xseries.XMaterial;
 import me.mehboss.commands.GiveRecipe;
 import me.mehboss.commands.NBTCommands;
 import me.mehboss.commands.TabCompletion;
+import me.mehboss.crafting.AmountManager;
 import me.mehboss.crafting.CraftManager;
 import me.mehboss.crafting.RecipeManager;
-import me.mehboss.gui.AddGUI;
 import me.mehboss.gui.EditGUI;
 import me.mehboss.gui.ManageGUI;
 import me.mehboss.listeners.BlockManager;
@@ -53,16 +51,15 @@ public class Main extends JavaPlugin implements Listener {
 	public RecipeManager plugin;
 
 	public static ManageGUI recipes;
-	AddGUI addItem;
 	EditGUI editItem;
 
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
-	public ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
+	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
 
 	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
 	public HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
 
-	public ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
+	ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
 	public ArrayList<String> addRecipe = new ArrayList<String>();
 	public ArrayList<String> disabledrecipe = new ArrayList<String>();
 	// add three more shapelessname, amount, and ID specifically for config.
@@ -81,15 +78,14 @@ public class Main extends JavaPlugin implements Listener {
 
 	public Boolean hasAE = false;
 	public Boolean hasEE = false;
-	Boolean hasEEnchants = false;
 	public Boolean hasHavenBags = false;
-
-	public Boolean debug = false;
+	Boolean hasEEnchants = false;
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
 	public RecipeUtil recipeUtil;
+	public Boolean debug = false;
 
 	public RecipeUtil getRecipeUtil() {
 		return recipeUtil;
@@ -265,15 +261,16 @@ public class Main extends JavaPlugin implements Listener {
 		removeRecipes();
 		plugin.addRecipes();
 
+		CraftManager craftManager = new CraftManager();
 		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
-		Bukkit.getPluginManager().registerEvents(new CraftManager(), this);
+		Bukkit.getPluginManager().registerEvents(craftManager, this);
+		Bukkit.getPluginManager().registerEvents(new AmountManager(craftManager), this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
 		recipes = new ManageGUI(this, null);
 		editItem = new EditGUI(Main.getInstance(), null);
-		addItem = new AddGUI(this, null);
 
 		registerCommands();
 		getLogger().log(Level.INFO, "Loaded " + giveRecipe.values().size() + " recipes.");
@@ -294,7 +291,6 @@ public class Main extends JavaPlugin implements Listener {
 		recipe.clear();
 		addRecipe.clear();
 		disabledrecipe.clear();
-		addItem = null;
 		recipes = null;
 	}
 
@@ -318,7 +314,6 @@ public class Main extends JavaPlugin implements Listener {
 
 		recipes = new ManageGUI(this, null);
 		editItem = new EditGUI(Main.getInstance(), null);
-		addItem = new AddGUI(this, null);
 	}
 
 	void removeRecipes() {

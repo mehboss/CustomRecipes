@@ -1,9 +1,7 @@
 package me.mehboss.utils;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
@@ -37,6 +35,18 @@ public class RecipeUtil {
 				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.STONECUTTER) && recipe.getIngredientSize() != 1) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
 					+ recipe.getType() + " and has more than 1 ingredient! Ingredients: " + recipe.getIngredientSize();
+			throw new InvalidRecipeException(errorMessage);
+		}
+
+		if (recipe.getResult() == null || recipe.getResult().getType() == Material.AIR) {
+			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName()
+					+ ". The recipe result was null or not set.";
+			throw new InvalidRecipeException(errorMessage);
+		}
+
+		if (recipe.getRow(1) == null || recipe.getRow(2) == null || recipe.getRow(3) == null) {
+			String errorMessage = "[CRAPI] Could not add recipe because shape cannot have null rows. Recipe: "
+					+ recipe.getName();
 			throw new InvalidRecipeException(errorMessage);
 		}
 
@@ -76,8 +86,8 @@ public class RecipeUtil {
 		return recipes;
 	}
 
-	public Collection<ItemStack> getAllResults() {
-		List<ItemStack> results = new ArrayList<>();
+	public ArrayList<ItemStack> getAllResults() {
+		ArrayList<ItemStack> results = new ArrayList<>();
 		for (Recipe recipe : recipes.values()) {
 			ItemStack result = recipe.getResult();
 			if (result != null) {
@@ -117,14 +127,19 @@ public class RecipeUtil {
 	public static class Recipe {
 
 		private ItemStack result;
-		private List<Ingredient> ingredients;
+
+		private ArrayList<String> disabledWorlds = new ArrayList<>();
+		private ArrayList<Ingredient> ingredients;
 
 		private String name;
 		private String key;
+		private String permission;
 
+		private boolean bucketConsume = true;
+		private boolean active = true;
 		private boolean ignoreData = false;
 		private boolean ignoreModelData = false;
-		private boolean isTagged = true;
+		private boolean isTagged = false;
 
 		private String row1;
 		private String row2;
@@ -144,6 +159,14 @@ public class RecipeUtil {
 			this.ingredients = new ArrayList<>();
 		}
 
+		public boolean isActive() {
+			return active;
+		}
+
+		public void setActive(Boolean status) {
+			active = status;
+		}
+
 		public String getName() {
 			return name;
 		}
@@ -161,7 +184,7 @@ public class RecipeUtil {
 				row3 = row;
 				break;
 			default:
-				throw new ArrayIndexOutOfBoundsException("Invalid getRow usage: " + i + " (must be 1-3)");
+				throw new ArrayIndexOutOfBoundsException("Invalid setRow usage: " + i + " (must be 1-3)");
 			}
 		}
 
@@ -173,9 +196,9 @@ public class RecipeUtil {
 				return row2;
 			case 3:
 				return row3;
+			default:
+				throw new ArrayIndexOutOfBoundsException("Invalid getRow usage: " + i + " (must be 1-3)");
 			}
-
-			return null;
 		}
 
 		public void setType(RecipeType type) {
@@ -191,7 +214,8 @@ public class RecipeUtil {
 				throw new InvalidRecipeException("There was no result found to tag");
 			}
 			if (key == null) {
-				throw new InvalidRecipeException("Recipe does not have a key set to tag the result");
+				throw new InvalidRecipeException(
+						"You must set a NameSpacedKey (setKey()) prior to calling setTagged()");
 			} else {
 				this.isTagged = tagged;
 				result = NBTEditor.set(result, key, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
@@ -231,6 +255,11 @@ public class RecipeUtil {
 		}
 
 		public void setResult(ItemStack result) {
+			if (result == null || result.getType() == Material.AIR) {
+				String errorMessage = "[CRAPI] The recipe result can not be set to null or air";
+				throw new InvalidRecipeException(errorMessage);
+			}
+
 			this.result = result;
 		}
 
@@ -242,7 +271,7 @@ public class RecipeUtil {
 			this.ingredients.add(ingredient);
 		}
 
-		public List<Ingredient> getIngredients() {
+		public ArrayList<Ingredient> getIngredients() {
 			return ingredients;
 		}
 
@@ -269,6 +298,30 @@ public class RecipeUtil {
 		public Ingredient getSlot(int i) throws ArrayIndexOutOfBoundsException {
 			return ingredients.get(i - 1);
 		}
+
+		public void setPerm(String permission) {
+			this.permission = permission;
+		}
+
+		public String getPerm() {
+			return permission;
+		}
+
+		public void addDisabledWorld(String world) {
+			disabledWorlds.add(world);
+		}
+
+		public ArrayList<String> getDisabledWorlds() {
+			return disabledWorlds;
+		}
+
+		public void setConsume(Boolean arg) {
+			this.bucketConsume = arg;
+		}
+
+		public Boolean isConsume() {
+			return bucketConsume;
+		}
 	}
 
 	public static class Ingredient {
@@ -290,7 +343,8 @@ public class RecipeUtil {
 		}
 
 		public void setIdentifier(String identifier) {
-			this.identifier = identifier;
+			if (!(identifier.equalsIgnoreCase("none")))
+				this.identifier = identifier;
 		}
 
 		public void setSlot(int slot) {
@@ -298,6 +352,7 @@ public class RecipeUtil {
 		}
 
 		public int getSlot() {
+			// subtracts one to grab the actual slot (0-8 rather than 1-9)
 			return slot;
 		}
 

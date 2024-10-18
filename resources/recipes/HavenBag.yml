@@ -15,12 +15,12 @@ HavenBag:
   Ingredients:
     D:
       Material: DIAMOND
-	  Identifier: none
-	  Amount: 1
-	  Name: 'Diamond Shrine'
+      Identifier: none
+      Amount: 1
+      Name: 'Diamond Shrine'
     L:
-	  Material: 'LEATHER'
-	  Identifier: none
-	  Amount: 2
-	  Name: 'Rough Leather'
+      Material: LEATHER
+      Identifier: none
+      Amount: 2
+      Name: 'Rough Leather'
   Disabled-Worlds: []

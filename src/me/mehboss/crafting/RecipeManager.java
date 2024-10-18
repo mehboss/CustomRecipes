@@ -59,9 +59,8 @@ import valorless.havenbags.hooks.CustomRecipes.BagInfo;
 
 public class RecipeManager {
 
-
 	FileConfiguration recipeConfig = null;
-	
+
 	boolean hasHavenBag() {
 		if (Main.getInstance().hasHavenBags)
 			return true;
@@ -97,6 +96,11 @@ public class RecipeManager {
 		return bag;
 	}
 
+	void handleBucketConsume(Material material, String item, Recipe recipe) {
+		if (getConfig().isBoolean(item + ".Consume-Bucket"))
+			recipe.setConsume(getConfig().getBoolean(item + ".Consume-Bucket"));
+	}
+
 	@SuppressWarnings("deprecation")
 	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
 		if (!getConfig().isSet(item + ".Item-Damage") || damage.equalsIgnoreCase("none")) {
@@ -130,17 +134,20 @@ public class RecipeManager {
 		return i;
 	}
 
-	ItemStack handleIdentifier(ItemStack i, String item) {
+	ItemStack handleIdentifier(ItemStack i, String item, Recipe recipe) {
 		if (!getConfig().isSet(item + ".Identifier"))
 			return i;
 
-		if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
-			i = NBTEditor.set(i, getConfig().getString(item + ".Identifier"), NBTEditor.CUSTOM_DATA,
-					"CUSTOM_ITEM_IDENTIFIER");
+		String identifier = getConfig().getString(item + ".Identifier");
+		recipe.setKey(identifier);
 
-		if (getConfig().getString(item + ".Identifier").equalsIgnoreCase("LifeStealHeart"))
+		if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
+			i = NBTEditor.set(i, identifier, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+
+		if (identifier.equalsIgnoreCase("LifeStealHeart")) {
 			i.getItemMeta().getPersistentDataContainer().set(new NamespacedKey(Main.getInstance(), "heart"),
 					PersistentDataType.INTEGER, 1);
+		}
 
 		return i;
 	}
@@ -169,7 +176,7 @@ public class RecipeManager {
 					i.addUnsafeEnchantment(parsedEnchant, lvl);
 				}
 			} catch (Exception e) {
-				debug("Enchantment section for the recipe " + item + " is not valid. Skipping..");
+				logError("Enchantment section for the recipe " + item + " is not valid. Skipping..");
 			}
 		}
 		return i;
@@ -205,10 +212,11 @@ public class RecipeManager {
 
 					if (Enchantment.getByName(enchantment) == null
 							&& !(XEnchantment.matchXEnchantment(enchantment).isPresent()))
-						debug("Enchantment - " + enchantment + " for the recipe " + item + " is not valid. Skipping..");
+						logError("Enchantment - " + enchantment + " for the recipe " + item
+								+ " is not valid. Skipping..");
 				}
 			} catch (Exception e) {
-				debug("Enchantment section for the recipe " + item + " is not valid. Skipping..");
+				logError("Enchantment section for the recipe " + item + " is not valid. Skipping..");
 			}
 		}
 		return i;
@@ -224,7 +232,7 @@ public class RecipeManager {
 				try {
 					m.addItemFlags(ItemFlag.valueOf(flag));
 				} catch (IllegalArgumentException e) {
-					debug("Could not add the item flag (" + flag + ") to recipe " + item
+					logError("Could not add the item flag (" + flag + ") to recipe " + item
 							+ ". This item flag could not be found so we will be skipping this flag for now. Please visit https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/inventory/ItemFlag.html for a list of valid flags.");
 					continue;
 				}
@@ -237,10 +245,8 @@ public class RecipeManager {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
 		if (getConfig().isSet(item + ".Name")) {
-			if (isDebug()) {
-				debug("Applying displayname..");
-				debug("Displayname: " + getConfig().getString(item + ".Name"));
-			}
+			logDebug("Applying displayname..");
+			logDebug("Displayname: " + getConfig().getString(item + ".Name"));
 
 			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', getConfig().getString(item + ".Name")));
 		}
@@ -287,7 +293,7 @@ public class RecipeManager {
 				Integer data = Integer.parseInt(getConfig().getString(item + ".Custom-Model-Data"));
 				m.setCustomModelData(data);
 			} catch (Exception e) {
-				getLogger().log(Level.SEVERE,
+				logError(
 						"Error occured while setting custom model data. This feature is only available for MC 1.14 or newer!");
 			}
 		}
@@ -319,8 +325,8 @@ public class RecipeManager {
 
 					m.addAttributeModifier(Attribute.valueOf(attribute), modifier);
 				} catch (Exception e) {
-					getLogger().log(Level.SEVERE, "Could not add attribute " + attribute + ", " + attributeAmount + ", "
-							+ equipmentSlot + ", to the item " + item + ", skipping for now.");
+					logError("Could not add attribute " + attribute + ", " + attributeAmount + ", " + equipmentSlot
+							+ ", to the item " + item + ", skipping for now.");
 				}
 			}
 		}
@@ -337,7 +343,7 @@ public class RecipeManager {
 
 		File[] recipeFiles = recipeFolder.listFiles();
 		if (recipeFiles == null) {
-			debug("Could not add recipes because none were found to load!");
+			logError("Could not add recipes because none were found to load!");
 			return;
 		}
 
@@ -353,37 +359,35 @@ public class RecipeManager {
 				continue;
 			}
 
-			Recipe recipe = new Recipe(recipeFile.getName());
+			Recipe recipe = new Recipe(item);
 
 			ItemStack i = null;
 			ItemMeta m = null;
-			
+
 			List<String> gridRows = getConfig().getStringList(item + ".ItemCrafting");
 			String converter = getConfig().isString(item + ".Converter")
 					? getConfig().getString(item + ".Converter").toLowerCase()
 					: "converterNotDefined";
 			int amountRequirement = 9;
 
-			if (isDebug())
-				debug("Attempting to add the recipe " + item + "..");
+			logDebug("Attempting to add the recipe " + item + "..");
 
 			if (!(hasHavenBag()) && isHavenBag(item)) {
-				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
-				getLogger().log(Level.SEVERE,
-						"Found a havenbag recipe, but can not find the havenbags plugin. Skipping recipe..");
+				logError("Error loading recipe: " + recipeFile.getName());
+				logError("Found a havenbag recipe, but can not find the havenbags plugin. Skipping recipe..");
 				continue;
 			}
 
 			if (!getConfig().isConfigurationSection(item + ".Ingredients")) {
-				debug("Error adding recipe " + item + " because could not locate the ingredient section.");
-				debug("Please double check formatting. Skipping recipe..");
+				logError("Error adding recipe " + item + " because could not locate the ingredient section.");
+				logError("Please double check formatting. Skipping recipe..");
 				continue;
 			}
 
 			switch (converter) {
 			case "stonecutter":
 				if (Main.getInstance().serverVersionAtLeast(1, 14)) {
-					getLogger().log(Level.SEVERE, "Error loading recipe. Got " + converter
+					logError("Error loading recipe. Got " + converter
 							+ ", but your server version is below 1.14. Expected furnace or no converter (for regular crafting) in: "
 							+ recipeFile.getName());
 					continue;
@@ -401,7 +405,6 @@ public class RecipeManager {
 					recipe.setType(RecipeType.SHAPELESS);
 					break;
 				} else {
-					recipe.addIngredient(new RecipeUtil.Ingredient("X", Material.AIR));
 					recipe.setType(RecipeType.SHAPED);
 					break;
 				}
@@ -409,7 +412,7 @@ public class RecipeManager {
 
 			// HavenBag detected, but converter is not SHAPED or SHAPELESS
 			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS && isHavenBag(item)) {
-				getLogger().log(Level.SEVERE, "Error loading recipe. Got " + recipe.getType()
+				logError("Error loading recipe. Got " + recipe.getType()
 						+ ", but the recipe is a havenbag recipe! Skipping..");
 				continue;
 			}
@@ -441,51 +444,54 @@ public class RecipeManager {
 			if (isHavenBag(item))
 				i = handleBagCreation(i.getType(), item);
 
-			i = handleIdentifier(i, item);
+			i = handleIdentifier(i, item, recipe);
 
-			if (i == null || i.getType() == Material.AIR) {
-				getLogger().log(Level.SEVERE, "Error loading recipe: " + recipeFile.getName());
-				getLogger().log(Level.SEVERE,
-						"The itemstack is null. Please double check your recipe.yml or contact Mehboss on Spigot for support.");
-				continue;
-			}
+			handleBucketConsume(i.getType(), item, recipe);
+			recipe.setResult(i);
+
+			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
+				recipe.setTagged(true);
 
 			ArrayList<String> slotsAbbreviations = new ArrayList<String>();
-			String[] row1 = gridRows.get(0).split("");
-			String[] row2 = gridRows.get(1).split("");
-			String[] row3 = gridRows.get(2).split("");
-			slotsAbbreviations.add(row1[0]);
-			slotsAbbreviations.add(row1[1]);
-			slotsAbbreviations.add(row1[2]);
+			String row1 = gridRows.get(0);
+			String row2 = gridRows.get(1);
+			String row3 = gridRows.get(2);
 
-			slotsAbbreviations.add(row2[0]);
-			slotsAbbreviations.add(row2[1]);
-			slotsAbbreviations.add(row2[2]);
+			slotsAbbreviations.add(row1.split("")[0]);
+			slotsAbbreviations.add(row1.split("")[1]);
+			slotsAbbreviations.add(row1.split("")[2]);
 
-			slotsAbbreviations.add(row3[0]);
-			slotsAbbreviations.add(row3[1]);
-			slotsAbbreviations.add(row3[2]);
+			slotsAbbreviations.add(row2.split("")[0]);
+			slotsAbbreviations.add(row2.split("")[1]);
+			slotsAbbreviations.add(row2.split("")[2]);
 
-			giveRecipe().put(item.toLowerCase(), i);
-			
+			slotsAbbreviations.add(row3.split("")[0]);
+			slotsAbbreviations.add(row3.split("")[1]);
+			slotsAbbreviations.add(row3.split("")[2]);
+
+			recipe.setRow(1, row1);
+			recipe.setRow(2, row2);
+			recipe.setRow(3, row3);
+
 			int slot = 0;
 			int count = 0;
 
 			for (String abbreviation : slotsAbbreviations) {
-				// Iterate through the specified 9x9 grid and get it from the Ingredients section..
+				// Iterate through the specified 9x9 grid and get it from the Ingredients
+				// section..
 				slot++;
 
 				RecipeUtil.Ingredient recipeIngredient;
 
 				// adds the abbreviation for AIR automatically to the recipe
-				if (abbreviation.equalsIgnoreCase("x")) {
+				if (abbreviation.equalsIgnoreCase("X")) {
 					recipeIngredient = new RecipeUtil.Ingredient("X", Material.AIR);
 					recipeIngredient.setSlot(slot);
 					recipe.addIngredient(recipeIngredient);
 					continue;
 				}
 
-				String configPath = recipe.getName() + ".Ingredients." + abbreviation;
+				String configPath = item + ".Ingredients." + abbreviation;
 				String material = getConfig().getString(configPath + ".Material");
 				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
 
@@ -497,10 +503,8 @@ public class RecipeManager {
 
 				count++;
 				if (count > amountRequirement) {
-					getLogger().log(Level.SEVERE,
-							"Error loading recipe. Found " + amountRequirement + " slots but converter is " + converter
-									+ " so use only one slot" + " (X for others) for ItemCrafting in: "
-									+ recipeFile.getName());
+					logError("Error loading recipe. Found " + amountRequirement + " slots but converter is " + converter
+							+ " so use only one slot" + " (X for others) for ItemCrafting in: " + recipeFile.getName());
 					continue;
 				}
 
@@ -514,12 +518,10 @@ public class RecipeManager {
 						? getConfig().getInt(configPath + ".Amount")
 						: 1;
 
-				if (isDebug()) {
-					debug("[HandlingIngredient] Ingredient Name: " + ingredientName);
-					debug("[HandlingIngredient] Ingredient Identifier: " + ingredientIdentifier);
-					debug("[HandlingIngredient] Ingredient Type: " + ingredientMaterial);
-					debug("[HandlingIngredient] Ingredient Amount: " + ingredientAmount);
-				}
+				logDebug("[HandlingIngredient] Ingredient Name: " + ingredientName);
+				logDebug("[HandlingIngredient] Ingredient Identifier: " + ingredientIdentifier);
+				logDebug("[HandlingIngredient] Ingredient Type: " + ingredientMaterial);
+				logDebug("[HandlingIngredient] Ingredient Amount: " + ingredientAmount);
 
 				recipeIngredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
 				recipeIngredient.setDisplayName(ingredientName);
@@ -528,13 +530,18 @@ public class RecipeManager {
 				recipeIngredient.setSlot(slot);
 				recipe.addIngredient(recipeIngredient);
 			}
-			
-			if (isDebug())
-				debug("Successfully added " + item + " with the amount output of " + i.getAmount());
+
+			logDebug("Successfully added " + item + " with the amount output of " + i.getAmount());
+
+			if (getConfig().isBoolean(item + ".Enabled"))
+				recipe.setActive(getConfig().getBoolean(item + ".Enabled"));
+
+			if (getConfig().isString(item + ".Permission"))
+				recipe.setPerm(getConfig().getString(item + ".Permission"));
 
 			recipeUtil.createRecipe(recipe);
 		}
-		
+
 		recipeUtil.reloadRecipes();
 	}
 
@@ -587,7 +594,7 @@ public class RecipeManager {
 					Bukkit.getServer().addRecipe(sCutterRecipe);
 
 			} catch (Exception e) {
-				getLogger().log(Level.SEVERE, "Error loading recipe: " + e.getMessage(), e);
+				Main.getInstance().getLogger().log(Level.SEVERE, "Error loading recipe: " + e.getMessage(), e);
 			}
 		}
 	}
@@ -637,7 +644,7 @@ public class RecipeManager {
 
 	private StonecuttingRecipe createStonecuttingRecipe(Recipe recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-			getLogger().log(Level.SEVERE, "Error loading recipe. Your server version does not support NameSpacedKey.");
+			logError("Error loading recipe. Your server version does not support NameSpacedKey.");
 			return null;
 		}
 
@@ -650,13 +657,13 @@ public class RecipeManager {
 	}
 
 	private void addRecipeToMaps(Recipe recipe, ArrayList<Material> ingredientMaterials) {
-		giveRecipe().put(recipe.getKey().toLowerCase(), recipe.getResult());
+		giveRecipe().put(recipe.getName().toLowerCase(), recipe.getResult());
 	}
 
-	boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
+	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
 		if (type == null || !type.isPresent()) {
-			getLogger().log(Level.SEVERE, "Error loading recipe: " + recipe);
-			getLogger().log(Level.SEVERE, "We are having trouble matching the material " + materialInput.toUpperCase()
+			logError("Error loading recipe: " + recipe);
+			logError("We are having trouble matching the material " + materialInput.toUpperCase()
 					+ " to a minecraft item. Please double check you have inputted the correct material enum into the 'Item'"
 					+ " section and try again. If this problem persists please contact Mehboss on Spigot!");
 			return false;
@@ -673,31 +680,21 @@ public class RecipeManager {
 		return true;
 	}
 
-	boolean isDebug() {
-		return Main.getInstance().debug;
-	}
-	
-	void debug(String st) {
-		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+	private void logError(String st) {
+		Logger.getLogger("Minecraft").log(Level.WARNING,
+				ChatColor.RED + "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 
-	void disableRecipes() {
-		Main.getInstance().disableRecipes();
+	private void logDebug(String st) {
+		if (Main.getInstance().debug)
+			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 
-	FileConfiguration getConfig() {
+	private FileConfiguration getConfig() {
 		return recipeConfig;
 	}
 
-	Logger getLogger() {
-		return Main.getInstance().getLogger();
-	}
-
-	ArrayList<ShapedRecipe> recipe() {
-		return Main.getInstance().recipe;
-	}
-
-	HashMap<String, ItemStack> giveRecipe() {
+	private HashMap<String, ItemStack> giveRecipe() {
 		return Main.getInstance().giveRecipe;
 	}
 }

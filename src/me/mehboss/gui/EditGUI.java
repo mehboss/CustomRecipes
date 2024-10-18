@@ -2,7 +2,6 @@ package me.mehboss.gui;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,12 +21,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -565,7 +562,7 @@ public class EditGUI implements Listener {
 					p.openInventory(Main.getInstance().saveInventory.get(p.getUniqueId()));
 					Main.getInstance().saveInventory.remove(p.getUniqueId());
 				} else {
-					Main.recipes.show(p);
+					Main.getInstance().recipes.show(p);
 				}
 			}
 

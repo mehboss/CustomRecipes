@@ -162,7 +162,7 @@ public class ManageGUI implements Listener {
 			}
 
 			try {
-				ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
+				ItemStack item = Main.getInstance().giveRecipe.get(items.get(index).toLowerCase());
 				ItemMeta itemM = item.getItemMeta();
 
 				if (itemM.hasLore() && hasPlaceholder())
@@ -181,6 +181,7 @@ public class ManageGUI implements Listener {
 			} catch (Exception e) {
 				Main.getInstance().getLogger().log(Level.SEVERE,
 						"Can not parse itemstack for recipe " + items.get(index).toLowerCase() + ". Skipping for now.");
+				e.printStackTrace();
 			}
 		}
 		// page 1 get 1-14

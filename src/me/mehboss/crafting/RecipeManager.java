@@ -545,9 +545,14 @@ public class RecipeManager {
 		recipeUtil.reloadRecipes();
 	}
 
-	public void addRecipesFromAPI() {
+	public void addRecipesFromAPI(Recipe specificRecipe) {
 		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes();
+
+		if (specificRecipe != null) {
+			recipeList.clear();
+			recipeList.put(specificRecipe.getName(), specificRecipe);
+		}
 
 		for (Recipe recipe : recipeList.values()) {
 			try {
@@ -644,7 +649,8 @@ public class RecipeManager {
 
 	private StonecuttingRecipe createStonecuttingRecipe(Recipe recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-			logError("Error loading recipe " + recipe.getName() + ". Your server version does not support NameSpacedKey.");
+			logError("Error loading recipe " + recipe.getName()
+					+ ". Your server version does not support NameSpacedKey.");
 			return null;
 		}
 

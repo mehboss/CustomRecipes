@@ -13,6 +13,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import com.cryptomorin.xseries.XSound;
+
 import me.mehboss.recipe.Main;
 
 public class GiveRecipe implements CommandExecutor {
@@ -79,15 +81,11 @@ public class GiveRecipe implements CommandExecutor {
 				Player player = (Player) sender;
 
 				Main.getInstance().recipeBook.add(player.getUniqueId());
-				Main.recipes.show(player);
+				Main.getInstance().recipes.show(player);
 				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
 				player.sendMessage(OpenMessage);
-
-				try {
-					player.playSound(player.getLocation(),
-							Sound.valueOf(debug().getString("gui.Open-Sound").toUpperCase()), 1, 1);
-				} catch (IllegalArgumentException e) {
-				}
+				player.playSound(player.getLocation(),
+						XSound.matchXSound(debug().getString("gui.Open-Sound")).get().parseSound(), 1, 1);
 			}
 
 			if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
@@ -123,16 +121,12 @@ public class GiveRecipe implements CommandExecutor {
 
 				if (Main.getInstance().recipeBook.contains(player.getUniqueId()))
 					Main.getInstance().recipeBook.remove(player.getUniqueId());
-
-//				Main.recipes.show(player);
-//				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
-//				player.sendMessage(OpenMessage);
-//
-//				try {
-//					player.playSound(player.getLocation(), Sound.valueOf(debug().getString("gui.Open-Sound").toUpperCase()), 1,
-//							1);
-//				} catch (IllegalArgumentException e) {
-//				}
+				
+				Main.getInstance().recipes.show(player);
+				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
+				player.sendMessage(OpenMessage);
+				player.playSound(player.getLocation(),
+						XSound.matchXSound(debug().getString("gui.Open-Sound")).get().parseSound(), 1, 1);
 				return true;
 			}
 

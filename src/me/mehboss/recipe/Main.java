@@ -50,7 +50,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 public class Main extends JavaPlugin implements Listener {
 	public RecipeManager plugin;
 
-	public static ManageGUI recipes;
+	public ManageGUI recipes;
 	EditGUI editItem;
 
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();

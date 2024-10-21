@@ -2,7 +2,6 @@ package me.mehboss.utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -21,9 +20,12 @@ public class RecipeUtil {
 	 * Adds a finished Recipe object to the API
 	 * 
 	 * @param recipe the Recipe object
-	 * @throws InvalidRecipeException if the recipe is null or no NamespacedKey has been set
-	 * @throws InvalidRecipeException if the crafting recipe does not have 9 ingredients
-	 * @throws InvalidRecipeException if the furnace or stone cutter has more than 1 ingredient
+	 * @throws InvalidRecipeException if the recipe is null or no NamespacedKey has
+	 *                                been set
+	 * @throws InvalidRecipeException if the crafting recipe does not have 9
+	 *                                ingredients
+	 * @throws InvalidRecipeException if the furnace or stone cutter has more than 1
+	 *                                ingredient
 	 * @throws InvalidRecipeException if the result is null or air
 	 * @throws InvalidRecipeException if the row shape of the shaped recipe is null
 	 */
@@ -146,33 +148,57 @@ public class RecipeUtil {
 	 * 
 	 * @return a set of strings
 	 */
-	public Set<String> getRecipeNames() {
-		return recipes.keySet();
+	public ArrayList<String> getRecipeNames() {
+		return new ArrayList<>(recipes.keySet());
 	}
 
 	/**
-	 * Resets and loads all registered recipes, including CR recipes
+	 * Loads the specified recipe to the server. Checks and corrects duplicate NamespacedKey.
+	 * 
+	 * @param recipe the recipe you want to load
+	 */
+	public void addRecipe(Recipe recipe) {
+		this.clearDuplicates(recipe);
+		Main.getInstance().plugin.addRecipesFromAPI(recipe);
+	}
+
+	/**
+	 * Resets and reloads all registered recipes, including CR recipes. Checks and corrects duplicate NamespacedKey.
 	 */
 	public void reloadRecipes() {
-		this.clearDuplicates();
-		Main.getInstance().plugin.addRecipesFromAPI();
+		this.clearDuplicates(null);
+		Main.getInstance().plugin.addRecipesFromAPI(null);
 	}
 
 	/**
-	 * Clears all registered recipes, private
+	 * Clears all or specific registered recipe(s) for duplicate NamespacedKey, private
+	 * 
+	 * @param recipe removes the recipe(s) from the bukkit registry, can be null
 	 */
-	private void clearDuplicates() {
-		if (Main.getInstance().serverVersionAtLeast(1, 12))
+	private void clearDuplicates(Recipe recipe) {
+		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+
+			NamespacedKey customKey;
+
+			if (recipe != null) {
+				String key = recipe.getKey();
+				customKey = NamespacedKey.fromString("customrecipes:" + key);
+				if (customKey != null && Bukkit.getRecipe(customKey) != null)
+					Bukkit.removeRecipe(customKey);
+				return;
+			}
+
 			for (String getKey : keyList) {
 				if (getKey == null)
 					continue;
 
 				String key = getKey.toLowerCase();
-				NamespacedKey customKey = NamespacedKey.fromString("customrecipes:" + key);
+				customKey = NamespacedKey.fromString("customrecipes:" + key);
 
 				if (customKey != null && Bukkit.getRecipe(customKey) != null)
 					Bukkit.removeRecipe(customKey);
 			}
+		}
 	}
 
 	public static class Recipe {
@@ -206,8 +232,7 @@ public class RecipeUtil {
 		private RecipeType recipeType = RecipeType.SHAPED;
 
 		/**
-		 * Parameterized constructor. 
-		 * Initializes a Recipe object with specified name
+		 * Parameterized constructor. Initializes a Recipe object with specified name
 		 *
 		 * @param name the name of the recipe
 		 * 
@@ -247,9 +272,10 @@ public class RecipeUtil {
 		/**
 		 * Setter for the shaped recipe rows, required
 		 * 
-		 * @param row the recipe row
+		 * @param row   the recipe row
 		 * @param shape the shape for the row (example: XDX)
-		 * @throws ArrayIndexOutOfBoundsException if the integer specified is not rows 1-3
+		 * @throws ArrayIndexOutOfBoundsException if the integer specified is not rows
+		 *                                        1-3
 		 */
 		public void setRow(int row, String shape) {
 
@@ -272,7 +298,8 @@ public class RecipeUtil {
 		 * Getter for the shaped recipe rows
 		 * 
 		 * @param row the recipe row
-		 * @throws ArrayIndexOutOfBoundsException if the integer specified is not rows 1-3
+		 * @throws ArrayIndexOutOfBoundsException if the integer specified is not rows
+		 *                                        1-3
 		 */
 		public String getRow(int row) {
 			switch (row) {
@@ -290,9 +317,9 @@ public class RecipeUtil {
 		/**
 		 * Setter for the RecipeType, not required and defaults to SHAPED
 		 * 
-		 * @param SHAPELESS the recipe type will be shapeless
-		 * @param SHAPED the recipe type will be shaped
-		 * @param FURNACE the recipe type will be a furnace recipe
+		 * @param SHAPELESS   the recipe type will be shapeless
+		 * @param SHAPED      the recipe type will be shaped
+		 * @param FURNACE     the recipe type will be a furnace recipe
 		 * @param STONECUTTER the recipe type will be a stonecutter recipe
 		 */
 		public void setType(RecipeType type) {
@@ -302,11 +329,8 @@ public class RecipeUtil {
 		/**
 		 * Getter for the RecipeType
 		 * 
-		 * @returns the RecipeType
-		 *          RecipeType.SHAPELESS 
-		 *          RecipeType.SHAPED 
-		 *          RecipeType.FURNACE
-		 *          RecipeType.STONECUTTER
+		 * @returns the RecipeType RecipeType.SHAPELESS RecipeType.SHAPED
+		 *          RecipeType.FURNACE RecipeType.STONECUTTER
 		 */
 		public RecipeType getType() {
 			return recipeType;
@@ -428,8 +452,8 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Adds an Ingredient object to the recipe, required 
-		 * Requires 9 ingredients for crafting, 1 otherwise
+		 * Adds an Ingredient object to the recipe, required Requires 9 ingredients for
+		 * crafting, 1 otherwise
 		 * 
 		 * @param ingredient a finalized Ingredient for the recipe
 		 */
@@ -541,7 +565,8 @@ public class RecipeUtil {
 		/**
 		 * Setter for whether a bucket is consumed or emptied
 		 * 
-		 * @param consume true if the bucket is set to consume, false if the bucket will empty
+		 * @param consume true if the bucket is set to consume, false if the bucket will
+		 *                empty
 		 */
 		public void setConsume(Boolean consume) {
 			this.bucketConsume = consume;
@@ -567,8 +592,7 @@ public class RecipeUtil {
 		private int amount = 1;
 
 		/**
-		 * Parameterized constructor. 
-		 * Initializes an Ingredient object with specified
+		 * Parameterized constructor. Initializes an Ingredient object with specified
 		 * abbreviation and material
 		 *
 		 * @param abbreviation the letter of the ingredient
@@ -589,8 +613,8 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Setter for the identifier of the ingredient 
-		 * Requires the ingredient to be tagged with another Custom Recipe
+		 * Setter for the identifier of the ingredient Requires the ingredient to be
+		 * tagged with another Custom Recipe
 		 * 
 		 * @param identifier the identifier/tag the ingredient is required to have
 		 */
@@ -694,8 +718,8 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Getter for the abbreviation of the ingredient, like G for grass 
-		 * Used when shaping the recipe
+		 * Getter for the abbreviation of the ingredient, like G for grass Used when
+		 * shaping the recipe
 		 * 
 		 * @returns the abbreviation of the ingredient
 		 */

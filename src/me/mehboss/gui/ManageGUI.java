@@ -2,6 +2,7 @@ package me.mehboss.gui;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.logging.Level;
@@ -184,30 +185,13 @@ public class ManageGUI implements Listener {
 				e.printStackTrace();
 			}
 		}
-		// page 1 get 1-14
-		// page 2 get 15 - 29
-		// page 3 get 30 - 44
-		// etc etc
-
-		ItemStack stained = new ItemStack(XMaterial.BLACK_STAINED_GLASS_PANE.parseItem());
-		ItemMeta s = stained.getItemMeta();
-		s.setDisplayName(" ");
-		stained.setItemMeta(s);
-
-		ItemStack greenstained = new ItemStack(XMaterial.GREEN_STAINED_GLASS_PANE.parseItem());
-		ItemMeta gs = greenstained.getItemMeta();
-		gs.setDisplayName(ChatColor.LIGHT_PURPLE + "Add Recipe");
-		greenstained.setItemMeta(gs);
-
-		ItemStack redstained = new ItemStack(XMaterial.RED_STAINED_GLASS_PANE.parseItem());
-		ItemMeta rs = redstained.getItemMeta();
-		rs.setDisplayName(ChatColor.RED + "Previous Page");
-		redstained.setItemMeta(rs);
-
-		ItemStack orangestained = new ItemStack(XMaterial.ORANGE_STAINED_GLASS_PANE.parseItem());
-		ItemMeta ws = orangestained.getItemMeta();
-		ws.setDisplayName(ChatColor.GREEN + "Next Page");
-		orangestained.setItemMeta(ws);
+		ItemStack stained = createItem("stainedG", XMaterial.BLACK_STAINED_GLASS_PANE, " ", (String[]) null);
+		ItemStack greenstained = createItem("stainedG", XMaterial.GREEN_STAINED_GLASS_PANE,
+				ChatColor.LIGHT_PURPLE + "Add Recipe", (String[]) null);
+		ItemStack redstained = createItem("stainedG", XMaterial.RED_STAINED_GLASS_PANE, ChatColor.RED + "Previous Page",
+				"none");
+		ItemStack orangestained = createItem("stainedG", XMaterial.ORANGE_STAINED_GLASS_PANE,
+				ChatColor.GREEN + "Next Page", (String[]) null);
 
 		defaults(inv, redstained, orangestained, greenstained, stained);
 	}
@@ -252,6 +236,20 @@ public class ManageGUI implements Listener {
 		File recipeFile = new File(recipesFolder, recipeName + ".yml");
 
 		return YamlConfiguration.loadConfiguration(recipeFile);
+	}
+
+	public ItemStack createItem(String id, XMaterial material, String name, String... lore) {
+		ItemStack item = new ItemStack(material.parseItem());
+		ItemMeta meta = item.getItemMeta();
+		if (meta != null) {
+			meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+
+			if (lore != null)
+				meta.setLore(Arrays.asList(lore));
+
+			item.setItemMeta(meta);
+		}
+		return item;
 	}
 
 	public void show(Player p) {

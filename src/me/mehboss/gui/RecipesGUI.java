@@ -4,9 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.logging.Level;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -29,7 +27,7 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 
-public class ManageGUI implements Listener {
+public class RecipesGUI implements Listener {
 
 	// *** this menu is the main GUI for recipes. it shows what recipes exist and
 	// gives options to add a new recipe
@@ -48,12 +46,10 @@ public class ManageGUI implements Listener {
 		return Main.getInstance().getConfig();
 	}
 
-	public ManageGUI(Plugin p, String item) {
+	public RecipesGUI(Plugin p) {
 		inv = Bukkit.getServer().createInventory(null, 54, ChatColor.translateAlternateColorCodes('&',
 				getConfig().getString("gui.Displayname").replace("%page%", "1")));
 	}
-
-	HashMap<Integer, String> itemMaps = new HashMap<Integer, String>();
 
 	@EventHandler
 	public void onClick(InventoryClickEvent e) {
@@ -115,14 +111,16 @@ public class ManageGUI implements Listener {
 						&& e.getCurrentItem().getItemMeta().getDisplayName().trim().equals("Add Recipe")) {
 					return;
 				}
-
-				if (NBTEditor.contains(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER") || Main.getInstance().giveRecipe
-						.containsKey(e.getCurrentItem().getItemMeta().getDisplayName().toLowerCase())) {
+				
+				// did not click one of the recipes
+				if (e.getRawSlot() < 19 || e.getRawSlot() > 34 || e.getRawSlot() == 26 || e.getRawSlot() == 27)
+					return;
+				
+				String name = Main.getInstance().recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName();
+				if (NBTEditor.contains(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER")
+						|| Main.getInstance().giveRecipe.containsKey(name.toLowerCase())) {
 
 					Boolean viewing = false;
-					String name = e.getCurrentItem().hasItemMeta() && e.getCurrentItem().getItemMeta().hasDisplayName()
-							? e.getCurrentItem().getItemMeta().getDisplayName()
-							: e.getCurrentItem().getType().toString();
 
 					Inventory edit = null;
 
@@ -163,13 +161,12 @@ public class ManageGUI implements Listener {
 			}
 
 			try {
-				ItemStack item = Main.getInstance().giveRecipe.get(items.get(index).toLowerCase());
+				ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
 				ItemMeta itemM = item.getItemMeta();
 
 				if (itemM.hasLore() && hasPlaceholder())
 					itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
 
-				itemM.setDisplayName(items.get(index));
 				item.setItemMeta(itemM);
 
 				String loc = items.get(index);

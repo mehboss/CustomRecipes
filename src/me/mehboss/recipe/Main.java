@@ -37,7 +37,8 @@ import me.mehboss.crafting.AmountManager;
 import me.mehboss.crafting.CraftManager;
 import me.mehboss.crafting.RecipeManager;
 import me.mehboss.gui.EditGUI;
-import me.mehboss.gui.ManageGUI;
+import me.mehboss.gui.InventoryManager;
+import me.mehboss.gui.RecipesGUI;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
 import me.mehboss.utils.Metrics;
@@ -50,7 +51,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 public class Main extends JavaPlugin implements Listener {
 	public RecipeManager plugin;
 
-	public ManageGUI recipes;
+	public RecipesGUI recipes;
 	EditGUI editItem;
 
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
@@ -85,6 +86,7 @@ public class Main extends JavaPlugin implements Listener {
 	String newupdate = null;
 
 	public RecipeUtil recipeUtil;
+	public InventoryManager guiUtil;
 	public Boolean debug = false;
 
 	public RecipeUtil getRecipeUtil() {
@@ -208,6 +210,7 @@ public class Main extends JavaPlugin implements Listener {
 		instance = this;
 		recipeUtil = new RecipeUtil();
 		plugin = new RecipeManager();
+		guiUtil = new InventoryManager();
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
@@ -262,14 +265,15 @@ public class Main extends JavaPlugin implements Listener {
 		plugin.addRecipes();
 
 		CraftManager craftManager = new CraftManager();
-		Bukkit.getPluginManager().registerEvents(new ManageGUI(this, null), this);
+		Bukkit.getPluginManager().registerEvents(new EditGUI(this, null), this);
+		Bukkit.getPluginManager().registerEvents(new RecipesGUI(this), this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
 		Bukkit.getPluginManager().registerEvents(new AmountManager(craftManager), this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
-		recipes = new ManageGUI(this, null);
+		recipes = new RecipesGUI(this);
 		editItem = new EditGUI(Main.getInstance(), null);
 
 		registerCommands();
@@ -292,6 +296,7 @@ public class Main extends JavaPlugin implements Listener {
 		addRecipe.clear();
 		disabledrecipe.clear();
 		recipes = null;
+		editItem = null;
 	}
 
 	@Override
@@ -304,7 +309,6 @@ public class Main extends JavaPlugin implements Listener {
 
 		initCustomYml();
 		saveCustomYml(customConfig, customYml);
-
 		saveAllCustomYml();
 
 		debug = getConfig().getBoolean("Debug");
@@ -312,7 +316,7 @@ public class Main extends JavaPlugin implements Listener {
 		plugin.addRecipes();
 		removeRecipes();
 
-		recipes = new ManageGUI(this, null);
+		recipes = new RecipesGUI(this);
 		editItem = new EditGUI(Main.getInstance(), null);
 	}
 

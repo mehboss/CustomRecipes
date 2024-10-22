@@ -51,10 +51,12 @@ public class EditGUI implements Listener {
 	private static EditGUI instance;
 
 	Plugin config = Bukkit.getPluginManager().getPlugin("CustomRecipes");
-
+	RecipeSaver saveChanges;
+	
+	
 	public EditGUI(Plugin p, String item) {
-		Bukkit.getServer().getPluginManager().registerEvents(this, p);
 		instance = this;
+		saveChanges = new RecipeSaver();
 	}
 
 	public static EditGUI getInstance() {
@@ -668,12 +670,12 @@ public class EditGUI implements Listener {
 
 			if (e.getRawSlot() == 49) {
 				// main menu button
-				p.openInventory(ManageGUI.inv);
+				Main.getInstance().recipes.show(p);
 			}
 
 			if (e.getRawSlot() == 50) {
 				// update button
-				saveChanges(e.getClickedInventory(), p, recipe);
+				saveChanges.saveRecipe(e.getClickedInventory(), p, recipe);
 			}
 
 			if (e.getRawSlot() == 53) {
@@ -720,7 +722,7 @@ public class EditGUI implements Listener {
 					Main.getInstance().saveConfig();
 					Main.getInstance().reload();
 
-					p.openInventory(ManageGUI.inv);
+					Main.getInstance().recipes.show(p);
 					return;
 				}
 
@@ -849,28 +851,27 @@ public class EditGUI implements Listener {
 		}
 	}
 
-	public void saveChanges(Inventory inv, Player p, String recipe) {
-		// set all changes to config
-		// reload plugin
-
-		if (!hasSomething(inv)) {
-			p.sendMessage(ChatColor.RED
-					+ "Could not update recipe. The recipe ingredients were empty or it was missing an item in the result slot");
-			return;
-		}
-
-		p.sendMessage(ChatColor.GREEN + "You have successfully updated changes to the recipe '" + recipe + "'");
-		p.closeInventory();
-
-	}
-
 	@EventHandler
 	public void onClose(PlayerQuitEvent e) {
-		if (Main.getInstance().recipeBook.contains(e.getPlayer().getUniqueId()))
-			Main.getInstance().recipeBook.remove(e.getPlayer().getUniqueId());
+		UUID uuid = e.getPlayer().getUniqueId();
+		
+		if (Main.getInstance().recipeBook.contains(uuid))
+			Main.getInstance().recipeBook.remove(uuid);
 
-		if (Main.getInstance().saveInventory.containsKey(e.getPlayer().getUniqueId()))
-			Main.getInstance().saveInventory.remove(e.getPlayer().getUniqueId());
+		if (Main.getInstance().saveInventory.containsKey(uuid))
+			Main.getInstance().saveInventory.remove(uuid);
+		
+		if (editmeta.containsKey(uuid))
+			editmeta.remove(uuid);
+		
+		if (inventoryinstance.containsKey(uuid))
+			inventoryinstance.remove(uuid);
+		
+		if (getr.containsKey(uuid))
+			getr.remove(uuid);
+		
+		if (getnewid.containsKey(uuid))
+			getnewid.remove(uuid);
 	}
 
 	@EventHandler
@@ -1042,137 +1043,6 @@ public class EditGUI implements Listener {
 				|| i.getItem(20) != null || i.getItem(21) != null || i.getItem(28) != null || i.getItem(29) != null
 				|| i.getItem(30) != null) && i.getItem(23) != null) {
 			return true;
-		}
-		return false;
-	}
-
-	String getItemName(ItemStack itemStack) {
-		return (itemStack != null && itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName())
-				? itemStack.getItemMeta().getDisplayName()
-				: "none";
-	}
-
-	int getItemAmount(ItemStack itemStack) {
-		return (itemStack != null) ? itemStack.getAmount() : 1;
-	}
-
-	String getItemLore(ItemStack itemStack) {
-		return (itemStack != null && itemStack.hasItemMeta() && itemStack.getItemMeta().hasLore())
-				? String.join("\n", itemStack.getItemMeta().getLore())
-				: "";
-	}
-
-	String getCustomIdentifier(ItemStack itemStack) {
-		if (itemStack != null && NBTEditor.contains(itemStack, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-			return NBTEditor.getString(itemStack, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
-		}
-		return "none";
-	}
-
-	Map<String, Object> convertToRecipeConfig(Inventory inventory) {
-		Map<String, Object> recipeConfig = new HashMap<>();
-
-		int[] ingredientSlots = { 10, 11, 12, 19, 20, 21, 28, 29, 30 };
-
-		Map<String, Map<String, Object>> ingredients = new HashMap<>();
-		for (int i = 0; i < ingredientSlots.length; i++) {
-			ItemStack itemStack = inventory.getItem(ingredientSlots[i]);
-			if (itemStack != null && itemStack.getType() != org.bukkit.Material.AIR) {
-				String itemName = getItemName(itemStack);
-				String identifier = getCustomIdentifier(itemStack);
-				int amount = getItemAmount(itemStack);
-
-				Map<String, Object> ingredient = new HashMap<>();
-				ingredient.put("Name", itemName);
-				ingredient.put("Identifier", identifier);
-				ingredient.put("Amount", amount);
-				ingredients.put(String.valueOf(i), ingredient);
-			}
-		}
-		recipeConfig.put("Ingredients", ingredients);
-
-		List<String> itemCrafting = generateItemCrafting(ingredients);
-		recipeConfig.put("ItemCrafting", itemCrafting);
-
-		ItemStack resultItem = inventory.getItem(23);
-		if (resultItem != null && resultItem.getType() != org.bukkit.Material.AIR) {
-			recipeConfig.put("Item", resultItem.getType().name());
-			recipeConfig.put("Amount", getItemAmount(resultItem));
-			recipeConfig.put("Name", getItemName(resultItem));
-			recipeConfig.put("Identifier", getCustomIdentifier(resultItem));
-			recipeConfig.put("Lore", getItemLore(resultItem));
-		}
-
-		return recipeConfig;
-	}
-
-	List<String> generateItemCrafting(Map<String, Map<String, Object>> ingredients) {
-		List<String> itemCrafting = new ArrayList<>();
-		Set<String> usedLetters = new HashSet<>();
-		Map<String, Map<String, Object>> usedIngredients = new HashMap<>(); // Initialize usedIngredients map
-
-		// Initialize the crafting pattern
-		for (int i = 0; i < 3; i++) {
-			itemCrafting.add("XXX");
-		}
-		for (int i = 0; i < 9; i++) {
-			String slotNumber = String.valueOf(i);
-			if (!ingredients.containsKey(slotNumber)) {
-				continue;
-			}
-			Map<String, Object> ingredientData = ingredients.get(slotNumber);
-
-			if (ingredientData.isEmpty()) {
-				continue;
-			}
-			String letter = getLetterForIngredient(ingredientData, usedLetters, usedIngredients);
-
-			// Update the crafting pattern with the assigned letter
-			for (int j = 0; j < 3; j++) {
-				String row = itemCrafting.get(j).replaceFirst("X", letter);
-				itemCrafting.set(j, row);
-			}
-
-			usedLetters.add(letter);
-			usedIngredients.put(letter, ingredientData); // Add the used ingredient to usedIngredients
-		}
-
-		return itemCrafting;
-	}
-
-	String getLetterForIngredient(Map<String, Object> ingredientData, Set<String> usedLetters,
-			Map<String, Map<String, Object>> usedIngredients) {
-		String name = (String) ingredientData.get("Name");
-		String identifier = (String) ingredientData.get("Identifier");
-		int amount = (int) ingredientData.get("Amount");
-
-		String firstLetter = name.substring(0, 1).toUpperCase();
-		if (!firstLetter.matches("[A-Z]")) {
-			return "X";
-		}
-
-		for (char letter = 'A'; letter <= 'Z'; letter++) {
-			String nextLetter = String.valueOf(letter);
-			if (!usedLetters.contains(nextLetter)
-					&& !isCombinationUsed(nextLetter, identifier, amount, usedLetters, usedIngredients)) {
-				return nextLetter;
-			}
-		}
-
-		return "X";
-	}
-
-	boolean isCombinationUsed(String letter, String identifier, int amount, Set<String> usedLetters,
-			Map<String, Map<String, Object>> usedIngredients) {
-		for (String usedLetter : usedLetters) {
-			Map<String, Object> usedIngredientData = usedIngredients.get(usedLetter);
-			if (usedIngredientData != null) {
-				String usedIdentifier = (String) usedIngredientData.get("Identifier");
-				int usedAmount = (int) usedIngredientData.get("Amount");
-				if (usedIdentifier.equals(identifier) && usedAmount == amount) {
-					return true;
-				}
-			}
 		}
 		return false;
 	}

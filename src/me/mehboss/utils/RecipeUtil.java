@@ -181,7 +181,7 @@ public class RecipeUtil {
 			NamespacedKey customKey;
 
 			if (recipe != null) {
-				String key = recipe.getKey();
+				String key = recipe.getKey().toLowerCase();
 				customKey = NamespacedKey.fromString("customrecipes:" + key);
 				if (customKey != null && Bukkit.getRecipe(customKey) != null)
 					Bukkit.removeRecipe(customKey);

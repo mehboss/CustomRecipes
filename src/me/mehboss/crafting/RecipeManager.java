@@ -332,7 +332,7 @@ public class RecipeManager {
 		}
 		return m;
 	}
-
+	
 	public void addRecipes() {
 
 		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
@@ -429,6 +429,7 @@ public class RecipeManager {
 
 			i = handleItemDamage(i, item, damage, type, amount);
 			i = handleDurability(i, item);
+			i = handleIdentifier(i, item, recipe);
 			i = handleEnchants(i, item);
 			i = handleCustomEnchants(i, item);
 
@@ -438,13 +439,10 @@ public class RecipeManager {
 			m = handleAttributes(item, m);
 			m = handleFlags(item, m);
 			m = handleLore(item, m);
-
 			i.setItemMeta(m);
 
 			if (isHavenBag(item))
 				i = handleBagCreation(i.getType(), item);
-
-			i = handleIdentifier(i, item, recipe);
 
 			handleBucketConsume(i.getType(), item, recipe);
 			recipe.setResult(i);

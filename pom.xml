@@ -51,7 +51,6 @@
 								<exclude>com/cryptomorin/xseries/XEntityType*</exclude>
 								<exclude>com/cryptomorin/xseries/XItemStack*</exclude>
 								<exclude>com/cryptomorin/xseries/XWorldBorder*</exclude>
-								<exclude>com/cryptomorin/xseries/XSound*</exclude>
 								<exclude>com/cryptomorin/xseries/XTag*</exclude>
 								<exclude>com/cryptomorin/xseries/NMSExtras*</exclude>
 								<exclude>com/cryptomorin/xseries/NoteBlockMusic*</exclude>

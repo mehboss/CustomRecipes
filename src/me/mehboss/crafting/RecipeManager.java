@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -49,6 +50,7 @@ import com.willfp.ecoenchants.enchant.EcoEnchant;
 import com.willfp.ecoenchants.enchant.EcoEnchants;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -73,6 +75,111 @@ public class RecipeManager {
 			return true;
 
 		return false;
+	}
+
+	/**
+	 * Dynamically applies NBT tags from the 'Custom-Tags' section.
+	 */
+	@SuppressWarnings("unchecked")
+	public ItemStack applyCustomTags(ItemStack item, String recipe) {
+		try {
+			List<Map<String, Object>> customTags = getCustomTags(recipe);
+
+			// Debugging output to verify the custom tags
+			System.out.println("Applying custom tags for recipe: " + recipe);
+			System.out.println("Custom tags: " + customTags);
+
+			for (Map<String, Object> tagEntry : customTags) {
+				List<String> path = (List<String>) tagEntry.get("path");
+				Object value = tagEntry.get("value");
+
+				// Debugging output for individual NBT tag application
+				System.out.println("Applying NBT tag:");
+				System.out.println("Path: " + path);
+				System.out.println("Value: " + value);
+
+				// Check if this is an AttributeModifier entry
+				if (path.get(0).equals("AttributeModifiers")) {
+					List<Map<String, Object>> modifiers = (List<Map<String, Object>>) value;
+
+					for (Map<String, Object> modifier : modifiers) {
+						// Apply attribute modifier
+						item = applyAttributeModifier(item, modifier);
+					}
+				} else {
+					// Apply general NBT tag
+					item = applyNBT(item, value, path.toArray(new String[0]));
+				}
+			}
+			return item;
+		} catch (Exception e) {
+			logError("Could not apply custom tags to recipe " + recipe
+					+ "! This generally happens when the operations are incorrect.");
+			e.printStackTrace();
+			return item;
+		}
+	}
+
+	/**
+	 * Applies an attribute modifier to the item stack.
+	 */
+	private ItemStack applyAttributeModifier(ItemStack item, Map<String, Object> modifier) {
+		// Retrieve necessary fields
+		String name = (String) modifier.get("Name");
+		String attributeName = (String) modifier.get("AttributeName");
+
+		double amount = (double) modifier.get("Amount");
+		int operation = (int) modifier.get("Operation");
+		String slot = (String) modifier.get("Slot");
+
+		// Debugging output
+		System.out.println("Applying attribute modifier:");
+		System.out.println("Name: " + name + ", AttributeName: " + attributeName + ", Amount: " + amount
+				+ ", Operation: " + operation + ", Slot: " + slot);
+
+		int[] uuid = { 0, 0, 0, 0 };
+
+		NBTCompound compound = NBTEditor.getNBTCompound(item);
+		compound = NBTEditor.set(compound, attributeName, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers",
+				NBTEditor.NEW_ELEMENT, "AttributeName");
+		compound = NBTEditor.set(compound, name, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Name");
+		compound = NBTEditor.set(compound, amount, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Amount");
+		compound = NBTEditor.set(compound, operation, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0,
+				"Operation");
+		compound = NBTEditor.set(compound, slot, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Slot");
+		compound = NBTEditor.set(compound, uuid, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "UUID");
+		compound = NBTEditor.set(compound, 99L, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "UUIDMost");
+		compound = NBTEditor.set(compound, 77530600L, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0,
+				"UUIDLeast");
+
+		item = NBTEditor.getItemFromTag(compound);
+		return item;
+	}
+
+	/**
+	 * Uses NBTEditor to set a value on the given NBT path.
+	 */
+	private ItemStack applyNBT(ItemStack item, Object value, String... path) {
+
+		if (path == null || path.length == 0) {
+			throw new IllegalArgumentException("NBT path cannot be null or empty");
+		}
+		return NBTEditor.set(item, value, (Object[]) path);
+	}
+
+	/**
+	 * Safely retrieves and casts the custom tags list from the config.
+	 */
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getCustomTags(String recipe) {
+		List<Map<?, ?>> rawList = getConfig().getMapList(recipe + ".Custom-Tags");
+		List<Map<String, Object>> castedList = new ArrayList<>();
+
+		for (Map<?, ?> rawMap : rawList) {
+			castedList.add((Map<String, Object>) (Map<?, ?>) rawMap); // Safe cast with explicit handling
+		}
+
+		return castedList;
 	}
 
 	ItemStack handleBagCreation(Material bagMaterial, String item) {
@@ -116,23 +223,23 @@ public class RecipeManager {
 		}
 	}
 
-	ItemStack handleCustomTags(ItemStack i, String item) {
-		if (!getConfig().isSet(item + ".Custom-Tags"))
-			return i;
-
-		for (String tag : getConfig().getStringList(item + ".Custom-Tags")) {
-			String[] customTags = tag.split(":");
-
-			if (customTags.length != 2)
-				return i;
-
-			try {
-				i = NBTEditor.set(i, customTags[1], NBTEditor.CUSTOM_DATA, customTags[0]);
-			} catch (Exception e) {
-			}
-		}
-		return i;
-	}
+//	ItemStack handleCustomTags(ItemStack i, String item) {
+//		if (!getConfig().isSet(item + ".Custom-Tags"))
+//			return i;
+//
+//		for (String tag : getConfig().getStringList(item + ".Custom-Tags")) {
+//			String[] customTags = tag.split(":");
+//
+//			if (customTags.length != 2)
+//				return i;
+//
+//			try {
+//				i = NBTEditor.set(i, customTags[1], NBTEditor.CUSTOM_DATA, customTags[0]);
+//			} catch (Exception e) {
+//			}
+//		}
+//		return i;
+//	}
 
 	ItemStack handleIdentifier(ItemStack i, String item, Recipe recipe) {
 		if (!getConfig().isSet(item + ".Identifier"))
@@ -332,7 +439,7 @@ public class RecipeManager {
 		}
 		return m;
 	}
-	
+
 	public void addRecipes() {
 
 		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
@@ -430,6 +537,7 @@ public class RecipeManager {
 			i = handleItemDamage(i, item, damage, type, amount);
 			i = handleDurability(i, item);
 			i = handleIdentifier(i, item, recipe);
+			i = applyCustomTags(i, item);
 			i = handleEnchants(i, item);
 			i = handleCustomEnchants(i, item);
 

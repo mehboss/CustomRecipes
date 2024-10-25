@@ -32,19 +32,19 @@ public class RecipeUtil {
 	public void createRecipe(Recipe recipe) {
 		if (recipe == null || !recipe.hasKey()) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName()
-					+ ". Recipe is null or does not have a NameSpacedKey set. Key: " + recipe.getKey();
+					+ ". Recipe is null or does not have a NameSpacedKey/Identifier set. Key: " + recipe.getKey();
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if (recipe.getType() != RecipeUtil.Recipe.RecipeType.SHAPED
-				&& recipe.getType() != RecipeUtil.Recipe.RecipeType.SHAPELESS && recipe.getIngredientSize() != 9) {
+		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPED
+				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPELESS) && recipe.getIngredientSize() != 9) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
 					+ recipe.getType() + " and does not have 9 ingredients! Ingredients: " + recipe.getIngredientSize();
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.FURNACE
-				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.STONECUTTER) && recipe.getIngredientSize() != 1) {
+		if ((recipe.getType() != RecipeUtil.Recipe.RecipeType.SHAPED
+				&& recipe.getType() != RecipeUtil.Recipe.RecipeType.SHAPELESS) && recipe.getIngredientSize() != 1) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
 					+ recipe.getType() + " and has more than 1 ingredient! Ingredients: " + recipe.getIngredientSize();
 			throw new InvalidRecipeException(errorMessage);
@@ -153,7 +153,8 @@ public class RecipeUtil {
 	}
 
 	/**
-	 * Loads the specified recipe to the server. Checks and corrects duplicate NamespacedKey.
+	 * Loads the specified recipe to the server. Checks and corrects duplicate
+	 * NamespacedKey.
 	 * 
 	 * @param recipe the recipe you want to load
 	 */
@@ -163,7 +164,8 @@ public class RecipeUtil {
 	}
 
 	/**
-	 * Resets and reloads all registered recipes, including CR recipes. Checks and corrects duplicate NamespacedKey.
+	 * Resets and reloads all registered recipes, including CR recipes. Checks and
+	 * corrects duplicate NamespacedKey.
 	 */
 	public void reloadRecipes() {
 		this.clearDuplicates(null);
@@ -171,7 +173,8 @@ public class RecipeUtil {
 	}
 
 	/**
-	 * Clears all or specific registered recipe(s) for duplicate NamespacedKey, private
+	 * Clears all or specific registered recipe(s) for duplicate NamespacedKey,
+	 * private
 	 * 
 	 * @param recipe removes the recipe(s) from the bukkit registry, can be null
 	 */
@@ -585,8 +588,8 @@ public class RecipeUtil {
 	public static class Ingredient {
 		private Material material;
 
+		private String displayName = "false";
 		private String abbreviation;
-		private String displayName;
 		private String identifier;
 		private int slot = 0;
 		private int amount = 1;
@@ -705,7 +708,9 @@ public class RecipeUtil {
 		 * @returns true if the ingredient has one, false otherwise
 		 */
 		public boolean hasDisplayName() {
-			return displayName == null ? false : true;
+			return displayName == null || displayName.equalsIgnoreCase("false") || displayName.equalsIgnoreCase("none") || displayName.isBlank()
+					? false
+					: true;
 		}
 
 		/**

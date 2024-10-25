@@ -166,9 +166,10 @@ public class AmountManager implements Listener {
 		if (NBTEditor.contains(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
 			String foundID = NBTEditor.getString(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 
-			if (recipeUtil.getRecipeFromKey(foundID) != null)
+			if (recipeUtil.getRecipeFromKey(foundID) != null) {
 				findName = recipeUtil.getRecipeFromKey(foundID).getName();
-
+				found = true;
+			}
 		}
 
 		logDebug("[handleShiftClicks] Found recipe " + findName + " to handle..");
@@ -220,6 +221,7 @@ public class AmountManager implements Listener {
 			}
 
 			if (itemsToAdd == Integer.MAX_VALUE) {
+				logDebug("[handleShiftClicks] Could not craft " + findName + ".. An issue has occured with the amount deductions..");
 				e.setResult(null);
 				e.setCancelled(true);
 				return;

@@ -164,9 +164,6 @@ public class RecipesGUI implements Listener {
 				ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
 				ItemMeta itemM = item.getItemMeta();
 
-				if (itemM.hasLore() && hasPlaceholder())
-					itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
-
 				item.setItemMeta(itemM);
 
 				String loc = items.get(index);
@@ -191,10 +188,6 @@ public class RecipesGUI implements Listener {
 				ChatColor.GREEN + "Next Page", (String[]) null);
 
 		defaults(inv, redstained, orangestained, greenstained, stained);
-	}
-
-	boolean hasPlaceholder() {
-		return Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
 	}
 
 	public void defaults(Inventory i, ItemStack r, ItemStack o, ItemStack g, ItemStack d) {

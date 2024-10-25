@@ -262,7 +262,7 @@ public class CraftManager implements Listener {
 		if (debug)
 			logDebug("[hasMatchingDisplayName] Checking displayname..");
 
-		if (displayName == null || displayName.equals("false")) {
+		if (displayName == null || displayName.equals("false") || displayName.equals("none")) {
 			if (debug)
 				logDebug("[hasMatchingDisplayName] Found that ingredient does not have a displayname to check");
 			return !item.hasItemMeta() || !itemM.hasDisplayName();
@@ -388,14 +388,14 @@ public class CraftManager implements Listener {
 	}
 
 	boolean hasVanillaIngredients(CraftingInventory inv) {
-		// If the result item is a basic vanilla item (no custom metadata or NBT),
-		// return true
-		if (inv.getResult() != null && !(inv.getResult().isSimilar(new ItemStack(inv.getResult().getType()))))
+		if (inv.getResult().hasItemMeta()
+				&& (inv.getResult().getItemMeta().hasDisplayName() || inv.getResult().getItemMeta().hasLore()
+						|| NBTEditor.contains(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
 			return false;
-
-		// Check if any item in the inventory has custom metadata
 		for (ItemStack item : inv.getContents()) {
-			if (item != null && item.getType() != Material.AIR && !(item.isSimilar(new ItemStack(item.getType()))))
+			if (item == null || item.getType() == Material.AIR)
+				continue;
+			if (item.hasItemMeta() && (item.getItemMeta().hasDisplayName() || item.getItemMeta().hasLore()))
 				return false;
 		}
 		return true;
@@ -409,11 +409,13 @@ public class CraftManager implements Listener {
 		Recipe finalRecipe = null;
 		Boolean passedCheck = true;
 		Boolean found = false;
+
+		logDebug("[handleCrafting] Fired craft event!");
 		if (!(e.getView().getPlayer() instanceof Player))
 			return;
 
 		Player p = (Player) e.getView().getPlayer();
-
+		
 		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
 				|| !(matchedRecipe(inv)) || isBlacklisted(inv, p))
 			return;
@@ -467,7 +469,7 @@ public class CraftManager implements Listener {
 					if (ingredient.hasIdentifier() && recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null) {
 						Recipe exactMatch = recipeUtil.getRecipeFromKey(ingredient.getIdentifier());
 
-						if (exactMatch.getResult().hasItemMeta()
+						if (Main.getInstance().serverVersionAtLeast(1, 14) && exactMatch.getResult().hasItemMeta()
 								&& exactMatch.getResult().getItemMeta().hasCustomModelData()) {
 							recipeMD.add(exactMatch.getResult().getItemMeta().getCustomModelData());
 							// grab ingredient model data
@@ -481,7 +483,12 @@ public class CraftManager implements Listener {
 						}
 						continue;
 					}
-					recipeNames.add(ingredient.getDisplayName());
+
+					if (ingredient.hasDisplayName())
+						recipeNames.add(ingredient.getDisplayName());
+					else {
+						recipeNames.add("false");
+					}
 				}
 
 				for (int slot = 1; slot < 10; slot++) {
@@ -499,7 +506,8 @@ public class CraftManager implements Listener {
 						continue;
 					}
 
-					if (inv.getItem(slot).hasItemMeta() && inv.getItem(slot).getItemMeta().hasCustomModelData()) {
+					if (Main.getInstance().serverVersionAtLeast(1, 14) && inv.getItem(slot).hasItemMeta()
+							&& inv.getItem(slot).getItemMeta().hasCustomModelData()) {
 						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
 					}
 
@@ -522,10 +530,8 @@ public class CraftManager implements Listener {
 				}
 
 				if (!hasIngredients) {
-
 					logDebug("[handleCrafting] The recipe " + recipe.getName()
 							+ " does not have all of the required ingredients! Skipping recipe..");
-
 					passedCheck = false;
 					continue;
 				}
@@ -533,6 +539,17 @@ public class CraftManager implements Listener {
 				logDebug("[handleCrafting] The recipe " + recipe.getName()
 						+ " does have all of the required ingredients!");
 				logDebug("[handleCrafting] Ingredient contains all: " + slotNames.containsAll(recipeNames));
+
+				if (!slotNames.containsAll(recipeNames)) {
+					logDebug("[handleCrafting] Debugging recipe " + recipe.getName());
+					logDebug("[handleCrafting] Slot name size: " + slotNames.size());
+					logDebug("[handleCrafting] Recipe name size: " + recipeNames.size());
+					logDebug("[handleCrafting] Sending slot name results and recipe name results..");
+					for (String names : slotNames)
+						logDebug(names);
+					for (String names : recipeNames)
+						logDebug(names);
+				}
 
 				if (recipe.getIgnoreModelData() == false && recipeMD.size() != inventoryMD.size()
 						&& (!recipeMD.containsAll(inventoryMD) || !inventoryMD.containsAll(recipeMD))) {
@@ -544,17 +561,6 @@ public class CraftManager implements Listener {
 						|| !(slotNames.containsAll(recipeNames)))) {
 					passedCheck = false;
 					continue;
-				}
-
-				if (passedCheck == false) {
-					logDebug("[handleCrafting] Debugging recipe " + recipe.getName());
-					logDebug("[handleCrafting] Slot name size: " + slotNames.size());
-					logDebug("[handleCrafting] Recipe name size: " + recipeNames.size());
-					logDebug("[handleCrafting] Sending slot name results and recipe name results..");
-					for (String names : slotNames)
-						getLogger().log(Level.SEVERE, names);
-					for (String names : recipeNames)
-						getLogger().log(Level.SEVERE, names);
 				}
 
 			} else {
@@ -686,6 +692,9 @@ public class CraftManager implements Listener {
 		logDebug("[handleCrafting] Final results for recipe " + finalRecipe.getName().toUpperCase() + " (passedChecks: "
 				+ passedCheck + ")(foundRecipe: " + found + ")");
 
+		if (hasVanillaIngredients(inv) && !found)
+			return;
+
 		if ((!passedCheck) || (found) || (passedCheck && !found))
 			inv.setResult(new ItemStack(Material.AIR));
 
@@ -706,30 +715,25 @@ public class CraftManager implements Listener {
 			}
 		}
 
-		if (hasVanillaIngredients(inv))
-			return;
-
 		String recipeName = finalRecipe.getName();
 		if (passedCheck && found && getRecipe().containsKey(finalRecipe.getName().toLowerCase())) {
 
 			List<String> withPlaceholders = null;
+			ItemStack item = new ItemStack(getRecipe().get(recipeName.toLowerCase()));
 
 			if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
-				withPlaceholders = getRecipe().get(recipeName.toLowerCase()).hasItemMeta()
-						&& getRecipe().get(recipeName.toLowerCase()).getItemMeta().hasLore()
-								? PlaceholderAPI.setPlaceholders(p,
-										getRecipe().get(recipeName.toLowerCase()).getItemMeta().getLore())
-								: null;
+				withPlaceholders = item.hasItemMeta() && item.getItemMeta().hasLore()
+						? PlaceholderAPI.setPlaceholders(p, item.getItemMeta().getLore())
+						: null;
 
-			ItemStack finalItem = new ItemStack(getRecipe().get(recipeName.toLowerCase()));
-			ItemMeta finalItemm = finalItem.getItemMeta();
+			ItemMeta itemMeta = item.getItemMeta();
 
 			if (withPlaceholders != null) {
-				finalItemm.setLore(withPlaceholders);
-				finalItem.setItemMeta(finalItemm);
+				itemMeta.setLore(withPlaceholders);
+				item.setItemMeta(itemMeta);
 			}
 
-			inv.setResult(finalItem);
+			inv.setResult(item);
 
 			if (!inInventory.contains(p))
 				inInventory.add(p);

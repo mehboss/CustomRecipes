@@ -115,7 +115,6 @@ public class RecipeManager {
 		} catch (Exception e) {
 			logError("Could not apply custom tags to recipe " + recipe
 					+ "! This generally happens when the operations are incorrect.");
-			e.printStackTrace();
 			return item;
 		}
 	}
@@ -270,20 +269,23 @@ public class RecipeManager {
 
 	ItemStack handleEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
-			try {
-				for (String e : getConfig().getStringList(item + ".Enchantments")) {
-					String[] breakdown = e.split(":");
-					String enchantment = breakdown[0];
-
-					if (!(XEnchantment.matchXEnchantment(enchantment).isPresent()))
-						continue;
-
-					Enchantment parsedEnchant = XEnchantment.matchXEnchantment(enchantment).get().getEnchant();
-					int lvl = Integer.parseInt(breakdown[1]);
-					i.addUnsafeEnchantment(parsedEnchant, lvl);
-				}
-			} catch (Exception e) {
+			if (!getConfig().isSet(item + ".Enchantments")) {
 				logError("Enchantment section for the recipe " + item + " is not valid. Skipping..");
+				return i;
+			}
+
+			for (String e : getConfig().getStringList(item + ".Enchantments")) {
+				String[] breakdown = e.split(":");
+				String enchantment = breakdown[0];
+
+				if (!(XEnchantment.matchXEnchantment(enchantment).isPresent())) {
+					logError("Enchantment " + enchantment + " for the recipe " + item + " is not valid. Skipping..");
+					continue;
+				}
+
+				Enchantment parsedEnchant = XEnchantment.matchXEnchantment(enchantment).get().getEnchant();
+				int lvl = Integer.parseInt(breakdown[1]);
+				i.addUnsafeEnchantment(parsedEnchant, lvl);
 			}
 		}
 		return i;
@@ -454,7 +456,7 @@ public class RecipeManager {
 			return;
 		}
 
-		for (File recipeFile : recipeFiles) {
+		recipeLoop: for (File recipeFile : recipeFiles) {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
 			String item = recipeFile.getName().replace(".yml", "");
 
@@ -493,13 +495,6 @@ public class RecipeManager {
 
 			switch (converter) {
 			case "stonecutter":
-				if (Main.getInstance().serverVersionAtLeast(1, 14)) {
-					logError("Error loading recipe. Got " + converter
-							+ ", but your server version is below 1.14. Expected furnace or no converter (for regular crafting) in: "
-							+ recipeFile.getName());
-					continue;
-				}
-
 				recipe.setType(RecipeType.STONECUTTER);
 				amountRequirement = 1;
 				break;
@@ -517,6 +512,13 @@ public class RecipeManager {
 				}
 			}
 
+			if (!Main.getInstance().serverVersionAtLeast(1, 14) && recipe.getType() == RecipeType.STONECUTTER) {
+				logError("Error loading recipe. Got " + converter
+						+ ", but your server version is below 1.14. Expected furnace or no converter (for regular crafting) in: "
+						+ recipeFile.getName());
+				continue;
+			}
+
 			// HavenBag detected, but converter is not SHAPED or SHAPELESS
 			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS && isHavenBag(item)) {
 				logError("Error loading recipe. Got " + recipe.getType()
@@ -530,7 +532,9 @@ public class RecipeManager {
 					? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
 					: null;
 
-			if (!(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
+			if (type == null || !(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
+				logError("Error loading recipe. Please double check the 'Item:' material is valid in "
+						+ recipe.getName());
 				continue;
 			}
 
@@ -602,7 +606,7 @@ public class RecipeManager {
 				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
 
 				if (!validMaterial(recipe.getName(), material, rawMaterial)) {
-					continue;
+					continue recipeLoop;
 				}
 
 				Material ingredientMaterial = rawMaterial.get().parseMaterial();
@@ -611,7 +615,7 @@ public class RecipeManager {
 				if (count > amountRequirement) {
 					logError("Error loading recipe. Found " + amountRequirement + " slots but converter is " + converter
 							+ " so use only one slot" + " (X for others) for ItemCrafting in: " + recipeFile.getName());
-					continue;
+					continue recipeLoop;
 				}
 
 				String ingredientName = getConfig().isString(configPath + ".Name")
@@ -635,6 +639,9 @@ public class RecipeManager {
 				recipeIngredient.setAmount(ingredientAmount);
 				recipeIngredient.setSlot(slot);
 				recipe.addIngredient(recipeIngredient);
+
+				if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS)
+					break;
 			}
 
 			logDebug("Successfully added " + item + " with the amount output of " + i.getAmount());
@@ -667,14 +674,6 @@ public class RecipeManager {
 				FurnaceRecipe furnaceRecipe = null;
 				StonecuttingRecipe sCutterRecipe = null;
 
-				ArrayList<Material> ingredientMaterials = new ArrayList<>();
-				List<RecipeUtil.Ingredient> ingredients = recipe.getIngredients();
-
-				// Populate ingredient materials and API ingredients
-				for (RecipeUtil.Ingredient ingredient : ingredients) {
-					ingredientMaterials.add(ingredient.getMaterial());
-				}
-
 				// Create recipes based on type
 				switch (recipe.getType()) {
 				case SHAPELESS:
@@ -692,7 +691,7 @@ public class RecipeManager {
 				}
 
 				// Add recipes to relevant lists
-				addRecipeToMaps(recipe, ingredientMaterials);
+				addRecipeToMaps(recipe);
 
 				// Register recipes with the server
 				if (shapedRecipe != null)
@@ -721,6 +720,9 @@ public class RecipeManager {
 		}
 
 		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
+			if (ingredient.isEmpty())
+				continue;
+
 			shapelessRecipe.addIngredient(ingredient.getMaterial());
 		}
 		return shapelessRecipe;
@@ -730,6 +732,8 @@ public class RecipeManager {
 	private ShapedRecipe createShapedRecipe(Recipe recipe) {
 		ShapedRecipe shapedRecipe;
 
+		ArrayList<String> ingredients = new ArrayList<String>();
+
 		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
 			shapedRecipe = new ShapedRecipe(createNamespacedKey(recipe), recipe.getResult());
 		} else {
@@ -738,6 +742,10 @@ public class RecipeManager {
 
 		shapedRecipe.shape(recipe.getRow(1), recipe.getRow(2), recipe.getRow(3));
 		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
+			if (ingredient.getMaterial() == Material.AIR || ingredients.contains(ingredient.getAbbreviation()))
+				continue;
+
+			ingredients.add(ingredient.getAbbreviation());
 			shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterial());
 		}
 		return shapedRecipe;
@@ -756,7 +764,7 @@ public class RecipeManager {
 	private StonecuttingRecipe createStonecuttingRecipe(Recipe recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
 			logError("Error loading recipe " + recipe.getName()
-					+ ". Your server version does not support NameSpacedKey.");
+					+ ". Your server version does not Stonecutting recipes!");
 			return null;
 		}
 
@@ -768,7 +776,7 @@ public class RecipeManager {
 		return new NamespacedKey(Main.getInstance(), recipe.getKey());
 	}
 
-	private void addRecipeToMaps(Recipe recipe, ArrayList<Material> ingredientMaterials) {
+	private void addRecipeToMaps(Recipe recipe) {
 		giveRecipe().put(recipe.getName().toLowerCase(), recipe.getResult());
 	}
 
@@ -793,8 +801,7 @@ public class RecipeManager {
 	}
 
 	private void logError(String st) {
-		Logger.getLogger("Minecraft").log(Level.WARNING,
-				ChatColor.RED + "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 
 	private void logDebug(String st) {

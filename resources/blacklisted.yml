@@ -11,6 +11,7 @@
 # item and will allow you to add your own!                             #
 ########################################################################
 blacklist-recipes: false
+disable-all-vanilla: false
 no-permission-message: 
   close-inventory: true
   chat-message: 

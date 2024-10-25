@@ -249,6 +249,11 @@ public class Main extends JavaPlugin implements Listener {
 			saveCustomYml(customConfig, customYml);
 		}
 
+		if (!customConfig.isSet("disable-all-vanilla")) {
+			customConfig.set("disable-all-vanilla", false);
+			saveCustomYml(customConfig, customYml);
+		}
+
 		if (isFirstLoad && getConfig().isSet("firstLoad"))
 			getConfig().set("firstLoad", false);
 
@@ -321,32 +326,36 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	void removeRecipes() {
-		if (customConfig == null || !customConfig.isSet("override-recipes"))
+		if (customConfig == null)
 			return;
 
-		for (String recipe : customConfig.getStringList("override-recipes")) {
+		if (customConfig.isSet("override-recipes"))
+			for (String recipe : customConfig.getStringList("override-recipes")) {
 
-			if (!(XMaterial.matchXMaterial(recipe).isPresent()))
-				continue;
-
-			for (Recipe foundRecipes : Bukkit.getRecipesFor(XMaterial.matchXMaterial(recipe).get().parseItem())) {
-				Keyed rKey = (Keyed) foundRecipes;
-
-				if (!(foundRecipes instanceof ShapedRecipe) && !(foundRecipes instanceof ShapelessRecipe))
+				if (!(XMaterial.matchXMaterial(recipe).isPresent()))
 					continue;
 
-				if (debug)
-					debug("foundRecipes: " + foundRecipes);
+				for (Recipe foundRecipes : Bukkit.getRecipesFor(XMaterial.matchXMaterial(recipe).get().parseItem())) {
+					Keyed rKey = (Keyed) foundRecipes;
 
-				try {
-					Bukkit.removeRecipe(NamespacedKey.minecraft(rKey.getKey().getKey()));
-				} catch (Exception e) {
-					getLogger().log(Level.SEVERE,
-							"Could not find NameSpacedKey for " + NamespacedKey.minecraft(rKey.getKey().getKey())
-									+ ", therefore we can not remove this recipe.");
+					if (!(foundRecipes instanceof ShapedRecipe) && !(foundRecipes instanceof ShapelessRecipe))
+						continue;
+
+					if (debug)
+						debug("foundRecipes: " + foundRecipes);
+
+					try {
+						Bukkit.removeRecipe(NamespacedKey.minecraft(rKey.getKey().getKey()));
+					} catch (Exception e) {
+						getLogger().log(Level.SEVERE,
+								"Could not find NameSpacedKey for " + NamespacedKey.minecraft(rKey.getKey().getKey())
+										+ ", therefore we can not remove this recipe.");
+					}
 				}
 			}
-		}
+
+		if (customConfig.isSet("disable-all-vanilla") && customConfig.getBoolean("disable-all-vanilla") == true)
+			Bukkit.clearRecipes();
 	}
 
 	public void disableRecipes() {
@@ -433,36 +442,31 @@ public class Main extends JavaPlugin implements Listener {
 	private int[] getServerVersionParts() {
 		String version = Bukkit.getServer().getBukkitVersion();
 		// Example version: 1.14-R0.1-SNAPSHOT
-		int version_major = -1;
 		int version_minor = -1;
+		int version_major = -1;
 
 		// Split by "-" to get the version part before the hyphen
 		String[] parts = version.split("-");
 		if (parts.length > 0) {
 			String[] version_parts = parts[0].split("\\."); // Split by dot to separate major and minor versions
 			try {
-				if (version_parts.length > 0) {
-					version_major = Integer.parseInt(version_parts[0]);
-				}
-				if (version_parts.length > 1) {
-					version_minor = Integer.parseInt(version_parts[1]);
-				}
+				version_major = Integer.parseInt(version_parts[0]);
+				version_minor = Integer.parseInt(version_parts[1]);
 			} catch (NumberFormatException e) {
-				Main.getInstance().getLogger().log(Level.WARNING,
-						"Error parsing version numbers from Bukkit version: " + version);
+				Main.getInstance().getLogger().log(Level.WARNING, "Error parsing server version numbers: " + version);
 			}
 		}
 
 		return new int[] { version_major, version_minor };
 	}
 
-	public boolean serverVersionAtLeast(int majorVersion, int minorVersion) {
-		int[] version_numbers = instance.getServerVersionParts();
-		if (version_numbers[0] < 0 || version_numbers[1] < 0) {
-			return true; // Allow plugin to continue even if version detection failed
+	public boolean serverVersionAtLeast(int major, int minor) {
+		int[] server_version = getServerVersionParts();
+
+		if (server_version[0] >= major && server_version[1] >= minor) {
+			return true;
 		}
-		return (version_numbers[0] > majorVersion)
-				|| (version_numbers[0] == majorVersion && version_numbers[1] >= minorVersion);
+		return false;
 	}
 
 	public void debug(String st) {

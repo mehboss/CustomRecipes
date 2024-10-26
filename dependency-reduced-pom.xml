@@ -54,6 +54,13 @@
                 <exclude>com/cryptomorin/xseries/NMSExtras*</exclude>
                 <exclude>com/cryptomorin/xseries/NoteBlockMusic*</exclude>
                 <exclude>com/cryptomorin/xseries/SkullCacheListener*</exclude>
+                <exclude>com/cryptomorin/xseries/reflection*</exclude>
+                <exclude>com/cryptomorin/xseries/reflection/aggregate*</exclude>
+                <exclude>com/cryptomorin/xseries/reflection/constraint*</exclude>
+                <exclude>com/cryptomorin/xseries/reflection/jvm*</exclude>
+                <exclude>com/cryptomorin/xseries/reflection/jvm/classes*</exclude>
+                <exclude>com/cryptomorin/xseries/reflection/minecraft*</exclude>
+                <exclude>com/cryptomorin/xseries/profiles*</exclude>
               </excludes>
             </filter>
           </filters>

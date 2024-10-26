@@ -30,9 +30,13 @@ public class BlockManager implements Listener {
 		boolean found = false;
 		ItemStack item = e.getItemInHand();
 
-		if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-			foundID = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
-			found = true;
+		try {
+			if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
+				foundID = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+				found = true;
+			}
+		} catch (Exception ee) {
+
 		}
 
 		if (foundID != null && recipeUtil.getRecipeFromKey(foundID) != null)

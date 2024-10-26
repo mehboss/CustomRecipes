@@ -488,8 +488,8 @@ public class RecipeManager {
 			}
 
 			if (!getConfig().isConfigurationSection(item + ".Ingredients")) {
-				logError("Error adding recipe " + item + " because could not locate the ingredient section.");
-				logError("Please double check formatting. Skipping recipe..");
+				logError("Error adding recipe " + recipeFile.getName());
+				logError("Could not locate the ingredients section. Please double check formatting. Skipping recipe..");
 				continue;
 			}
 
@@ -513,16 +513,16 @@ public class RecipeManager {
 			}
 
 			if (!Main.getInstance().serverVersionAtLeast(1, 14) && recipe.getType() == RecipeType.STONECUTTER) {
-				logError("Error loading recipe. Got " + converter
-						+ ", but your server version is below 1.14. Expected furnace or no converter (for regular crafting) in: "
-						+ recipeFile.getName());
+				logError("Error loading recipe " + recipeFile.getName());
+				logError("Got " + converter
+						+ ", but your server version is below 1.14. Expected furnace or no converter (for regular crafting).");
 				continue;
 			}
 
 			// HavenBag detected, but converter is not SHAPED or SHAPELESS
 			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS && isHavenBag(item)) {
-				logError("Error loading recipe. Got " + recipe.getType()
-						+ ", but the recipe is a havenbag recipe! Skipping..");
+				logError("Error loading recipe " + recipeFile.getName());
+				logError("Got " + recipe.getType() + ", but the recipe is a havenbag recipe! Skipping..");
 				continue;
 			}
 
@@ -533,8 +533,8 @@ public class RecipeManager {
 					: null;
 
 			if (type == null || !(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
-				logError("Error loading recipe. Please double check the 'Item:' material is valid in "
-						+ recipe.getName());
+				logError("Error loading recipe " + recipeFile.getName());
+				logError("Please double check the 'Item:' material is valid");
 				continue;
 			}
 
@@ -613,8 +613,9 @@ public class RecipeManager {
 
 				count++;
 				if (count > amountRequirement) {
-					logError("Error loading recipe. Found " + amountRequirement + " slots but converter is " + converter
-							+ " so use only one slot" + " (X for others) for ItemCrafting in: " + recipeFile.getName());
+					logError("Error loading recipe " + recipeFile.getName());
+					logError("Found " + amountRequirement + " slots but converter is " + converter
+							+ " so use only one slot" + " (X for others) for 'ItemCrafting'");
 					continue recipeLoop;
 				}
 

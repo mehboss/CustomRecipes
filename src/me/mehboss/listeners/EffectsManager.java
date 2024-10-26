@@ -2,6 +2,7 @@ package me.mehboss.listeners;
 
 import java.io.File;
 
+import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.LivingEntity;
@@ -51,7 +52,8 @@ public class EffectsManager implements Listener {
 				pl = trident.getShooter() instanceof Player ? (Player) trident.getShooter() : null;
 			}
 
-			if (pl == null || pl.getItemInHand() == null)
+			if (pl == null || pl.getItemInHand() == null
+					|| (Main.getInstance().serverVersionAtLeast(1, 17) && pl.getItemInUse() == null))
 				return;
 
 			ItemStack item = pl.getItemInHand();

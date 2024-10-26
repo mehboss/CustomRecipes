@@ -115,7 +115,7 @@ public class RecipeUtil {
 	 * @return the Recipe that is found, can be null
 	 */
 	public Recipe getRecipe(String recipeName) {
-		return recipes.get(recipeName);
+		return recipes.containsKey(recipeName) ? recipes.get(recipeName) : null;
 	}
 
 	/**
@@ -124,7 +124,7 @@ public class RecipeUtil {
 	 * @return a hashmap of recipes, including CR recipes
 	 */
 	public HashMap<String, Recipe> getAllRecipes() {
-		return recipes;
+		return recipes.isEmpty() ? null : recipes;
 	}
 
 	/**
@@ -149,7 +149,7 @@ public class RecipeUtil {
 	 * @return a set of strings
 	 */
 	public ArrayList<String> getRecipeNames() {
-		return new ArrayList<>(recipes.keySet());
+		return recipes.isEmpty() ? null : new ArrayList<>(recipes.keySet());
 	}
 
 	/**

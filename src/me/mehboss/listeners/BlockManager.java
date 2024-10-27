@@ -3,6 +3,7 @@ package me.mehboss.listeners;
 import java.io.File;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class BlockManager implements Listener {
 
@@ -24,34 +26,25 @@ public class BlockManager implements Listener {
 		if (e.getItemInHand() == null)
 			return;
 
-		String configName = null;
-		String foundID = null;
+		Recipe recipe = null;
+		String key = null;
 
-		boolean found = false;
 		ItemStack item = e.getItemInHand();
 
-		try {
-			if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-				foundID = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
-				found = true;
-			}
-		} catch (Exception ee) {
-
+		if (item.getType() != Material.AIR && item.hasItemMeta()
+				&& NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
+			key = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 		}
 
-		if (foundID != null && recipeUtil.getRecipeFromKey(foundID) != null)
-			configName = recipeUtil.getRecipeFromKey(foundID).getName();
+		if (key != null && recipeUtil.getRecipeFromKey(key) != null)
+			recipe = recipeUtil.getRecipeFromKey(key);
 
-		if (foundID == null && !found)
+		if (recipe == null)
 			if (recipeUtil.getRecipeFromResult(item) != null) {
-				configName = recipeUtil.getRecipeFromResult(item).getName();
-				found = true;
+				recipe = recipeUtil.getRecipeFromResult(item);
 			}
 
-		FileConfiguration recipeConfig = getConfig(configName);
-
-		if (configName == null || !found || !recipeConfig.isSet(configName + ".Placeable")
-				|| recipeConfig.getBoolean(configName + ".Placeable") == true)
+		if (recipe == null || recipe.isPlaceable())
 			return;
 
 		e.setCancelled(true);

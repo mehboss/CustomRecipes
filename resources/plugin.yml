@@ -4,7 +4,7 @@ api-version: 1.13
 main: me.mehboss.recipe.Main
 author: mehboss
 description: An easy-to-use remastered custom recipe plugin!
-softdepend: [PlaceholderAPI, AdvancedEnchantments, EcoEnchants, HavenBags]
+softdepend: [PlaceholderAPI, AdvancedEnchantments, EcoEnchants, Eco, HavenBags]
 commands:
   crecipe:
     description: Displays the custom recipe help page.

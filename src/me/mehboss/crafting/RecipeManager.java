@@ -46,9 +46,6 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
-import com.willfp.ecoenchants.enchant.EcoEnchant;
-import com.willfp.ecoenchants.enchant.EcoEnchants;
-
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
 import me.mehboss.recipe.Main;
@@ -77,26 +74,23 @@ public class RecipeManager {
 		return false;
 	}
 
-	/**
-	 * Dynamically applies NBT tags from the 'Custom-Tags' section.
-	 */
+	void handleBucketConsume(Material material, String item, Recipe recipe) {
+		if (getConfig().isBoolean(item + ".Consume-Bucket"))
+			recipe.setConsume(getConfig().getBoolean(item + ".Consume-Bucket"));
+	}
+	
+	void handlePlaceable(String item, Recipe recipe) {
+		if (getConfig().isBoolean(item + ".Placeable"))
+			recipe.setPlaceable(getConfig().getBoolean(item + ".Placeable"));
+	}
+	
 	@SuppressWarnings("unchecked")
-	public ItemStack applyCustomTags(ItemStack item, String recipe) {
+	ItemStack applyCustomTags(ItemStack item, String recipe) {
 		try {
 			List<Map<String, Object>> customTags = getCustomTags(recipe);
-
-			// Debugging output to verify the custom tags
-			System.out.println("Applying custom tags for recipe: " + recipe);
-			System.out.println("Custom tags: " + customTags);
-
 			for (Map<String, Object> tagEntry : customTags) {
 				List<String> path = (List<String>) tagEntry.get("path");
 				Object value = tagEntry.get("value");
-
-				// Debugging output for individual NBT tag application
-				System.out.println("Applying NBT tag:");
-				System.out.println("Path: " + path);
-				System.out.println("Value: " + value);
 
 				// Check if this is an AttributeModifier entry
 				if (path.get(0).equals("AttributeModifiers")) {
@@ -119,10 +113,7 @@ public class RecipeManager {
 		}
 	}
 
-	/**
-	 * Applies an attribute modifier to the item stack.
-	 */
-	private ItemStack applyAttributeModifier(ItemStack item, Map<String, Object> modifier) {
+	ItemStack applyAttributeModifier(ItemStack item, Map<String, Object> modifier) {
 		// Retrieve necessary fields
 		String name = (String) modifier.get("Name");
 		String attributeName = (String) modifier.get("AttributeName");
@@ -132,8 +123,8 @@ public class RecipeManager {
 		String slot = (String) modifier.get("Slot");
 
 		// Debugging output
-		System.out.println("Applying attribute modifier:");
-		System.out.println("Name: " + name + ", AttributeName: " + attributeName + ", Amount: " + amount
+		logDebug("Applying attribute modifier:");
+		logDebug("Name: " + name + ", AttributeName: " + attributeName + ", Amount: " + amount
 				+ ", Operation: " + operation + ", Slot: " + slot);
 
 		int[] uuid = { 0, 0, 0, 0 };
@@ -155,10 +146,7 @@ public class RecipeManager {
 		return item;
 	}
 
-	/**
-	 * Uses NBTEditor to set a value on the given NBT path.
-	 */
-	private ItemStack applyNBT(ItemStack item, Object value, String... path) {
+	ItemStack applyNBT(ItemStack item, Object value, String... path) {
 
 		if (path == null || path.length == 0) {
 			throw new IllegalArgumentException("NBT path cannot be null or empty");
@@ -166,16 +154,13 @@ public class RecipeManager {
 		return NBTEditor.set(item, value, (Object[]) path);
 	}
 
-	/**
-	 * Safely retrieves and casts the custom tags list from the config.
-	 */
 	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getCustomTags(String recipe) {
+	List<Map<String, Object>> getCustomTags(String recipe) {
 		List<Map<?, ?>> rawList = getConfig().getMapList(recipe + ".Custom-Tags");
 		List<Map<String, Object>> castedList = new ArrayList<>();
 
 		for (Map<?, ?> rawMap : rawList) {
-			castedList.add((Map<String, Object>) (Map<?, ?>) rawMap); // Safe cast with explicit handling
+			castedList.add((Map<String, Object>) (Map<?, ?>) rawMap);
 		}
 
 		return castedList;
@@ -202,11 +187,6 @@ public class RecipeManager {
 		return bag;
 	}
 
-	void handleBucketConsume(Material material, String item, Recipe recipe) {
-		if (getConfig().isBoolean(item + ".Consume-Bucket"))
-			recipe.setConsume(getConfig().getBoolean(item + ".Consume-Bucket"));
-	}
-
 	@SuppressWarnings("deprecation")
 	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
 		if (!getConfig().isSet(item + ".Item-Damage") || damage.equalsIgnoreCase("none")) {
@@ -221,25 +201,7 @@ public class RecipeManager {
 			}
 		}
 	}
-
-//	ItemStack handleCustomTags(ItemStack i, String item) {
-//		if (!getConfig().isSet(item + ".Custom-Tags"))
-//			return i;
-//
-//		for (String tag : getConfig().getStringList(item + ".Custom-Tags")) {
-//			String[] customTags = tag.split(":");
-//
-//			if (customTags.length != 2)
-//				return i;
-//
-//			try {
-//				i = NBTEditor.set(i, customTags[1], NBTEditor.CUSTOM_DATA, customTags[0]);
-//			} catch (Exception e) {
-//			}
-//		}
-//		return i;
-//	}
-
+	
 	ItemStack handleIdentifier(ItemStack i, String item, Recipe recipe) {
 		if (!getConfig().isSet(item + ".Identifier"))
 			return i;
@@ -278,6 +240,9 @@ public class RecipeManager {
 				String[] breakdown = e.split(":");
 				String enchantment = breakdown[0];
 
+				if (breakdown.length >= 3)
+					continue;
+
 				if (!(XEnchantment.matchXEnchantment(enchantment).isPresent())) {
 					logError("Enchantment " + enchantment + " for the recipe " + item + " is not valid. Skipping..");
 					continue;
@@ -291,38 +256,38 @@ public class RecipeManager {
 		return i;
 	}
 
-	@SuppressWarnings("deprecation")
 	ItemStack handleCustomEnchants(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Enchantments")) {
 
 			try {
 				for (String e : getConfig().getStringList(item + ".Enchantments")) {
+					Boolean applied = false;
 					String[] breakdown = e.split(":");
-					String enchantment = breakdown[0];
-					int lvl = Integer.parseInt(breakdown[1]);
 
-					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(enchantment.toLowerCase())) {
-						i = AEAPI.applyEnchant(enchantment.toLowerCase(), lvl, i);
+					if (breakdown.length != 3)
+						continue;
+
+					String enchantment = breakdown[1].toLowerCase();
+					int lvl = Integer.parseInt(breakdown[2]);
+
+					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(enchantment)) {
+						i = AEAPI.applyEnchant(enchantment, lvl, i);
+						applied = true;
 						continue;
 					}
 
 					if (Main.getInstance().hasEE) {
-
-						EcoEnchants ee = EcoEnchants.INSTANCE;
-
-						if (ee.getByName(enchantment) != null) {
-							EcoEnchant name = ee.getByName(enchantment);
-
-							Enchantment enchant = Enchantment.getByKey(name.getEnchantmentKey());
-							i.addEnchantment(enchant, lvl);
+						NamespacedKey enchantKey = NamespacedKey.fromString("minecraft:" + enchantment);
+						if (Enchantment.getByKey(enchantKey) != null) {
+							Enchantment enchant = Enchantment.getByKey(enchantKey);
+							i.addUnsafeEnchantment(enchant, lvl);
+							applied = true;
 							continue;
 						}
 					}
 
-					if (Enchantment.getByName(enchantment) == null
-							&& !(XEnchantment.matchXEnchantment(enchantment).isPresent()))
-						logError("Enchantment - " + enchantment + " for the recipe " + item
-								+ " is not valid. Skipping..");
+					if (!applied && !XEnchantment.matchXEnchantment(enchantment).isPresent())
+						logError("Could not find custom enchantment " + enchantment + " for the recipe " + item);
 				}
 			} catch (Exception e) {
 				logError("Enchantment section for the recipe " + item + " is not valid. Skipping..");
@@ -556,6 +521,7 @@ public class RecipeManager {
 			if (isHavenBag(item))
 				i = handleBagCreation(i.getType(), item);
 
+			handlePlaceable(item, recipe);
 			handleBucketConsume(i.getType(), item, recipe);
 			recipe.setResult(i);
 

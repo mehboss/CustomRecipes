@@ -215,6 +215,7 @@ public class RecipeUtil {
 		private String key;
 		private String permission;
 
+		private boolean placeable = true;
 		private boolean bucketConsume = true;
 		private boolean active = true;
 		private boolean ignoreData = false;
@@ -245,6 +246,24 @@ public class RecipeUtil {
 			this.ingredients = new ArrayList<>();
 		}
 
+		/**
+		 * Getter for setPlaceable
+		 * 
+		 * @return true if the recipe can be placed down, false otherwise.
+		 */
+		public boolean isPlaceable() {
+			return placeable;
+		}
+
+		/**
+		 * Sets whether or not a recipe is allowed to be placed
+		 * 
+		 * @param status true or false boolean
+		 */
+		public void setPlaceable(Boolean placeable) {
+			this.placeable = placeable;
+		}
+		
 		/**
 		 * Getter for setActive.
 		 * 

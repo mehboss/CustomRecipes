@@ -221,7 +221,8 @@ public class AmountManager implements Listener {
 			}
 
 			if (itemsToAdd == Integer.MAX_VALUE) {
-				logDebug("[handleShiftClicks] Could not craft " + findName + ".. An issue has occured with the amount deductions..");
+				logDebug("[handleShiftClicks] Could not craft " + findName
+						+ ".. An issue has occured with the amount deductions..");
 				e.setResult(null);
 				e.setCancelled(true);
 				return;
@@ -257,7 +258,7 @@ public class AmountManager implements Listener {
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 			logDebug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");
-			
+
 		} else {
 
 			e.setCancelled(true);
@@ -270,9 +271,11 @@ public class AmountManager implements Listener {
 				}
 				player.getInventory().addItem(result);
 			}
-			
+
 			logDebug("[handleShiftClicks] Shift click detected. Adding " + itemsToAdd + " to inventory.");
 			logDebug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
 		}
+
+		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(), System.currentTimeMillis());
 	}
 }

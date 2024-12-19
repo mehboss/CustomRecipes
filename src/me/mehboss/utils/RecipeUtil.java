@@ -102,6 +102,9 @@ public class RecipeUtil {
 		for (Recipe recipe : recipes.values()) {
 			String recipeTag = recipe.getKey();
 
+			if (key == null)
+				return null;
+
 			if (key.equals(recipeTag))
 				return recipe;
 		}
@@ -226,6 +229,7 @@ public class RecipeUtil {
 		private String row2;
 		private String row3;
 
+		private long cooldown = 0;
 		private int cookTime = 200;
 		private float furnaceExperience = 1.0f;
 
@@ -263,7 +267,7 @@ public class RecipeUtil {
 		public void setPlaceable(Boolean placeable) {
 			this.placeable = placeable;
 		}
-		
+
 		/**
 		 * Getter for setActive.
 		 * 
@@ -388,6 +392,15 @@ public class RecipeUtil {
 		}
 
 		/**
+		 * Getter for if the recipe has a NamedspaceKey
+		 * 
+		 * @returns the NamedspaceKey of the recipe
+		 */
+		public boolean hasKey() {
+			return key == null ? false : true;
+		}
+
+		/**
 		 * Setter for the NamedspaceKey, required
 		 * 
 		 * @param key the NamedspaceKey
@@ -406,12 +419,30 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Getter for if the recipe has a NamedspaceKey
+		 * Getter for if the recipe has a cooldown set
 		 * 
-		 * @returns the NamedspaceKey of the recipe
+		 * @returns true if the cooldown in greater than 0 seconds
 		 */
-		public boolean hasKey() {
-			return key == null ? false : true;
+		public boolean hasCooldown() {
+			return cooldown > 0;
+		}
+
+		/**
+		 * Setter for the recipe cooldown
+		 * 
+		 * @param cooldown the cooldown in seconds
+		 */
+		public void setCooldown(long cooldown) {
+			this.cooldown = cooldown;
+		}
+
+		/**
+		 * Getter for the cooldown
+		 * 
+		 * @returns the cooldown in seconds
+		 */
+		public long getCooldown() {
+			return cooldown;
 		}
 
 		/**
@@ -660,7 +691,7 @@ public class RecipeUtil {
 		 * @returns true if the ingredient has an identifier, false otherwise
 		 */
 		public boolean hasIdentifier() {
-			return identifier == null ? false : true;
+			return identifier != null;
 		}
 
 		/**
@@ -718,6 +749,9 @@ public class RecipeUtil {
 		 * @returns the displayname of the ingredient, can be null
 		 */
 		public String getDisplayName() {
+			if (displayName == null)
+				return displayName;
+			
 			return ChatColor.translateAlternateColorCodes('&', displayName);
 		}
 
@@ -727,9 +761,8 @@ public class RecipeUtil {
 		 * @returns true if the ingredient has one, false otherwise
 		 */
 		public boolean hasDisplayName() {
-			return displayName == null || displayName.equalsIgnoreCase("false") || displayName.equalsIgnoreCase("none") || displayName.isBlank()
-					? false
-					: true;
+			return displayName == null || displayName.equalsIgnoreCase("false") || displayName.equalsIgnoreCase("none")
+					|| displayName.isBlank() ? false : true;
 		}
 
 		/**

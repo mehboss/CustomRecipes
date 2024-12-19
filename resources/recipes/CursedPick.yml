@@ -1,51 +1,123 @@
 CursedPick:
-  Enabled: true # Whether or not this recipe is enabled
-  Shapeless: false # Whether or not you want it to have specific order in crafting
-  Item: 'DIAMOND_PICKAXE' # Item ENUM
-  Item-Damage: 'none' # Used for when you need a specific type of item with a "19/00" or "13:4". leave to none if non exists.
-  Amount: 1 # When you craft this item, this is the amount you will get from it.
-  Placeable: true # If it is a block, you can choose to make it unplaceable.
-  Ignore-Data: false # Whether or not metadata should be considered as a requirement for crafting
-  Ignore-Model-Data: false # Whether or not you want model data to be considered even if ignore-data is set to true
-  Custom-Tagged: true # Whether or not you want this item to be tagged with a custom item tag.
-  Durability: '100' # 1-100. Remove section if not needed.
-  Identifier: 'CURSED_PICKAXE' # Give your new recipe an identifier :).
-  Converter: none # Set to FURNACE or STONECUTTER to create recipes for those tools.
-  Permission: 'crecipe.recipe.cursedpick' # Give a player this permission to allow them to craft this item. Remove section if no permission wanted.
-  Name: '&4&lCursed Pick' # Name of the item, you can use color codes. Remove if not needed
+  # Whether or not this recipe is enabled
+  Enabled: true
+
+  # Defines whether the crafting requires a specific order
+  # Set to false for shaped
+  # Set to true for shapeless
+  Shapeless: false
+
+  # Defines a cooldown for crafting this item.
+  # Define amount of time in seconds before the player can craft 
+  # this recipe again
+  # Set to -1 or Omit if not needed
+  Cooldown: 60
+
+  # Item ENUM for the crafted item
+  Item: 'DIAMOND_PICKAXE'  
+
+  # Specific item type (e.g. "19/00" or "13:4").
+  # Ommit or set to none if not needed
+  Item-Damage: 'none'  
+
+  # The quantity received upon crafting
+  Amount: 1  
+
+  # Can this item be placed as a block?
+  Placeable: true  
+
+  # Should metadata be considered in crafting?
+  Ignore-Data: false  
+
+  # Should model data be considered even if ignore-data is true?
+  Ignore-Model-Data: false  
+
+  # Should this item have a custom tag?
+  Custom-Tagged: true  
+
+  # 1-100 durability. 
+  # Omit or set to 100 if not applicable
+  Durability: '100'  
+
+  # Unique identifier for the recipe
+  # Also known as the NamespacedKey
+  Identifier: 'CURSED_PICKAXE'  
+
+  # Set to FURNACE or STONECUTTER for those recipe types
+  Converter: none  
+
+  # Required permission for crafting this item. 
+  # Omit or set to none if not needed
+  Permission: 'crecipe.recipe.cursedpick'  
+
+  # Display name with color codes. 
+  # Omit or set to none if not needed
+  Name: '&4&lCursed Pick'  
+
+  # Lore for the item, can be multiple lines. 
+  # Use [] if not needed
   Lore:
-   - '&c&lThe Cursed Pickaxe' # The lore of the item, it can be multiple lines. Replace with [] if none wanted.
+    - '&c&lThe Cursed Pickaxe'  
+
+  # Potion effects format: "EFFECT:DURATION:AMPLIFIER"
+  # Use [] if not needed
   Effects:
-   - 'POISON:20:2' # This is for potion effects, replace with [] if not wanted. The format for this should be "POTION EFFECT:DURATION:AMPLIFIER"
-  Hide-Enchants: true # Show enchants on item?
+    - 'POISON:20:2'  
+
+  # Should enchantments be hidden?
+  Hide-Enchants: true  
+
+  # List of enchantments. 
+  # Use [] if not needed
   Enchantments:
-   - 'DURABILITY:300' # All the Enchantments are listed at the Top. You can also add as many as you want. Replace with [] if not wanted.
+    - 'DURABILITY:300'  
+
+  # Crafting table layout (X stands for air)
   ItemCrafting:
-    # X STANDS FOR AIR, DO NOT INCLUDE X IN 'ingredients' BELOW
-   - 'EEE' #First row in the crafting table
-   - 'XIX' #Second row in the crafting table
-   - 'XIX' #Third row in the crafting table
+    - 'EEE'  # First row in the crafting table
+    - 'XIX'  # Second row in the crafting table
+    - 'XIX'  # Third row in the crafting table
+
+  # No need to include char X, it defaults to AIR.
   Ingredients:
-    # DO NOT INCLUDE VARIABLE X AS AN INGREDIENT. THIS IS DEFAULTED TO AIR **
-    E: # E is the letter I picked for emerald
-      # REMOVE NAME SECTION OR SET TO 'none' IF NOT WANTED
-      Material: EMERALD # Material ENUM
-      Identifier: none # Set to custom recipe 'identifier' to use a custom item as an ingredient
-      Amount: 1 # Amount required in one slot to craft
-      Name: 'Emerald Essence' # Supports color codes
+  # Abbreviation for table layout ingredient
+    E:
+      # Ingredient material
+      Material: EMERALD  
+          #
+          # Custom recipe identifier for this ingredient. 
+          # Overrides name and material. 
+          # Should match a different recipes identifier.
+      # Omit or set to none if not needed
+      Identifier: none  
+      #
+      # Amount needed in one crafting slot
+      Amount: 1  
+      #
+      # Name with support for color codes
+      Name: '&oEmerald Essence'  
     I:
       Material: IRON_INGOT
       Identifier: none
       Amount: 1
-      Name: 'Iron Essence'
-  Custom-Tags: []
-     # Add specific NBT tags
-  Item-Flags: []
-     # Add items flags to your item such as hide attributes
-  Attribute: []
-      # Adds a given amount of a specified attribute to the custom item.
-      # Format: ATTRIBUTE:AMOUNT:SLOT
-  Custom-Model-Data: none
-      # Custom model data for texture packs. Only on MC 1.14+!
-  Disabled-Worlds: []
-      # Disable crafting in specific worlds
+      Name: '&oIron Essence'
+  # Add specific NBT tags if needed
+  # Use [] if not needed
+  Custom-Tags: []  
+
+  # Add item flags, e.g., to hide attributes
+  # Use [] if not needed
+  Item-Flags: []  
+
+  # Specify attributes to add
+  # Format: ATTRIBUTE:AMOUNT:SLOT
+  # Use [] if not needed
+  Attribute: []  
+
+  # For texture packs, available in MC 1.14+
+  # Omit or set to none if not needed
+  Custom-Model-Data: none  
+
+  # Disable crafting in specific worlds
+  # Use [] if not needed
+  Disabled-Worlds: []  

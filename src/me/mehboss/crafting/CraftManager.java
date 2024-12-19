@@ -67,14 +67,6 @@ public class CraftManager implements Listener {
 		return Main.getInstance().customConfig;
 	}
 
-	FileConfiguration getCnfig(String recipeName) {
-		File dataFolder = Main.getInstance().getDataFolder();
-		File recipesFolder = new File(dataFolder, "recipes");
-		File recipeFile = new File(recipesFolder, recipeName + ".yml");
-
-		return YamlConfiguration.loadConfiguration(recipeFile);
-	}
-
 	boolean isInt(String s) {
 		try {
 			Integer.parseInt(s);
@@ -89,13 +81,14 @@ public class CraftManager implements Listener {
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
 	}
 
-	void sendMessages(Player p, String s) {
-		Main.getInstance().sendMessages(p, s);
+	void sendMessages(Player p, String s, long seconds) {
+		Main.getInstance().sendMessages(p, s, seconds);
 	}
 
-	void sendNoPermsMessage(Player p) {
-		logDebug("Player " + p.getName() + " does not have required recipe crafting permissions for recipe");
-		Main.getInstance().sendMessage(p);
+	void sendNoPermsMessage(Player p, String recipe) {
+		logDebug("[sendNoPermsMessage] Player " + p.getName()
+				+ " does not have required recipe crafting permissions for recipe " + recipe);
+		Main.getInstance().sendnoPerms(p);
 	}
 
 	boolean matchedRecipe(CraftingInventory inv) {
@@ -192,6 +185,14 @@ public class CraftManager implements Listener {
 		return true;
 	}
 
+	boolean hasCooldown(CraftingInventory inv, Player p, Recipe recipe) {
+		if (recipe.hasCooldown())
+			if (!(Main.getInstance().cooldownManager.cooldownExpired(p.getUniqueId(), recipe.getKey())))
+				return true;
+
+		return false;
+	}
+
 	@SuppressWarnings("deprecation")
 	boolean isBlacklisted(CraftingInventory inv, Player p) {
 		if (customConfig().getBoolean("blacklist-recipes") == true) {
@@ -225,19 +226,17 @@ public class CraftManager implements Listener {
 						&& NBTEditor.getString(i, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER", id).equals(id)
 						&& recipeUtil.getRecipe(id) == null) || inv.getResult().isSimilar(i)) {
 
-					if (getPerm != null && !(getPerm.equalsIgnoreCase("none"))) {
-						if (p.hasPermission("crecipe." + getPerm)) {
+					if (getPerm == null || getPerm.equalsIgnoreCase("none") || p.hasPermission("crecipe." + getPerm)) {
 
-							logDebug("[isBlacklisted] Player " + p.getName() + " does have required permission "
-									+ getPerm + " for item " + item);
-							return false;
-						}
+						logDebug("[isBlacklisted] Player " + p.getName() + " does have required permission " + getPerm
+								+ " for item " + item);
+						return false;
 					}
 
 					logDebug("[isBlacklisted] Player " + p.getName() + " does not have required permission " + getPerm
 							+ " for item " + item);
 
-					sendMessages(p, getPerm);
+					sendMessages(p, getPerm, 0);
 					inv.setResult(new ItemStack(Material.AIR));
 					return true;
 				}
@@ -415,7 +414,7 @@ public class CraftManager implements Listener {
 			return;
 
 		Player p = (Player) e.getView().getPlayer();
-		
+
 		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
 				|| !(matchedRecipe(inv)) || isBlacklisted(inv, p))
 			return;
@@ -511,7 +510,7 @@ public class CraftManager implements Listener {
 						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
 					}
 
-					if (!(NBTEditor.contains(inv.getItem(slot), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
+					if (recipeUtil.getRecipeFromResult(inv.getItem(slot)) != null && !(NBTEditor.contains(inv.getItem(slot), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
 						continue;
 
 					slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
@@ -625,9 +624,6 @@ public class CraftManager implements Listener {
 
 							logDebug("[handleCrafting] Invoke getRecipeFromKey:	"
 									+ recipeUtil.getRecipeFromKey(ingredient.getIdentifier()));
-							logDebug("[handleCrafting] Inventory Item == Ingredient Item?: "
-									+ recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult()
-											.isSimilar(inv.getItem(i)));
 							logDebug("[handleCrafting] invIngredient ID is " + NBTEditor.getString(inv.getItem(i),
 									NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"));
 							logDebug("[handleCrafting] recipeIngredient ID is " + ingredient.getIdentifier());
@@ -692,7 +688,7 @@ public class CraftManager implements Listener {
 		logDebug("[handleCrafting] Final results for recipe " + finalRecipe.getName().toUpperCase() + " (passedChecks: "
 				+ passedCheck + ")(foundRecipe: " + found + ")");
 
-		if (hasVanillaIngredients(inv) && !found)
+		if (hasVanillaIngredients(inv) || !found)
 			return;
 
 		if ((!passedCheck) || (found) || (passedCheck && !found))
@@ -701,7 +697,7 @@ public class CraftManager implements Listener {
 		if ((!(finalRecipe.isActive())
 				|| ((finalRecipe.getPerm() != null && (!(p.hasPermission(finalRecipe.getPerm()))))))) {
 			inv.setResult(new ItemStack(Material.AIR));
-			sendNoPermsMessage(p);
+			sendNoPermsMessage(p, finalRecipe.getName());
 			return;
 		}
 
@@ -709,17 +705,25 @@ public class CraftManager implements Listener {
 			for (String string : finalRecipe.getDisabledWorlds()) {
 				if (p.getWorld().getName().equalsIgnoreCase(string)) {
 					inv.setResult(new ItemStack(Material.AIR));
-					sendMessages(p, "none");
+					sendMessages(p, "none", 0);
 					return;
 				}
 			}
 		}
 
-		String recipeName = finalRecipe.getName();
-		if (passedCheck && found && getRecipe().containsKey(finalRecipe.getName().toLowerCase())) {
+		if ((finalRecipe.getPerm() == null || !(p.hasPermission(finalRecipe.getPerm() + ".bypass")))
+				&& hasCooldown(inv, p, finalRecipe)) {
+			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), finalRecipe.getKey());
+
+			sendMessages(p, "crafting-limit", timeLeft);
+			inv.setResult(new ItemStack(Material.AIR));
+			return;
+		}
+
+		if (passedCheck && found) {
 
 			List<String> withPlaceholders = null;
-			ItemStack item = new ItemStack(getRecipe().get(recipeName.toLowerCase()));
+			ItemStack item = new ItemStack(finalRecipe.getResult());
 
 			if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 				withPlaceholders = item.hasItemMeta() && item.getItemMeta().hasLore()

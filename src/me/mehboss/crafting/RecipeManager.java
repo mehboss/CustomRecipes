@@ -46,6 +46,8 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
+
+import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
 import me.mehboss.recipe.Main;
@@ -78,12 +80,17 @@ public class RecipeManager {
 		if (getConfig().isBoolean(item + ".Consume-Bucket"))
 			recipe.setConsume(getConfig().getBoolean(item + ".Consume-Bucket"));
 	}
-	
+
 	void handlePlaceable(String item, Recipe recipe) {
 		if (getConfig().isBoolean(item + ".Placeable"))
 			recipe.setPlaceable(getConfig().getBoolean(item + ".Placeable"));
 	}
-	
+
+	void handleCooldown(String item, Recipe recipe) {
+		if (getConfig().isInt(item + ".Cooldown") && getConfig().getInt(item + ".Cooldown") != -1)
+			recipe.setCooldown(getConfig().getInt(item + ".Cooldown"));
+	}
+
 	@SuppressWarnings("unchecked")
 	ItemStack applyCustomTags(ItemStack item, String recipe) {
 		try {
@@ -124,8 +131,8 @@ public class RecipeManager {
 
 		// Debugging output
 		logDebug("Applying attribute modifier:");
-		logDebug("Name: " + name + ", AttributeName: " + attributeName + ", Amount: " + amount
-				+ ", Operation: " + operation + ", Slot: " + slot);
+		logDebug("Name: " + name + ", AttributeName: " + attributeName + ", Amount: " + amount + ", Operation: "
+				+ operation + ", Slot: " + slot);
 
 		int[] uuid = { 0, 0, 0, 0 };
 
@@ -201,7 +208,7 @@ public class RecipeManager {
 			}
 		}
 	}
-	
+
 	ItemStack handleIdentifier(ItemStack i, String item, Recipe recipe) {
 		if (!getConfig().isSet(item + ".Identifier"))
 			return i;
@@ -433,8 +440,8 @@ public class RecipeManager {
 				continue;
 			}
 
+			boolean usesItemAdder = false;
 			Recipe recipe = new Recipe(item);
-
 			ItemStack i = null;
 			ItemMeta m = null;
 
@@ -497,33 +504,49 @@ public class RecipeManager {
 					? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
 					: null;
 
-			if (type == null || !(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
+			if (type == null && getConfig().isString(item + ".Item")
+					&& getConfig().getString("item" + ".Item").split(":")[0].equalsIgnoreCase("itemsadder")) {
+				String itemID = getConfig().getString("item" + ".Item").split(":")[1];
+				CustomStack stack = CustomStack.getInstance(itemID);
+				if (itemID == null || stack == null) {
+					continue;
+				}
+
+				usesItemAdder = true;
+				recipe.setResult(stack.getItemStack());
+
+			} else if (type == null
+					|| !(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
 				logError("Error loading recipe " + recipeFile.getName());
 				logError("Please double check the 'Item:' material is valid");
 				continue;
 			}
 
-			i = handleItemDamage(i, item, damage, type, amount);
-			i = handleDurability(i, item);
-			i = handleIdentifier(i, item, recipe);
-			i = applyCustomTags(i, item);
-			i = handleEnchants(i, item);
-			i = handleCustomEnchants(i, item);
+			if (!usesItemAdder) {
+				i = handleItemDamage(i, item, damage, type, amount);
+				i = handleDurability(i, item);
+				i = handleIdentifier(i, item, recipe);
+				i = applyCustomTags(i, item);
+				i = handleEnchants(i, item);
+				i = handleCustomEnchants(i, item);
 
-			m = handleDisplayname(item, i);
-			m = handleHideEnchants(item, m);
-			m = handleCustomModelData(item, m);
-			m = handleAttributes(item, m);
-			m = handleFlags(item, m);
-			m = handleLore(item, m);
-			i.setItemMeta(m);
+				m = handleDisplayname(item, i);
+				m = handleHideEnchants(item, m);
+				m = handleCustomModelData(item, m);
+				m = handleAttributes(item, m);
+				m = handleFlags(item, m);
+				m = handleLore(item, m);
+				i.setItemMeta(m);
 
-			if (isHavenBag(item))
-				i = handleBagCreation(i.getType(), item);
+				if (isHavenBag(item))
+					i = handleBagCreation(i.getType(), item);
 
+				recipe.setResult(i);
+			}
+
+			handleCooldown(item, recipe);
 			handlePlaceable(item, recipe);
 			handleBucketConsume(i.getType(), item, recipe);
-			recipe.setResult(i);
 
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
 				recipe.setTagged(true);

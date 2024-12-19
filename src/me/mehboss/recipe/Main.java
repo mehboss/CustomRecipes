@@ -34,6 +34,7 @@ import me.mehboss.commands.GiveRecipe;
 import me.mehboss.commands.NBTCommands;
 import me.mehboss.commands.TabCompletion;
 import me.mehboss.crafting.AmountManager;
+import me.mehboss.crafting.CooldownManager;
 import me.mehboss.crafting.CraftManager;
 import me.mehboss.crafting.RecipeManager;
 import me.mehboss.gui.EditGUI;
@@ -68,14 +69,12 @@ public class Main extends JavaPlugin implements Listener {
 	File customYml = new File(getDataFolder() + "/blacklisted.yml");
 	public FileConfiguration customConfig = null;
 
+	File cooldownYml = new File(getDataFolder() + "/cooldowns.yml");
+	FileConfiguration cooldownConfig = null;
+
 	File cursedYml = new File(getDataFolder() + "/recipes/CursedPick.yml");
-	FileConfiguration cursedConfig = null;
-
 	File swordYml = new File(getDataFolder() + "/recipes/CursedSword.yml");
-	FileConfiguration swordConfig = null;
-
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
-	FileConfiguration bagConfig = null;
 
 	public Boolean hasAE = false;
 	public Boolean hasEE = false;
@@ -85,6 +84,7 @@ public class Main extends JavaPlugin implements Listener {
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
+	public CooldownManager cooldownManager;
 	public RecipeUtil recipeUtil;
 	public InventoryManager guiUtil;
 	public Boolean debug = false;
@@ -92,6 +92,8 @@ public class Main extends JavaPlugin implements Listener {
 	public RecipeUtil getRecipeUtil() {
 		return recipeUtil;
 	}
+
+	private static Main instance;
 
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
@@ -143,6 +145,10 @@ public class Main extends JavaPlugin implements Listener {
 	public void saveCustomYml(FileConfiguration ymlConfig, File ymlFile) {
 		if (!customYml.exists()) {
 			saveResource("blacklisted.yml", false);
+		}
+
+		if (!cooldownYml.exists()) {
+			saveResource("cooldowns.yml", false);
 		}
 
 		if (isFirstLoad && !cursedYml.exists()) {
@@ -198,16 +204,11 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}
 
-	public void initCustomYml() {
-		customConfig = YamlConfiguration.loadConfiguration(customYml);
-	}
-
-	private static Main instance;
-
 	@Override
 	public void onEnable() {
 
 		instance = this;
+		cooldownManager = new CooldownManager();
 		recipeUtil = new RecipeUtil();
 		plugin = new RecipeManager();
 		guiUtil = new InventoryManager();
@@ -236,10 +237,10 @@ public class Main extends JavaPlugin implements Listener {
 			isFirstLoad = getConfig().getBoolean("firstLoad");
 
 		saveCustomYml(customConfig, customYml);
-		saveCustomYml(cursedConfig, cursedYml);
-		saveCustomYml(swordConfig, swordYml);
-		saveCustomYml(bagConfig, bagYml);
-		initCustomYml();
+		saveCustomYml(cooldownConfig, cooldownYml);
+
+		customConfig = YamlConfiguration.loadConfiguration(customYml);
+		cooldownConfig = YamlConfiguration.loadConfiguration(cooldownYml);
 
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
@@ -261,12 +262,12 @@ public class Main extends JavaPlugin implements Listener {
 			getConfig().set("Messages.No-Perm-Place", "&cYou cannot place an unplaceable block!");
 
 		debug = getConfig().getBoolean("Debug");
-
 		saveAllCustomYml();
 		saveConfig();
 		registerUpdateChecker();
 		registerBstats();
 		removeRecipes();
+		addCooldowns();
 		plugin.addRecipes();
 
 		CraftManager craftManager = new CraftManager();
@@ -306,13 +307,38 @@ public class Main extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
-		clear();
+
+		if (cooldownManager != null) {
+			// Check if there are any cooldowns
+			if (cooldownManager.getCooldowns().isEmpty()) {
+				cooldownConfig.set("Cooldowns.", null); // Remove cooldowns if none exist
+				saveCustomYml(cooldownConfig, cooldownYml);
+			} else {
+				// Iterate over each player's cooldowns
+				for (Map.Entry<UUID, Map<String, Long>> playerEntry : cooldownManager.getCooldowns().entrySet()) {
+					UUID playerUUID = playerEntry.getKey();
+					Map<String, Long> playerCooldowns = playerEntry.getValue();
+
+					// Iterate over each recipe's cooldown for the player
+					for (Map.Entry<String, Long> recipeEntry : playerCooldowns.entrySet()) {
+						String recipeID = recipeEntry.getKey();
+						Long cooldownTime = recipeEntry.getValue();
+
+						// Save the cooldown data under the player's UUID and recipe ID
+						cooldownConfig.set("Cooldowns." + playerUUID.toString() + "." + recipeID, cooldownTime);
+					}
+				}
+
+				// Save the updated cooldown data to the YML file
+				saveCustomYml(cooldownConfig, cooldownYml);
+			}
+		}
+
+		clear(); // Clear any additional data or cleanup
 	}
 
 	public void reload() {
 		clear();
-
-		initCustomYml();
 		saveCustomYml(customConfig, customYml);
 		saveAllCustomYml();
 
@@ -323,6 +349,30 @@ public class Main extends JavaPlugin implements Listener {
 
 		recipes = new RecipesGUI(this);
 		editItem = new EditGUI(Main.getInstance(), null);
+	}
+
+	void addCooldowns() {
+		if (cooldownConfig == null)
+			return;
+
+		if (cooldownConfig.isSet("Cooldowns")) {
+			// Iterate through all players in the "Cooldowns" section
+			for (String playerUUIDString : cooldownConfig.getConfigurationSection("Cooldowns").getKeys(false)) {
+				UUID playerUUID = UUID.fromString(playerUUIDString);
+
+				// Iterate through each recipe ID for this player
+				for (String recipeID : cooldownConfig.getConfigurationSection("Cooldowns." + playerUUIDString)
+						.getKeys(false)) {
+					// Get the cooldown time for the recipe
+					long cooldownTime = cooldownConfig.getLong("Cooldowns." + playerUUIDString + "." + recipeID);
+
+					if (recipe != null) {
+						// Set the cooldown for the specific player and recipe
+						cooldownManager.setCooldown(playerUUID, recipeID, cooldownTime);
+					}
+				}
+			}
+		}
 	}
 
 	void removeRecipes() {
@@ -371,12 +421,32 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}
 
-	public void sendMessages(Player p, String s) {
+	String getCooldownMessage(long totalSeconds) {
+		long days = totalSeconds / 86400; // Calculate days
+		long hours = (totalSeconds % 86400) / 3600; // Calculate hours
+		long minutes = (totalSeconds % 3600) / 60; // Calculate minutes
+		long seconds = totalSeconds % 60; // Calculate remaining seconds
+
+		// Configurable message template
+		String messageTemplate = ChatColor.translateAlternateColorCodes('&',
+				customConfig.getString("crafting-limit.chat-message.message"));
+
+		// Replace placeholders with actual values
+		String message = ChatColor.translateAlternateColorCodes('&',
+				messageTemplate.replace("%days%", String.valueOf(days)).replace("%hours%", String.valueOf(hours))
+						.replace("%minutes%", String.valueOf(minutes)).replace("%seconds%", String.valueOf(seconds)));
+
+		return message;
+	}
+
+	public void sendMessages(Player p, String s, long seconds) {
 
 		String send = null;
 
 		if (s.equalsIgnoreCase("none")) {
 			send = "recipe-disabled-message.";
+		} else if (s.equalsIgnoreCase("crafting-limit")) {
+			send = "crafting-limit.";
 		} else {
 			send = "no-permission-message.";
 		}
@@ -393,9 +463,11 @@ public class Main extends JavaPlugin implements Listener {
 		}
 
 		if (customConfig.getBoolean(send + "chat-message.enabled") == true) {
-
 			String message = ChatColor.translateAlternateColorCodes('&',
 					customConfig.getString(send + "chat-message.message"));
+
+			if (send.equals("crafting-limit."))
+				message = getCooldownMessage(seconds);
 
 			p.sendMessage(message);
 		}
@@ -404,7 +476,7 @@ public class Main extends JavaPlugin implements Listener {
 			p.closeInventory();
 	}
 
-	public void sendMessage(Player p) {
+	public void sendnoPerms(Player p) {
 
 		if (getConfig().getBoolean("action-bar.enabled") == true) {
 			try {
@@ -418,14 +490,12 @@ public class Main extends JavaPlugin implements Listener {
 		}
 
 		if (getConfig().getBoolean("chat-message.enabled") == true) {
-
 			String message = ChatColor.translateAlternateColorCodes('&', getConfig().getString("chat-message.message"));
-
-			if (getConfig().getBoolean("chat-message.close-inventory") == true)
-				p.closeInventory();
-
 			p.sendMessage(message);
 		}
+
+		if (getConfig().getBoolean("chat-message.close-inventory") == true)
+			p.closeInventory();
 	}
 
 	@EventHandler

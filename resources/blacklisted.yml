@@ -10,8 +10,14 @@
 # OVERRIDE-RECIPES will disable normal vanilla crafting for an         #
 # item and will allow you to add your own!                             #
 ########################################################################
+
+# Whethere or not you want the recipes below to be blacklisted
 blacklist-recipes: false
+
+# Whether or not to disable all vanilla recipes
 disable-all-vanilla: false
+
+# Messages to be sent if the player has insufficient permission to craft.
 no-permission-message: 
   close-inventory: true
   chat-message: 
@@ -20,6 +26,8 @@ no-permission-message:
   actionbar-message: 
     enabled: false
     message: '&cYou are not allowed to craft this recipe!'
+
+# Messages to be sent if the recipe has been disabled on the server.
 recipe-disabled-message:
   close-inventory: true
   chat-message:
@@ -28,7 +36,20 @@ recipe-disabled-message:
   actionbar-message:
     enabled: false
     message: '&cYou cannot craft this recipe!'
-override-recipes: [] # add vanilla material here if you plan on changing how you craft it
+
+# Messages to be sent if the player has reached their crafting limit
+# Give the player the recipe permission + .bypass in order to exempt them from this
+crafting-limit:
+  close-inventory: true
+  chat-message:
+    enabled: true
+    message: '&cYou must wait &a%days%d%hours%h%minutes%m%seconds%s &cbefore you can craft this again!'
+  actionbar-message:
+    enabled: false
+    message: '&cYou cannot craft this recipe!'
+
+# Add craftable vanilla materials here if you plan on changing how you craft it.
+override-recipes: []
 vanilla-recipes:
   'BEETROOT_SOUP': # item ID for soup
     permission: 'soup' # permission will then be crecipe.soup in order to craft this vanilla recipe. set to 'none' if not needed.

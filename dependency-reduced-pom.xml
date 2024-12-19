@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>CustomRecipes</groupId>
   <artifactId>CustomRecipes</artifactId>
-  <version>1.9.8</version>
+  <version>1.9.8.1</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
@@ -78,6 +78,10 @@
       <id>EcoEnchants</id>
       <url>https://repo.auxilor.io/repository/maven-public/</url>
     </repository>
+    <repository>
+      <id>jitpack-repo</id>
+      <url>https://jitpack.io</url>
+    </repository>
   </repositories>
   <dependencies>
     <dependency>
@@ -90,6 +94,12 @@
       <groupId>me.clip</groupId>
       <artifactId>placeholderapi</artifactId>
       <version>2.11.6</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.LoneDev6</groupId>
+      <artifactId>api-itemsadder</artifactId>
+      <version>3.6.1</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

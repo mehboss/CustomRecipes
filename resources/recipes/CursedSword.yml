@@ -1,6 +1,7 @@
 CursedSword: 
   Enabled: true
   Shapeless: true
+  Cooldown: -1
   Item: 'DIAMOND_SWORD'
   Item-Damage: 'none'
   Amount: 1
@@ -20,20 +21,20 @@ CursedSword:
   Enchantments:
    - 'DURABILITY:300'
   ItemCrafting:
-   - 'DDD'
-   - 'XPX'
-   - 'XPX'
+   - 'XDX'
+   - 'XBX'
+   - 'XBX'
   Ingredients:
     D:
       Material: DIAMOND
       Identifier: none
       Amount: 1
-      Name: 'Diamond Shrine'
-    P:
+      Name: '&oDiamond Shrine'
+    B:
       Material: OAK_PLANKS
       Identifier: none
       Amount: 1
-      Name: 'Wooden Board'
+      Name: '&oWooden Board'
   Custom-Tags: []
   Item-Flags: []
   Attribute: []

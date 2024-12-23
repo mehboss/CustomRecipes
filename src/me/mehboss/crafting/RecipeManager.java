@@ -31,9 +31,11 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemFlag;
@@ -41,6 +43,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.StonecuttingRecipe;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -99,6 +102,8 @@ public class RecipeManager {
 				List<String> path = (List<String>) tagEntry.get("path");
 				Object value = tagEntry.get("value");
 
+				logDebug("Handling tag path " + path.get(0) + " for recipe " + recipe);
+
 				// Check if this is an AttributeModifier entry
 				if (path.get(0).equals("AttributeModifiers")) {
 					List<Map<String, Object>> modifiers = (List<Map<String, Object>>) value;
@@ -107,6 +112,30 @@ public class RecipeManager {
 						// Apply attribute modifier
 						item = applyAttributeModifier(item, modifier);
 					}
+				} else if (path.get(0).equals("SpawnerID")) {
+					logDebug("Attempting to apply path tags now..");
+
+					if (XMaterial.matchXMaterial(item.getType()) != XMaterial.SPAWNER)
+						return item;
+
+					EntityType entity = EntityType.valueOf((String) value);
+					logDebug("Attempting to apply entity type " + entity + " to a spawner for the recipe type "
+							+ recipe);
+
+					BlockStateMeta bsm = (BlockStateMeta) item.getItemMeta();
+					CreatureSpawner cs = (CreatureSpawner) bsm.getBlockState();
+
+					if (entity == null) {
+						logDebug("Could not find entitytype " + entity + "! Skipping application of tag.");
+						return item;
+					}
+
+					logDebug("Successfully set " + entity + " to the spawner recipe: " + recipe);
+					cs.setSpawnedType(EntityType.valueOf((String) value));
+					bsm.setBlockState(cs);
+					item.setItemMeta(bsm);
+					return item;
+
 				} else {
 					// Apply general NBT tag
 					item = applyNBT(item, value, path.toArray(new String[0]));

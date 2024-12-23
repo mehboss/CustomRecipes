@@ -19,7 +19,7 @@ CursedSword:
    - 'POISON:20:2'
   Hide-Enchants: true
   Enchantments:
-   - 'DURABILITY:300'
+   - 'DURABILITY:255'
   ItemCrafting:
    - 'XDX'
    - 'XBX'

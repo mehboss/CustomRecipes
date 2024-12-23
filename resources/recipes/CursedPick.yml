@@ -70,7 +70,7 @@ CursedPick:
   # List of enchantments. 
   # Use [] if not needed
   Enchantments:
-    - 'DURABILITY:300'  
+    - 'DURABILITY:255'  
 
   # Crafting table layout (X stands for air)
   ItemCrafting:

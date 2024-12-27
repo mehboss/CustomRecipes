@@ -5,6 +5,8 @@ WheatSand:
   Amount: 1
   Identifier: WHEATSAND
   Converter: FURNACE
+  Cooktime: 20
+  Experience: 1
   ItemCrafting:
   - WXX
   - XXX

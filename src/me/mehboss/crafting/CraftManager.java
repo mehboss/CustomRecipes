@@ -1,7 +1,5 @@
 package me.mehboss.crafting;
 
-import java.io.File;
-
 /*
  * Mozilla Public License v2.0
  * 
@@ -26,7 +24,6 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -465,17 +462,17 @@ public class CraftManager implements Listener {
 					recipeCount.put(ingredient.getMaterial(),
 							recipeCount.getOrDefault(ingredient.getMaterial(), 0) + 1);
 
-					if (ingredient.hasIdentifier() && recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null) {
-						Recipe exactMatch = recipeUtil.getRecipeFromKey(ingredient.getIdentifier());
+					if (ingredient.hasIdentifier() && recipeUtil.getResultFromKey(ingredient.getIdentifier()) != null) {
+						ItemStack exactMatch = recipeUtil.getResultFromKey(ingredient.getIdentifier());
 
-						if (Main.getInstance().serverVersionAtLeast(1, 14) && exactMatch.getResult().hasItemMeta()
-								&& exactMatch.getResult().getItemMeta().hasCustomModelData()) {
-							recipeMD.add(exactMatch.getResult().getItemMeta().getCustomModelData());
+						if (Main.getInstance().serverVersionAtLeast(1, 14) && exactMatch.hasItemMeta()
+								&& exactMatch.getItemMeta().hasCustomModelData()) {
+							recipeMD.add(exactMatch.getItemMeta().getCustomModelData());
 							// grab ingredient model data
 						}
 
-						if (exactMatch.getResult().getItemMeta().hasDisplayName()) {
-							recipeNames.add(exactMatch.getResult().getItemMeta().getDisplayName());
+						if (exactMatch.getItemMeta().hasDisplayName()) {
+							recipeNames.add(exactMatch.getItemMeta().getDisplayName());
 
 						} else {
 							recipeNames.add("false");
@@ -510,7 +507,8 @@ public class CraftManager implements Listener {
 						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
 					}
 
-					if (recipeUtil.getRecipeFromResult(inv.getItem(slot)) != null && !(NBTEditor.contains(inv.getItem(slot), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
+					if (recipeUtil.getRecipeFromResult(inv.getItem(slot)) != null && !(NBTEditor
+							.contains(inv.getItem(slot), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
 						continue;
 
 					slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
@@ -605,10 +603,8 @@ public class CraftManager implements Listener {
 						ItemMeta meta = inv.getItem(i).getItemMeta();
 
 						if (ingredient.hasIdentifier()
-								&& recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null
-								&& (NBTEditor.contains(inv.getItem(i), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-										&& NBTEditor.getString(inv.getItem(i), NBTEditor.CUSTOM_DATA,
-												"CUSTOM_ITEM_IDENTIFIER").equals(ingredient.getIdentifier()))) {
+								&& recipeUtil.getResultFromKey(ingredient.getIdentifier()) != null
+								&& inv.getItem(i).isSimilar(recipeUtil.getResultFromKey(ingredient.getIdentifier()))) {
 
 							logDebug("[handleCrafting] Passed all required checks for the recipe ingredient in slot "
 									+ i + " for recipe " + recipe.getName());

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>CustomRecipes</groupId>
   <artifactId>CustomRecipes</artifactId>
-  <version>1.9.8.3</version>
+  <version>1.9.8.5</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>

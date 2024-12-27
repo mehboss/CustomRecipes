@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 
+import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
 
@@ -43,10 +44,16 @@ public class RecipeUtil {
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() != RecipeUtil.Recipe.RecipeType.SHAPED
-				&& recipe.getType() != RecipeUtil.Recipe.RecipeType.SHAPELESS) && recipe.getIngredientSize() != 1) {
+		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.STONECUTTER
+				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.FURNACE) && recipe.getIngredientSize() != 1) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
 					+ recipe.getType() + " and has more than 1 ingredient! Ingredients: " + recipe.getIngredientSize();
+			throw new InvalidRecipeException(errorMessage);
+		}
+
+		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.ANVIL) && recipe.getIngredientSize() > 2) {
+			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
+					+ recipe.getType() + " and has more than 2 ingredients! Ingredients: " + recipe.getIngredientSize();
 			throw new InvalidRecipeException(errorMessage);
 		}
 
@@ -74,6 +81,31 @@ public class RecipeUtil {
 	 */
 	public void removeRecipe(String recipeName) {
 		recipes.remove(recipeName);
+	}
+
+	/**
+	 * Getter for a result from a namespacedkey
+	 * 
+	 * @param key the NamespacedKey
+	 * @return the ItemStack if found, can be null
+	 */
+	public ItemStack getResultFromKey(String key) {
+		if (getRecipeFromKey(key) == null) {
+			String[] customKey = key.split(":");
+
+			if (customKey.length >= 2) {
+				if (customKey[0].equalsIgnoreCase("itemsadder") && Main.getInstance().hasItemsAdderPlugin()) {
+					CustomStack customItem = CustomStack.getInstance(key);
+					if (customItem != null)
+						return customItem.getItemStack();
+				}
+			}
+
+		} else {
+			return getRecipeFromKey(key).getResult();
+		}
+
+		return null;
 	}
 
 	/**
@@ -182,10 +214,9 @@ public class RecipeUtil {
 	 * @param recipe removes the recipe(s) from the bukkit registry, can be null
 	 */
 	private void clearDuplicates(Recipe recipe) {
-		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+		if (Main.getInstance().serverVersionAtLeast(1, 16)) {
 
-			NamespacedKey customKey;
-
+			NamespacedKey customKey = null;
 			if (recipe != null) {
 				String key = recipe.getKey().toLowerCase();
 				customKey = NamespacedKey.fromString("customrecipes:" + key);
@@ -231,10 +262,11 @@ public class RecipeUtil {
 
 		private long cooldown = 0;
 		private int cookTime = 200;
+		private int anvilCost = 0;
 		private float furnaceExperience = 1.0f;
 
 		public enum RecipeType {
-			SHAPELESS, SHAPED, STONECUTTER, FURNACE;
+			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL;
 		}
 
 		private RecipeType recipeType = RecipeType.SHAPED;
@@ -535,7 +567,7 @@ public class RecipeUtil {
 		/**
 		 * Setter for the cook time of a furnace recipe
 		 * 
-		 * @param cooktime how long it takes to cook the ingredient
+		 * @param cooktime how long it takes to cook the ingredient, in seconds
 		 */
 		public void setCookTime(int cooktime) {
 			this.cookTime = cooktime;
@@ -566,6 +598,35 @@ public class RecipeUtil {
 		 */
 		public float getExperience() {
 			return furnaceExperience;
+		}
+
+		/**
+		 * Setter for the cost required for an anvil recipe
+		 * 
+		 * @param cost the cost required to complete an anvil transaction
+		 */
+		public void setRepairCost(int cost) {
+			this.anvilCost = cost;
+		}
+
+		/**
+		 * Getter for the anvil cost of an anvil usage
+		 * 
+		 * @returns the amount of cost required from an anvil result
+		 */
+		public int getRepairCost() {
+			return anvilCost;
+		}
+
+		/**
+		 * Getter for if the anvil recipe has a repair cost
+		 * 
+		 * @returns true or false
+		 */
+		public boolean hasRepairCost() {
+			if (anvilCost == 0)
+				return false;
+			return true;
 		}
 
 		/**
@@ -751,7 +812,7 @@ public class RecipeUtil {
 		public String getDisplayName() {
 			if (displayName == null)
 				return displayName;
-			
+
 			return ChatColor.translateAlternateColorCodes('&', displayName);
 		}
 

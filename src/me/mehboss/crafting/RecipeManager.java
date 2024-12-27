@@ -443,6 +443,50 @@ public class RecipeManager {
 		return m;
 	}
 
+	Boolean handleItemAdderCheck(Optional<XMaterial> type, String item, String recipeName, Boolean usesItemAdder,
+			Recipe recipe) {
+		if (type == null && getConfig().isString(item + ".Item")
+				&& getConfig().getString(item + ".Item").split(":")[0].equalsIgnoreCase("itemsadder")) {
+
+			if (!Main.getInstance().hasItemsAdderPlugin()) {
+				logError("Error loading recipe " + recipeName);
+				logError("Found custom item from the ItemsAdder plugin, but did not detect the plugin installed!");
+				return false;
+			}
+
+			String itemID = getConfig().getString("item" + ".Item").split(":")[1];
+			CustomStack stack = CustomStack.getInstance(itemID);
+			if (itemID == null || stack == null) {
+				logError("Error loading recipe " + recipeName);
+				logError("Custom item from ItemsAdder not found, skipping recipe!");
+				return false;
+			}
+
+			usesItemAdder = true;
+			recipe.setResult(stack.getItemStack());
+
+		} else if (type == null || !(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
+			logError("Error loading recipe " + recipeName);
+			logError("Please double check the 'Item:' material is valid");
+			return false;
+		}
+
+		return true;
+	}
+
+	void handleFurnaceData(Recipe recipe, String configPath) {
+		if (getConfig().isInt(configPath + ".Cooktime"))
+			recipe.setCookTime(getConfig().getInt(configPath + ".Cooktime"));
+		
+		if (getConfig().isInt(configPath + ".Experience"))
+			recipe.setExperience(getConfig().getInt(configPath + ".Experience"));
+	}
+	
+	void handleAnvilData(Recipe recipe, String configPath) {
+		if (getConfig().isInt(configPath + ".Cost"))
+			recipe.setRepairCost(getConfig().getInt(configPath + ".Cost"));
+	}
+
 	public void addRecipes() {
 
 		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
@@ -501,7 +545,13 @@ public class RecipeManager {
 				break;
 			case "furnace":
 				recipe.setType(RecipeType.FURNACE);
+				handleFurnaceData(recipe, item);
 				amountRequirement = 1;
+				break;
+			case "anvil":
+				recipe.setType(RecipeType.ANVIL);
+				handleAnvilData(recipe, item);
+				amountRequirement = 2;
 				break;
 			default:
 				if (getConfig().isBoolean(item + ".Shapeless") && getConfig().getBoolean(item + ".Shapeless") == true) {
@@ -533,23 +583,8 @@ public class RecipeManager {
 					? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
 					: null;
 
-			if (type == null && getConfig().isString(item + ".Item")
-					&& getConfig().getString("item" + ".Item").split(":")[0].equalsIgnoreCase("itemsadder")) {
-				String itemID = getConfig().getString("item" + ".Item").split(":")[1];
-				CustomStack stack = CustomStack.getInstance(itemID);
-				if (itemID == null || stack == null) {
-					continue;
-				}
-
-				usesItemAdder = true;
-				recipe.setResult(stack.getItemStack());
-
-			} else if (type == null
-					|| !(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type))) {
-				logError("Error loading recipe " + recipeFile.getName());
-				logError("Please double check the 'Item:' material is valid");
+			if (!handleItemAdderCheck(type, item, recipeFile.getName(), usesItemAdder, recipe))
 				continue;
-			}
 
 			if (!usesItemAdder) {
 				i = handleItemDamage(i, item, damage, type, amount);
@@ -608,9 +643,10 @@ public class RecipeManager {
 				// Iterate through the specified 9x9 grid and get it from the Ingredients
 				// section..
 				slot++;
+				count++;
 
 				RecipeUtil.Ingredient recipeIngredient;
-
+				
 				// adds the abbreviation for AIR automatically to the recipe
 				if (abbreviation.equalsIgnoreCase("X")) {
 					recipeIngredient = new RecipeUtil.Ingredient("X", Material.AIR);
@@ -628,12 +664,10 @@ public class RecipeManager {
 				}
 
 				Material ingredientMaterial = rawMaterial.get().parseMaterial();
-
-				count++;
 				if (count > amountRequirement) {
 					logError("Error loading recipe " + recipeFile.getName());
-					logError("Found " + amountRequirement + " slots but converter is " + converter
-							+ " so use only one slot" + " (X for others) for 'ItemCrafting'");
+					logError("Found " + count + " slots but converter is " + converter + " so use only "
+							+ amountRequirement + " slot(s) (X for others) for 'ItemCrafting'");
 					continue recipeLoop;
 				}
 
@@ -658,12 +692,14 @@ public class RecipeManager {
 				recipeIngredient.setAmount(ingredientAmount);
 				recipeIngredient.setSlot(slot);
 				recipe.addIngredient(recipeIngredient);
-
-				if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS)
+				
+				if (count == amountRequirement)
 					break;
 			}
 
+			logDebug("[HandlingIngredient] Recipe Type: " + recipe.getType());
 			logDebug("Successfully added " + item + " with the amount output of " + i.getAmount());
+			
 
 			if (getConfig().isBoolean(item + ".Enabled"))
 				recipe.setActive(getConfig().getBoolean(item + ".Enabled"));
@@ -706,6 +742,8 @@ public class RecipeManager {
 					break;
 				case STONECUTTER:
 					sCutterRecipe = createStonecuttingRecipe(recipe);
+					break;
+				default:
 					break;
 				}
 

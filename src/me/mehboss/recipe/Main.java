@@ -30,6 +30,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.cryptomorin.xseries.XMaterial;
 
+import me.mehboss.anvil.AnvilManager;
 import me.mehboss.commands.GiveRecipe;
 import me.mehboss.commands.NBTCommands;
 import me.mehboss.commands.TabCompletion;
@@ -95,6 +96,13 @@ public class Main extends JavaPlugin implements Listener {
 
 	private static Main instance;
 
+	public boolean hasItemsAdderPlugin() {
+		if (Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
+			return true;
+		}
+		return false;
+	}
+	
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
 		crecipeCommand.setExecutor(new GiveRecipe(this));
@@ -277,6 +285,7 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
 		Bukkit.getPluginManager().registerEvents(new AmountManager(craftManager), this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
+		Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
 		recipes = new RecipesGUI(this);
@@ -534,6 +543,15 @@ public class Main extends JavaPlugin implements Listener {
 		int[] server_version = getServerVersionParts();
 
 		if (server_version[0] >= major && server_version[1] >= minor) {
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean serverVersionLessThan(int major, int minor) {
+		int[] server_version = getServerVersionParts();
+
+		if (server_version[0] == major && server_version[1] < minor) {
 			return true;
 		}
 		return false;

@@ -31,7 +31,7 @@ public class AnvilManager implements Listener {
 
 		if (recipeUtil.getAllRecipes() == null)
 			return;
-		
+
 		for (Recipe recipe : recipeUtil.getAllRecipes().values()) {
 			Boolean matchedToRecipe = true;
 
@@ -66,57 +66,6 @@ public class AnvilManager implements Listener {
 		}
 	}
 
-	Boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
-
-		// Null check first
-		if (item == null || ingredient == null) {
-			logDebug(recipeName + ": Item or Ingredient is null");
-			logDebug(recipeName + ": Item - " + item);
-			logDebug(recipeName + ": Ingredient - " + ingredient);
-			return false;
-		}
-
-		// Material checks
-		if (item.getType() != ingredient.getMaterial()) {
-			logDebug(recipeName + ": Materials do not match");
-			logDebug(recipeName + ": Item - " + item);
-			logDebug(recipeName + ": Ingredient - " + ingredient);
-			return false;
-		}
-
-		// Compares against #exactMatch
-		if (ingredient.hasIdentifier()) {
-			ItemStack foundItem = recipeUtil.getResultFromKey(ingredient.getIdentifier());
-
-			if (foundItem == null) {
-				logDebug(recipeName + ": Ingredient identifier does not match to a valid recipe");
-				return false;
-			}
-
-			if (!(foundItem.isSimilar(item))) {
-				logDebug(recipeName + ": Identifier isSimilar returned false");
-				return false;
-			}
-
-			// Checks displayname requirements only
-		} else {
-
-			if (ingredient.hasDisplayName() && (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName())) {
-				logDebug(recipeName + ": Ingredient has displayname, item in slot does not have one");
-				return false;
-			}
-
-			if (ingredient.hasDisplayName()
-					&& !(item.getItemMeta().getDisplayName().equals(ingredient.getDisplayName()))) {
-				logDebug(recipeName + ": Displaynames do not match");
-				logDebug(recipeName + ": Slot displayname - " + item.getItemMeta().getDisplayName());
-				logDebug(recipeName + ": Ingredient displayname - " + ingredient.getDisplayName());
-				return false;
-			}
-		}
-		return true;
-	}
-
 	Boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		if (item == null || ingredient == null) {
 			logDebug(recipeName + ": Item or Ingredient is null");
@@ -133,6 +82,10 @@ public class AnvilManager implements Listener {
 		}
 
 		return true;
+	}
+
+	boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
+		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
 	}
 
 	void logDebug(String st) {

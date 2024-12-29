@@ -8,6 +8,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.recipe.CookingBookCategory;
+import org.bukkit.inventory.recipe.CraftingBookCategory;
 
 import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
@@ -44,14 +46,15 @@ public class RecipeUtil {
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.STONECUTTER
-				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.FURNACE) && recipe.getIngredientSize() != 1) {
+		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.STONECUTTER) && recipe.getIngredientSize() != 1) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
 					+ recipe.getType() + " and has more than 1 ingredient! Ingredients: " + recipe.getIngredientSize();
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.ANVIL) && recipe.getIngredientSize() > 2) {
+		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.ANVIL
+				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.FURNACE
+				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.BLASTFURNACE) && recipe.getIngredientSize() > 2) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
 					+ recipe.getType() + " and has more than 2 ingredients! Ingredients: " + recipe.getIngredientSize();
 			throw new InvalidRecipeException(errorMessage);
@@ -249,12 +252,14 @@ public class RecipeUtil {
 		private String key;
 		private String permission;
 
+		private boolean exactChoice = false;
 		private boolean placeable = true;
 		private boolean bucketConsume = true;
 		private boolean active = true;
 		private boolean ignoreData = false;
 		private boolean ignoreModelData = false;
 		private boolean isTagged = false;
+		private boolean discoverable = false;
 
 		private String row1;
 		private String row2;
@@ -266,10 +271,11 @@ public class RecipeUtil {
 		private float furnaceExperience = 1.0f;
 
 		public enum RecipeType {
-			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL;
+			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER;
 		}
 
 		private RecipeType recipeType = RecipeType.SHAPED;
+		private String category = "MISC";
 
 		/**
 		 * Parameterized constructor. Initializes a Recipe object with specified name
@@ -283,6 +289,71 @@ public class RecipeUtil {
 		}
 
 		/**
+		 * Getter for setBookCategory
+		 * 
+		 * @return the Category enum the recipe belongs to in the recipe book.
+		 */
+		public String getBookCategory() {
+			return category;
+		}
+
+		/**
+		 * Sets the category the recipe will be shown within the vanilla recipe book.
+		 * 
+		 * @param category CraftingBookCategory or CookingBookCategory, defaults to MISC
+		 */
+		public void setBookCategory(String category) {
+			try {
+				if (CraftingBookCategory.valueOf(category.toUpperCase()) != null)
+					this.category = category.toUpperCase();
+			} catch (IllegalArgumentException e) {
+				try {
+					if (CookingBookCategory.valueOf(category.toUpperCase()) != null)
+						this.category = category.toUpperCase();
+				} catch (IllegalArgumentException e2) {
+
+				}
+			}
+		}
+		
+		/**
+		 * Getter for setDiscoverable
+		 * 
+		 * @return true if the recipe is discoverable, false otherwise.
+		 */
+		public boolean isDiscoverable() {
+			return discoverable;
+		}
+
+		/**
+		 * Sets whether or not a recipe is going to be discovered automatically
+		 * 
+		 * @param discoverable true or false boolean
+		 */
+		public void setDiscoverable(Boolean discoverable) {
+			this.discoverable = discoverable;
+		}
+
+		/**
+		 * Getter for setExactChoice
+		 * 
+		 * @return true if the recipe is exactChoice, false otherwise.
+		 */
+		public boolean isExactChoice() {
+			return exactChoice;
+		}
+
+		/**
+		 * Sets whether or not a recipe is going to be using exactChoice.
+		 * 
+		 * @param exactChoice true or false boolean
+		 */
+		public void setExactChoice(Boolean exactChoice) {
+			if (Main.getInstance().serverVersionAtLeast(1, 14))
+				this.exactChoice = exactChoice;
+		}
+
+		/**
 		 * Getter for setPlaceable
 		 * 
 		 * @return true if the recipe can be placed down, false otherwise.
@@ -292,7 +363,7 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Sets whether or not a recipe is allowed to be placed
+		 * Sets whether or not a recipe is allowed to be placed.
 		 * 
 		 * @param status true or false boolean
 		 */

@@ -52,8 +52,7 @@ public class EditGUI implements Listener {
 
 	Plugin config = Bukkit.getPluginManager().getPlugin("CustomRecipes");
 	RecipeSaver saveChanges;
-	
-	
+
 	public EditGUI(Plugin p, String item) {
 		instance = this;
 		saveChanges = new RecipeSaver();
@@ -136,9 +135,8 @@ public class EditGUI implements Listener {
 
 		ItemStack result = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
 				? recipeUtil
-						.getRecipeFromKey(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
-						.getResult()
-				: Main.getInstance().giveRecipe.get(configname.toLowerCase());
+						.getResultFromKey(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
+				: Main.getInstance().recipeUtil.getRecipe(configname).getResult();
 
 		ItemMeta resultM = result.getItemMeta();
 
@@ -541,13 +539,9 @@ public class EditGUI implements Listener {
 			if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR || e.getRawSlot() == 23)
 				return;
 
-			if (NBTEditor.contains(e.getCurrentItem(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-					&& recipeUtil.getRecipeFromKey(NBTEditor.getString(e.getCurrentItem(), NBTEditor.CUSTOM_DATA,
-							"CUSTOM_ITEM_IDENTIFIER")) != null) {
+			if (recipeUtil.getRecipeFromResult(e.getCurrentItem()) != null) {
 
-				String name = recipeUtil.getRecipeFromResult(e.getCurrentItem()) != null
-						? recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName()
-						: null;
+				String name = recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName();
 
 				Inventory edit = Bukkit.getServer().createInventory(null, 54,
 						ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + name));
@@ -854,22 +848,22 @@ public class EditGUI implements Listener {
 	@EventHandler
 	public void onClose(PlayerQuitEvent e) {
 		UUID uuid = e.getPlayer().getUniqueId();
-		
+
 		if (Main.getInstance().recipeBook.contains(uuid))
 			Main.getInstance().recipeBook.remove(uuid);
 
 		if (Main.getInstance().saveInventory.containsKey(uuid))
 			Main.getInstance().saveInventory.remove(uuid);
-		
+
 		if (editmeta.containsKey(uuid))
 			editmeta.remove(uuid);
-		
+
 		if (inventoryinstance.containsKey(uuid))
 			inventoryinstance.remove(uuid);
-		
+
 		if (getr.containsKey(uuid))
 			getr.remove(uuid);
-		
+
 		if (getnewid.containsKey(uuid))
 			getnewid.remove(uuid);
 	}

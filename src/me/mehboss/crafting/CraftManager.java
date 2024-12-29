@@ -52,10 +52,6 @@ public class CraftManager implements Listener {
 		return Main.getInstance().disabledrecipe;
 	}
 
-	HashMap<String, ItemStack> getRecipe() {
-		return Main.getInstance().giveRecipe;
-	}
-
 	Logger getLogger() {
 		return Main.getInstance().getLogger();
 	}
@@ -88,7 +84,7 @@ public class CraftManager implements Listener {
 		Main.getInstance().sendnoPerms(p);
 	}
 
-	boolean matchedRecipe(CraftingInventory inv) {
+	public boolean matchedRecipe(CraftingInventory inv) {
 		if (inv.getResult() == null || inv.getResult() == new ItemStack(Material.AIR)) {
 
 			logDebug("[matchedRecipe] Could not find a recipe to match with!");
@@ -242,7 +238,7 @@ public class CraftManager implements Listener {
 		return false;
 	}
 
-	boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
+	public boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
 			boolean hasIdentifier, boolean debug) {
 		if (recipeUtil.getRecipe(recipeName).getIgnoreData() == true)
 			return true;
@@ -339,7 +335,7 @@ public class CraftManager implements Listener {
 	}
 
 	// Checks all inv materials for recipe (shaped or shapeless)
-	boolean hasAllIngredients(CraftingInventory inv, String recipeName, List<RecipeUtil.Ingredient> recipeIngredients) {
+	public boolean hasAllIngredients(CraftingInventory inv, String recipeName, List<RecipeUtil.Ingredient> recipeIngredients) {
 		ArrayList<String> invMaterials = new ArrayList<>();
 		ArrayList<String> ingMaterials = new ArrayList<>();
 

@@ -34,10 +34,6 @@ public class AmountManager implements Listener {
 		this.craftManager = craftManager;
 	}
 
-	HashMap<String, ItemStack> getRecipe() {
-		return Main.getInstance().giveRecipe;
-	}
-
 	void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
@@ -134,7 +130,7 @@ public class AmountManager implements Listener {
 		if (!(matchedRecipe(inv)))
 			return;
 
-		if (!(getRecipe().containsValue(inv.getResult())))
+		if (recipeUtil.getRecipeFromResult(inv.getResult()) == null)
 			return;
 
 		logDebug("[handleShiftClicks] Passed containsValue boolean check.");
@@ -146,17 +142,18 @@ public class AmountManager implements Listener {
 		boolean found = false;
 		final ItemStack result = inv.getResult();
 
+		logDebug("[handleShiftClicks] Initial recipe found recipe '" + findName + "' to handle..");
 		for (String recipes : recipeUtil.getRecipeNames()) {
-			List<RecipeUtil.Ingredient> recipeIngredients = recipeUtil.getRecipe(findName).getIngredients();
+			List<RecipeUtil.Ingredient> recipeIngredients = recipeUtil.getRecipe(recipes).getIngredients();
 
 			if (hasAllIngredients(inv, recipes, recipeIngredients)
-					&& recipeUtil.getRecipe(findName).getType() == RecipeType.SHAPELESS) {
+					&& recipeUtil.getRecipe(recipes).getType() == RecipeType.SHAPELESS) {
 				findName = recipes;
 				found = true;
 				break;
 			}
 			if (hasAllIngredients(inv, recipes, recipeIngredients)
-					&& recipeUtil.getRecipe(findName).getType() == RecipeType.SHAPED) {
+					&& recipeUtil.getRecipe(recipes).getType() == RecipeType.SHAPED) {
 				findName = recipes;
 				found = true;
 				break;
@@ -172,7 +169,7 @@ public class AmountManager implements Listener {
 			}
 		}
 
-		logDebug("[handleShiftClicks] Found recipe " + findName + " to handle..");
+		logDebug("[handleShiftClicks] Actual found recipe '" + findName + "' to handle..");
 
 		if (!found)
 			return;
@@ -222,7 +219,7 @@ public class AmountManager implements Listener {
 
 			if (itemsToAdd == Integer.MAX_VALUE) {
 				logDebug("[handleShiftClicks] Could not craft " + findName
-						+ ".. An issue has occured with the amount deductions..");
+						+ ".. An issue has occurred with the amount deductions..");
 				e.setResult(null);
 				e.setCancelled(true);
 				return;
@@ -276,6 +273,7 @@ public class AmountManager implements Listener {
 			logDebug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
 		}
 
-		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(), System.currentTimeMillis());
+		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(),
+				System.currentTimeMillis());
 	}
 }

@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -61,6 +60,8 @@ public class GiveRecipe implements CommandExecutor {
 					"&c/crecipe reload &8-&f Reloads the configs and resets all recipes &e(crecipe.reload)"));
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 					"&c/crecipe debug &8-&f Enables debug mode for the author to troubleshoot &e(crecipe.debug)"));
+			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&c/edititem &8-&f Convenient recipe & item handler"));
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
 		}
 
@@ -99,8 +100,9 @@ public class GiveRecipe implements CommandExecutor {
 						ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reloading")));
 
 				plugin.reload();
-				sender.sendMessage(ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reload")
-						.replaceAll("%recipes%", String.valueOf(Main.getInstance().giveRecipe.values().size()))));
+				sender.sendMessage(
+						ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Reload").replaceAll(
+								"%recipes%", String.valueOf(Main.getInstance().recipeUtil.getRecipeNames().size()))));
 
 				return false;
 			}
@@ -121,7 +123,7 @@ public class GiveRecipe implements CommandExecutor {
 
 				if (Main.getInstance().recipeBook.contains(player.getUniqueId()))
 					Main.getInstance().recipeBook.remove(player.getUniqueId());
-				
+
 				Main.getInstance().recipes.show(player);
 				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
 				player.sendMessage(OpenMessage);
@@ -236,7 +238,7 @@ public class GiveRecipe implements CommandExecutor {
 					return true;
 				}
 
-				if (plugin.giveRecipe.get(args[2].toLowerCase()) == null) {
+				if (Main.getInstance().getRecipeUtil().getRecipe(args[2]) == null) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							debug().getString("Messages.Recipe-Not-Found")));
 					return true;
@@ -252,7 +254,8 @@ public class GiveRecipe implements CommandExecutor {
 					amount = Integer.parseInt(args[3]);
 				}
 
-				ItemStack item = new ItemStack(plugin.giveRecipe.get(args[2].toLowerCase()));
+				ItemStack item = new ItemStack(
+						Main.getInstance().getRecipeUtil().getRecipe(args[2]).getResult());
 				item.setAmount(amount);
 
 				target.getInventory().addItem(item);

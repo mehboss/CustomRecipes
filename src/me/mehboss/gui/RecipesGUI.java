@@ -118,7 +118,7 @@ public class RecipesGUI implements Listener {
 				
 				String name = Main.getInstance().recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName();
 				if (NBTEditor.contains(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER")
-						|| Main.getInstance().giveRecipe.containsKey(name.toLowerCase())) {
+						|| Main.getInstance().getRecipeUtil().getRecipe(name) != null) {
 
 					Boolean viewing = false;
 
@@ -161,7 +161,7 @@ public class RecipesGUI implements Listener {
 			}
 
 			try {
-				ItemStack item = new ItemStack(Main.getInstance().giveRecipe.get(items.get(index).toLowerCase()));
+				ItemStack item = new ItemStack(Main.getInstance().recipeUtil.getRecipe(items.get(index)).getResult());
 				ItemMeta itemM = item.getItemMeta();
 
 				item.setItemMeta(itemM);

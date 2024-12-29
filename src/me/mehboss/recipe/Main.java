@@ -22,7 +22,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
@@ -37,12 +36,12 @@ import me.mehboss.commands.TabCompletion;
 import me.mehboss.crafting.AmountManager;
 import me.mehboss.crafting.CooldownManager;
 import me.mehboss.crafting.CraftManager;
-import me.mehboss.crafting.RecipeManager;
 import me.mehboss.gui.EditGUI;
 import me.mehboss.gui.InventoryManager;
 import me.mehboss.gui.RecipesGUI;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
+import me.mehboss.utils.MetaChecks;
 import me.mehboss.utils.Metrics;
 import me.mehboss.utils.Placeholders;
 import me.mehboss.utils.RecipeUtil;
@@ -52,19 +51,17 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
 	public RecipeManager plugin;
-
 	public RecipesGUI recipes;
+	public CooldownManager cooldownManager;
+	public RecipeUtil recipeUtil;
+	public InventoryManager guiUtil;
+
 	EditGUI editItem;
 
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
-	ArrayList<Recipe> vanillaRecipes = new ArrayList<Recipe>();
-
 	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
-	public HashMap<String, ItemStack> giveRecipe = new HashMap<String, ItemStack>();
-
-	ArrayList<ShapedRecipe> recipe = new ArrayList<ShapedRecipe>();
-	public ArrayList<String> addRecipe = new ArrayList<String>();
 	public ArrayList<String> disabledrecipe = new ArrayList<String>();
+
 	// add three more shapelessname, amount, and ID specifically for config.
 
 	File customYml = new File(getDataFolder() + "/blacklisted.yml");
@@ -85,16 +82,18 @@ public class Main extends JavaPlugin implements Listener {
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
-	public CooldownManager cooldownManager;
-	public RecipeUtil recipeUtil;
-	public InventoryManager guiUtil;
 	public Boolean debug = false;
 
 	public RecipeUtil getRecipeUtil() {
 		return recipeUtil;
 	}
 
+	public static Main getInstance() {
+		return instance;
+	}
+
 	private static Main instance;
+	public MetaChecks metaChecks;
 
 	public boolean hasItemsAdderPlugin() {
 		if (Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
@@ -102,7 +101,7 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
-	
+
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
 		crecipeCommand.setExecutor(new GiveRecipe(this));
@@ -220,6 +219,7 @@ public class Main extends JavaPlugin implements Listener {
 		recipeUtil = new RecipeUtil();
 		plugin = new RecipeManager();
 		guiUtil = new InventoryManager();
+		metaChecks = new MetaChecks();
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
@@ -278,9 +278,12 @@ public class Main extends JavaPlugin implements Listener {
 		addCooldowns();
 		plugin.addRecipes();
 
+		editItem = new EditGUI(this, null);
+		recipes = new RecipesGUI(this);
 		CraftManager craftManager = new CraftManager();
-		Bukkit.getPluginManager().registerEvents(new EditGUI(this, null), this);
-		Bukkit.getPluginManager().registerEvents(new RecipesGUI(this), this);
+
+		Bukkit.getPluginManager().registerEvents(editItem, this);
+		Bukkit.getPluginManager().registerEvents(recipes, this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
 		Bukkit.getPluginManager().registerEvents(new AmountManager(craftManager), this);
@@ -288,15 +291,8 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
-		recipes = new RecipesGUI(this);
-		editItem = new EditGUI(Main.getInstance(), null);
-
 		registerCommands();
-		getLogger().log(Level.INFO, "Loaded " + giveRecipe.values().size() + " recipes.");
-	}
-
-	public static Main getInstance() {
-		return instance;
+		getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipes.");
 	}
 
 	public void clear() {
@@ -304,11 +300,7 @@ public class Main extends JavaPlugin implements Listener {
 		saveConfig();
 
 		recipeBook.clear();
-		vanillaRecipes.clear();
 		saveInventory.clear();
-		giveRecipe.clear();
-		recipe.clear();
-		addRecipe.clear();
 		disabledrecipe.clear();
 		recipes = null;
 		editItem = null;
@@ -374,11 +366,7 @@ public class Main extends JavaPlugin implements Listener {
 						.getKeys(false)) {
 					// Get the cooldown time for the recipe
 					long cooldownTime = cooldownConfig.getLong("Cooldowns." + playerUUIDString + "." + recipeID);
-
-					if (recipe != null) {
-						// Set the cooldown for the specific player and recipe
-						cooldownManager.setCooldown(playerUUID, recipeID, cooldownTime);
-					}
+					cooldownManager.setCooldown(playerUUID, recipeID, cooldownTime);
 				}
 			}
 		}
@@ -509,12 +497,35 @@ public class Main extends JavaPlugin implements Listener {
 
 	@EventHandler
 	public void update(PlayerJoinEvent e) {
+
+		Player p = e.getPlayer();
+
 		if (getConfig().getBoolean("Update-Check") == true && e.getPlayer().hasPermission("crecipe.reload")
 				&& getDescription().getVersion().compareTo(newupdate) < 0) {
-			e.getPlayer()
-					.sendMessage(ChatColor.translateAlternateColorCodes('&',
-							"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate
-									+ ", &fyou are on version&c " + getDescription().getVersion() + "!"));
+			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
+					"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate
+							+ ", &fyou are on version&c " + getDescription().getVersion() + "!"));
+		}
+
+		if (serverVersionLessThan(1, 14))
+			return;
+
+		for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
+			NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
+			if (key == null)
+				continue;
+
+			if (!recipe.isDiscoverable())
+				continue;
+
+			if (recipe.getPerm() == null || !p.hasPermission(recipe.getPerm())) {
+				if (p.hasDiscoveredRecipe(key))
+					p.undiscoverRecipe(key);
+			} else if (p.hasPermission(recipe.getPerm())) {
+				if (!p.hasDiscoveredRecipe(key))
+					p.discoverRecipe(key);
+			}
+
 		}
 	}
 
@@ -547,7 +558,7 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
-	
+
 	public boolean serverVersionLessThan(int major, int minor) {
 		int[] server_version = getServerVersionParts();
 

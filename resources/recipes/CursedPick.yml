@@ -6,7 +6,7 @@ CursedPick:
   # Set to false for shaped
   # Set to true for shapeless
   Shapeless: false
-
+  
   # Defines a cooldown for crafting this item.
   # Define amount of time in seconds before the player can craft 
   # this recipe again
@@ -32,7 +32,12 @@ CursedPick:
   # Should model data be considered even if ignore-data is true?
   Ignore-Model-Data: false  
 
-  # Should this item have a custom tag?
+  # Should this recipe use precise ItemStacks and show up in the vanilla recipe book?
+  # Does not work on versions < 1.14
+  Exact-Choice: true
+  
+  # Should this item have a custom tag? Prevents renaming vanilla items in an anvil, although 'Exact-Choice' above does this too.
+  # Marks the item as being a custom item.
   Custom-Tagged: true  
 
   # 1-100 durability. 
@@ -43,13 +48,23 @@ CursedPick:
   # Also known as the NamespacedKey
   Identifier: 'CURSED_PICKAXE'  
 
-  # Set to FURNACE or STONECUTTER for those recipe types
+  # Defaults to SHAPED. Other converters: (SHAPED, FURNACE, BLASTFURNACE, SMOKER, CAMPFIRE, STONECUTTER, ANVIL, & MORE)
   Converter: none  
 
   # Required permission for crafting this item. 
   # Omit or set to none if not needed
   Permission: 'crecipe.recipe.cursedpick'  
 
+  # Defines whether the recipe will show in the vanilla recipe book upon joining the server
+  # If set to false, it will be discoverable once crafted
+  # If the player lacks permission, it will not show
+  Auto-Discover-Recipe: true
+  
+  # CraftingBookCategory (BUILDING, EQUIPMENT, MISC, REDSTONE)
+  # CookingBookCategory (BLOCKS, FOOD, MISC)
+  # Category recipe is to be shown in the recipe book
+  Book-Category: 'MISC'
+  
   # Display name with color codes. 
   # Omit or set to none if not needed
   Name: '&4&lCursed Pick'  
@@ -84,10 +99,11 @@ CursedPick:
     E:
       # Ingredient material
       Material: EMERALD  
-          #
-          # Custom recipe identifier for this ingredient. 
-          # Overrides name and material. 
-          # Should match a different recipes identifier.
+      #
+      # Custom recipe identifier for this ingredient. 
+      # Should match a different recipes identifier.
+	  # Requires ingredient to match the corresponding recipe
+	  # Overrides name and material
       # Omit or set to none if not needed
       Identifier: none  
       #
@@ -95,12 +111,12 @@ CursedPick:
       Amount: 1  
       #
       # Name with support for color codes
-      Name: '&oEmerald Essence'  
+      Name: 'Emerald Essence'  
     I:
       Material: IRON_INGOT
       Identifier: none
       Amount: 1
-      Name: '&oIron Essence'
+      Name: 'Iron Essence'
   # Add specific NBT tags if needed
   # Use [] if not needed
   Custom-Tags: []  

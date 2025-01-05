@@ -33,6 +33,7 @@ import me.mehboss.anvil.AnvilManager;
 import me.mehboss.commands.GiveRecipe;
 import me.mehboss.commands.NBTCommands;
 import me.mehboss.commands.TabCompletion;
+import me.mehboss.cooking.CookingManager;
 import me.mehboss.crafting.AmountManager;
 import me.mehboss.crafting.CooldownManager;
 import me.mehboss.crafting.CraftManager;
@@ -73,6 +74,7 @@ public class Main extends JavaPlugin implements Listener {
 	File cursedYml = new File(getDataFolder() + "/recipes/CursedPick.yml");
 	File swordYml = new File(getDataFolder() + "/recipes/CursedSword.yml");
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
+	File sandYml = new File(getDataFolder() + "/recipes/WheatSand.yml");
 
 	public Boolean hasAE = false;
 	public Boolean hasEE = false;
@@ -97,6 +99,13 @@ public class Main extends JavaPlugin implements Listener {
 
 	public boolean hasItemsAdderPlugin() {
 		if (Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean hasMythicMobsPlugin() {
+		if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
 			return true;
 		}
 		return false;
@@ -170,6 +179,10 @@ public class Main extends JavaPlugin implements Listener {
 			saveResource("recipes/HavenBag.yml", false);
 		}
 
+		if (isFirstLoad && !sandYml.exists()) {
+			saveResource("recipes/WheatSand.yml", false);
+		}
+		
 		if (ymlFile.exists() && ymlConfig != null) {
 			try {
 				ymlConfig.save(ymlFile);
@@ -289,6 +302,7 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new AmountManager(craftManager), this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
+		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
 		registerCommands();

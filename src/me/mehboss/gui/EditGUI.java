@@ -3,10 +3,7 @@ package me.mehboss.gui;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -14,7 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -31,11 +27,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import com.cryptomorin.xseries.XMaterial;
-
-import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Ingredient;
 
 public class EditGUI implements Listener {
 
@@ -88,24 +83,24 @@ public class EditGUI implements Listener {
 		}
 
 		int slot = 1;
-		for (String materials : getMaterials(configname)) {
+		for (Ingredient ingredient : Main.getInstance().getRecipeUtil().getRecipe(configname).getIngredients()) {
 
-			if (materials == null || !XMaterial.matchXMaterial(materials).isPresent()) {
+			if (ingredient.isEmpty() || !XMaterial.matchXMaterial(ingredient.getMaterial().toString()).isPresent()) {
 				slot++;
 				continue;
 			}
 
-			boolean foundIdentifier = itemIngredients(configname, slot, p) != null ? true : false;
-			ItemStack mat = foundIdentifier ? itemIngredients(configname, slot, p)
-					: XMaterial.matchXMaterial(materials).get().parseItem();
+			boolean foundIdentifier = itemIngredients(ingredient, configname, slot, p) != null ? true : false;
+			ItemStack mat = foundIdentifier ? itemIngredients(ingredient, configname, slot, p)
+					: XMaterial.matchXMaterial(ingredient.getMaterial().toString()).get().parseItem();
 
-			mat.setAmount(getAmounts(configname, slot));
+			mat.setAmount(getAmounts(ingredient, slot));
 
 			if (!foundIdentifier) {
 				ItemMeta matm = mat.getItemMeta();
 
-				if (getNames(configname, slot) != null)
-					matm.setDisplayName(getNames(configname, slot));
+				if (getNames(ingredient, slot) != null)
+					matm.setDisplayName(getNames(ingredient, slot));
 
 				mat.setItemMeta(matm);
 			}
@@ -133,11 +128,7 @@ public class EditGUI implements Listener {
 
 		}
 
-		ItemStack result = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				? recipeUtil
-						.getResultFromKey(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
-				: Main.getInstance().recipeUtil.getRecipe(configname).getResult();
-
+		ItemStack result = new ItemStack(Main.getInstance().recipeUtil.getRecipe(configname).getResult());
 		ItemMeta resultM = result.getItemMeta();
 
 		if (result.hasItemMeta() && resultM.hasLore() && hasPlaceholder()) {
@@ -308,103 +299,9 @@ public class EditGUI implements Listener {
 
 	}
 
-	public ArrayList<String> getMaterials(String recipename) {
-
-		ArrayList<String> materials = new ArrayList<String>();
-		HashMap<String, String> letter = new HashMap<String, String>();
-
-		letter.put("X", "false");
-
-		ConfigurationSection ingredientsSection = getConfig(recipename)
-				.getConfigurationSection(recipename + ".Ingredients");
-		if (ingredientsSection != null) {
-			for (String ingredientKey : ingredientsSection.getKeys(false)) {
-				ConfigurationSection ingredient = ingredientsSection.getConfigurationSection(ingredientKey);
-				if (ingredient != null) {
-					String identifier = ingredient.getString("Material");
-					letter.put(ingredientKey, identifier);
-				}
-			}
-		}
-
-		List<String> r = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
-		String row1 = r.get(0);
-		String row2 = r.get(1);
-		String row3 = r.get(2);
-
-		String[] newsplit1 = row1.split("");
-		String[] newsplit2 = row2.split("");
-		String[] newsplit3 = row3.split("");
-
-		try {
-			materials.add(letter.get(newsplit1[0]));
-			materials.add(letter.get(newsplit1[1]));
-			materials.add(letter.get(newsplit1[2]));
-
-			materials.add(letter.get(newsplit2[0]));
-			materials.add(letter.get(newsplit2[1]));
-			materials.add(letter.get(newsplit2[2]));
-
-			materials.add(letter.get(newsplit3[0]));
-			materials.add(letter.get(newsplit3[1]));
-			materials.add(letter.get(newsplit3[2]));
-
-		} catch (NullPointerException e) {
-			Main.getInstance().getLogger().log(Level.SEVERE,
-					"ERROR RETRIEVING ITEM MATERIALS FOR " + recipename.toUpperCase()
-							+ ". PLEASE DOUBLE CHECK THAT YOUR MATERIALS HAVE BEEN INPUTTED INTO CONFIG CORRECTLY.");
-			Main.getInstance().getLogger().log(Level.SEVERE,
-					"IF THIS PROBLEM PERSISTS PLEASE CONTACT MEHBOSS ON SPIGOT FOR ASSISTANCE.");
-		}
-		return materials;
-	}
-
-	public int getAmounts(String recipename, int slot) {
-		HashMap<String, Integer> letter = new HashMap<String, Integer>();
-		letter.put("X", 0);
-
-		ConfigurationSection ingredientsSection = getConfig(recipename)
-				.getConfigurationSection(recipename + ".Ingredients");
-		if (ingredientsSection != null) {
-			for (String ingredientKey : ingredientsSection.getKeys(false)) {
-				ConfigurationSection ingredient = ingredientsSection.getConfigurationSection(ingredientKey);
-				if (ingredient != null) {
-					int identifier = ingredient.isSet("Amount") ? ingredient.getInt("Amount") : 1;
-					letter.put(ingredientKey, identifier);
-				}
-			}
-		}
-
-		List<String> craftingRows = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
-		if (craftingRows.size() >= 3) {
-			String row1 = craftingRows.get(0);
-			String row2 = craftingRows.get(1);
-			String row3 = craftingRows.get(2);
-
-			String[] row1Split = row1.split("");
-			String[] row2Split = row2.split("");
-			String[] row3Split = row3.split("");
-
-			if (slot == 1)
-				return letter.get(row1Split[0]);
-			if (slot == 2)
-				return letter.get(row1Split[1]);
-			if (slot == 3)
-				return letter.get(row1Split[2]);
-			if (slot == 4)
-				return letter.get(row2Split[0]);
-			if (slot == 5)
-				return letter.get(row2Split[1]);
-			if (slot == 6)
-				return letter.get(row2Split[2]);
-			if (slot == 7)
-				return letter.get(row3Split[0]);
-			if (slot == 8)
-				return letter.get(row3Split[1]);
-			if (slot == 9)
-				return letter.get(row3Split[2]);
-		}
-
+	public int getAmounts(Ingredient ingredient, int slot) {
+		if (!ingredient.isEmpty())
+			return ingredient.getAmount();
 		return 0;
 	}
 
@@ -418,107 +315,40 @@ public class EditGUI implements Listener {
 		return ChatColor.translateAlternateColorCodes('&', st);
 	}
 
-	ItemStack itemIngredients(String recipename, int slot, OfflinePlayer p) {
+	ItemStack itemIngredients(Ingredient ingredient, String recipename, int slot, OfflinePlayer p) {
 
-		ArrayList<String> ingLetters = new ArrayList<String>();
+		if (ingredient.hasIdentifier()) {
+			Boolean isCustomItem = recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) == null ? true : false;
+			ItemStack itemsAdder = isCustomItem ? Main.getInstance().plugin.handleItemAdderCheck(null, recipename,
+					ingredient.getIdentifier(), false) : null;
+			ItemStack mythicItem = isCustomItem ? Main.getInstance().plugin.handleMythicItemCheck(null, recipename,
+					ingredient.getIdentifier(), false) : null;
+			ItemStack item = null;
 
-		List<String> craftingRows = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
-		if (craftingRows.size() >= 3) {
-			String row1 = craftingRows.get(0);
-			String row2 = craftingRows.get(1);
-			String row3 = craftingRows.get(2);
-
-			String[] row1Split = row1.split("");
-			String[] row2Split = row2.split("");
-			String[] row3Split = row3.split("");
-
-			ingLetters.add(row1Split[0]);
-			ingLetters.add(row1Split[1]);
-			ingLetters.add(row1Split[2]);
-
-			ingLetters.add(row2Split[0]);
-			ingLetters.add(row2Split[1]);
-			ingLetters.add(row2Split[2]);
-
-			ingLetters.add(row3Split[0]);
-			ingLetters.add(row3Split[1]);
-			ingLetters.add(row3Split[2]);
-		}
-
-		String letter = ingLetters.get(slot - 1);
-		ConfigurationSection ingredientsSection = getConfig(recipename)
-				.getConfigurationSection(recipename + ".Ingredients." + letter);
-
-		if (ingredientsSection == null || letter == null || letter.equalsIgnoreCase("X"))
-			return null;
-
-		if (ingredientsSection.isSet("Identifier")
-				&& !ingredientsSection.getString("Identifier").equalsIgnoreCase("none")
-				&& recipeUtil.getRecipeFromKey(ingredientsSection.getString("Identifier")) != null) {
-
-			ItemStack item = recipeUtil.getRecipeFromKey(ingredientsSection.getString("Identifier")).getResult();
-			ItemMeta itemM = item.getItemMeta();
-
-			if (item.hasItemMeta() && itemM.hasLore() && hasPlaceholder()) {
-				itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
-				item.setItemMeta(itemM);
+			if (isCustomItem) {
+				item = (itemsAdder != null) ? itemsAdder : (mythicItem != null) ? mythicItem : null;
+			} else {
+				item = recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult();
 			}
 
-			return item;
+			if (item == null)
+				return null;
+
+			ItemStack finalItem = new ItemStack(item);
+			ItemMeta itemM = finalItem.getItemMeta();
+			if (!isCustomItem && finalItem.hasItemMeta() && itemM.hasLore() && hasPlaceholder()) {
+				itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
+				finalItem.setItemMeta(itemM);
+			}
+
+			return finalItem;
 		}
 		return null;
 	}
 
-	public String getNames(String recipename, int slot) {
-		HashMap<String, String> letter = new HashMap<String, String>();
-		letter.put("X", "false");
-
-		ConfigurationSection ingredientsSection = getConfig(recipename)
-				.getConfigurationSection(recipename + ".Ingredients");
-		if (ingredientsSection != null) {
-			for (String ingredientKey : ingredientsSection.getKeys(false)) {
-				ConfigurationSection ingredient = ingredientsSection.getConfigurationSection(ingredientKey);
-				if (ingredient != null) {
-					String identifier = ingredient.isSet("Name") ? ingredient.getString("Name") : null;
-
-					if (identifier != null && ingredient.getString("Name").equalsIgnoreCase("none"))
-						identifier = null;
-
-					letter.put(ingredientKey, identifier);
-				}
-			}
-		}
-
-		List<String> craftingRows = getConfig(recipename).getStringList(recipename + ".ItemCrafting");
-		if (craftingRows.size() >= 3) {
-			String row1 = craftingRows.get(0);
-			String row2 = craftingRows.get(1);
-			String row3 = craftingRows.get(2);
-
-			String[] row1Split = row1.split("");
-			String[] row2Split = row2.split("");
-			String[] row3Split = row3.split("");
-
-			if (slot == 1)
-				return chatColor(letter.get(row1Split[0]));
-			if (slot == 2)
-				return chatColor(letter.get(row1Split[1]));
-			if (slot == 3)
-				return chatColor(letter.get(row1Split[2]));
-			if (slot == 4)
-				return chatColor(letter.get(row2Split[0]));
-			if (slot == 5)
-				return chatColor(letter.get(row2Split[1]));
-			if (slot == 6)
-				return chatColor(letter.get(row2Split[2]));
-			if (slot == 7)
-				return chatColor(letter.get(row3Split[0]));
-			if (slot == 8)
-				return chatColor(letter.get(row3Split[1]));
-			if (slot == 9)
-				return chatColor(letter.get(row3Split[2]));
-		}
-
+	public String getNames(Ingredient ingredient, int slot) {
+		if (!ingredient.isEmpty() && ingredient.hasDisplayName())
+			return ingredient.getDisplayName();
 		return null;
 	}
 

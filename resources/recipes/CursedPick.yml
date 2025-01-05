@@ -102,8 +102,8 @@ CursedPick:
       #
       # Custom recipe identifier for this ingredient. 
       # Should match a different recipes identifier.
-	  # Requires ingredient to match the corresponding recipe
-	  # Overrides name and material
+      # Requires ingredient to match the corresponding recipe
+      # Overrides name and material
       # Omit or set to none if not needed
       Identifier: none  
       #

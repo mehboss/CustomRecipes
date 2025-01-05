@@ -1,6 +1,6 @@
 package me.mehboss.crafting;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,6 +19,7 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
+import me.mehboss.recipe.RecipeManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -59,13 +60,8 @@ public class AmountManager implements Listener {
 		String recipeName = recipe.getName();
 		logDebug("[handleShiftClicks] Checking slot " + slot + " for the recipe " + recipeName);
 
-		if ((ingredient.hasIdentifier() && NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				&& ingredient.getIdentifier()
-						.equals(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
-				|| (ingredient.hasIdentifier()
-						&& item.isSimilar(recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult()))
-				|| (item.getType() == ingredient.getMaterial() && hasMatchingDisplayName(recipeName, item,
-						ingredient.getDisplayName(), ingredient.getIdentifier(), ingredient.hasIdentifier(), false))) {
+		if (matchesIngredient(item, recipeName, ingredient, ingredient.getMaterial(), ingredient.getDisplayName(),
+				ingredient.hasIdentifier())) {
 
 			if (item.getAmount() < requiredAmount)
 				return;
@@ -114,11 +110,18 @@ public class AmountManager implements Listener {
 	// Helper method for the handleShiftClick method
 	boolean matchesIngredient(ItemStack item, String recipeName, RecipeUtil.Ingredient ingredient, Material material,
 			String displayName, boolean hasIdentifier) {
+		RecipeManager recipeManager = Main.getInstance().plugin;
+		Recipe exactMatch = recipeUtil.getRecipeFromKey(ingredient.getIdentifier());
+
+		ItemStack itemsAdder = recipeManager.handleItemAdderCheck(null, recipeName, ingredient.getIdentifier(), false);
+		ItemStack mythicItem = recipeManager.handleMythicItemCheck(null, recipeName, ingredient.getIdentifier(), false);
+
 		return ((ingredient.hasIdentifier() && NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
 				&& ingredient.getIdentifier()
 						.equals(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
-				|| (ingredient.hasIdentifier()
-						&& item.isSimilar(recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult()))
+				|| (ingredient.hasIdentifier() && itemsAdder != null && item.isSimilar(itemsAdder))
+				|| (ingredient.hasIdentifier() && mythicItem != null && item.isSimilar(mythicItem))
+				|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
 				|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
 						ingredient.getIdentifier(), hasIdentifier, false)));
 	}
@@ -138,8 +141,10 @@ public class AmountManager implements Listener {
 		if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 			return;
 
-		String findName = recipeUtil.getRecipeFromResult(inv.getResult()).getName();
-		boolean found = false;
+		String findName = recipeUtil.getRecipeFromResult(inv.getResult()) != null
+				? recipeUtil.getRecipeFromResult(inv.getResult()).getName()
+				: null;
+
 		final ItemStack result = inv.getResult();
 
 		logDebug("[handleShiftClicks] Initial recipe found recipe '" + findName + "' to handle..");
@@ -149,13 +154,11 @@ public class AmountManager implements Listener {
 			if (hasAllIngredients(inv, recipes, recipeIngredients)
 					&& recipeUtil.getRecipe(recipes).getType() == RecipeType.SHAPELESS) {
 				findName = recipes;
-				found = true;
 				break;
 			}
 			if (hasAllIngredients(inv, recipes, recipeIngredients)
 					&& recipeUtil.getRecipe(recipes).getType() == RecipeType.SHAPED) {
 				findName = recipes;
-				found = true;
 				break;
 			}
 		}
@@ -165,13 +168,12 @@ public class AmountManager implements Listener {
 
 			if (recipeUtil.getRecipeFromKey(foundID) != null) {
 				findName = recipeUtil.getRecipeFromKey(foundID).getName();
-				found = true;
 			}
 		}
 
 		logDebug("[handleShiftClicks] Actual found recipe '" + findName + "' to handle..");
 
-		if (!found)
+		if (findName == null)
 			return;
 
 		logDebug("[handleShiftClicks] Paired it to a custom recipe. Running crafting amount calculations..");
@@ -190,6 +192,8 @@ public class AmountManager implements Listener {
 		logDebug("[handleShiftClicks] Checking amount requirements for " + recipeName);
 
 		Recipe recipe = recipeUtil.getRecipe(recipeName);
+
+		ArrayList<String> handledIngredients = new ArrayList<String>();
 		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
 			if (ingredient.isEmpty())
 				continue;
@@ -227,6 +231,8 @@ public class AmountManager implements Listener {
 
 			// Handle SHAPELESS recipes by looping through the inventory
 			if (recipe.getType() == RecipeType.SHAPELESS) {
+				logDebug("[handleShiftClicks] Found shapeless recipe to handle..");
+
 				for (int i = 1; i < 10; i++) {
 					ItemStack item = inv.getItem(i);
 					int slot = i;
@@ -234,11 +240,17 @@ public class AmountManager implements Listener {
 					if (item == null || item.getType() == Material.AIR)
 						continue;
 
-					handlesItemRemoval(e, inv, recipe, item, ingredient, slot, itemsToRemove, itemsToAdd,
-							requiredAmount);
-
+					if (!handledIngredients.contains(ingredient.getAbbreviation())) {
+						handlesItemRemoval(e, inv, recipe, item, ingredient, slot, itemsToRemove, itemsToAdd,
+								requiredAmount);
+					}
 				}
+				if (!handledIngredients.contains(ingredient.getAbbreviation()))
+					handledIngredients.add(ingredient.getAbbreviation());
+
 			} else {
+				logDebug("[handleShiftClicks] Found other recipe type to handle..");
+
 				ItemStack item = inv.getItem(ingredient.getSlot());
 				int slot = ingredient.getSlot();
 

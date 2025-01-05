@@ -129,8 +129,21 @@ public class CraftManager implements Listener {
 
 	boolean validateItem(ItemStack item, RecipeUtil.Ingredient ingredient, String recipeName, int slot, boolean debug,
 			boolean returnType) {
-		if (item != null && item.getType() == ingredient.getMaterial() && hasMatchingDisplayName(recipeName, item,
-				ingredient.getDisplayName(), ingredient.getIdentifier(), ingredient.hasIdentifier(), false)) {
+
+		ItemStack itemsAdder = Main.getInstance().plugin.handleItemAdderCheck(null, recipeName, ingredient.getIdentifier(), false);
+		ItemStack mythicItem = Main.getInstance().plugin.handleMythicItemCheck(null, recipeName, ingredient.getIdentifier(), false);
+		ItemStack recipe = recipeUtil.getRecipeFromResult(item) != null
+				? recipeUtil.getRecipeFromResult(item).getResult()
+				: null;
+
+		ItemStack exactMatch = (itemsAdder != null) ? itemsAdder : (mythicItem != null) ? mythicItem : recipe;
+
+		// Attempt to match the ingredient to a recipe using the identifier
+		// Attempt to match the ingredient to an itemsadder item
+		// If all else fail, match the itemstack to the regular ingredient requirements
+		if (item != null && ((ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch))
+				|| (item.getType() == ingredient.getMaterial() && hasMatchingDisplayName(recipeName, item,
+						ingredient.getDisplayName(), ingredient.getIdentifier(), ingredient.hasIdentifier(), false)))) {
 
 			if (debug)
 				logDebug("[amountsMatch] Checking slot " + slot + " for required amounts.. ");
@@ -335,7 +348,8 @@ public class CraftManager implements Listener {
 	}
 
 	// Checks all inv materials for recipe (shaped or shapeless)
-	public boolean hasAllIngredients(CraftingInventory inv, String recipeName, List<RecipeUtil.Ingredient> recipeIngredients) {
+	public boolean hasAllIngredients(CraftingInventory inv, String recipeName,
+			List<RecipeUtil.Ingredient> recipeIngredients) {
 		ArrayList<String> invMaterials = new ArrayList<>();
 		ArrayList<String> ingMaterials = new ArrayList<>();
 
@@ -354,7 +368,14 @@ public class CraftManager implements Listener {
 
 		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
 			if (!ingredient.isEmpty()) {
-				ingMaterials.add(ingredient.getMaterial().toString());
+
+				if (!ingredient.hasIdentifier()) {
+					ingMaterials.add(ingredient.getMaterial().toString());
+				} else if (recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null) {
+					ingMaterials.add(
+							recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult().getType().toString());
+				}
+
 				continue;
 			}
 			ingMaterials.add("null");
@@ -431,7 +452,25 @@ public class CraftManager implements Listener {
 
 			passedCheck = true;
 			found = true;
+			
+			if (recipeUtil.getRecipeFromResult(inv.getResult()) != null) {
+				recipe = recipeUtil.getRecipeFromResult(inv.getResult());
 
+				if (recipe.isExactChoice()) {
+					logDebug("[handleCrafting] Found recipe " + recipe.getName() + " to handle..");
+					logDebug("[handleCrafting] Manual checks and methods skipped because exactChoice is enabled!");
+
+					if (!(amountsMatch(inv, recipe.getName(), recipe.getIngredients(), true))) {
+						logDebug("[handleCrafting] Skipping recipe.. ");
+						logDebug("The amount check indicates that the requirements have not been met for recipe "
+								+ recipe.getName());
+						inv.setResult(new ItemStack(Material.AIR));
+						passedCheck = false;
+					}
+					break;
+				}
+			}
+			
 			if (recipe.getType() == RecipeType.SHAPELESS) {
 				// runs checks if recipe is shapeless
 

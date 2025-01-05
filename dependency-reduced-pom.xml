@@ -82,6 +82,11 @@
       <id>jitpack-repo</id>
       <url>https://jitpack.io</url>
     </repository>
+    <repository>
+      <id>nexus</id>
+      <name>Lumine Releases</name>
+      <url>https://mvn.lumine.io/repository/maven-public/</url>
+    </repository>
   </repositories>
   <dependencies>
     <dependency>
@@ -100,6 +105,12 @@
       <groupId>com.github.LoneDev6</groupId>
       <artifactId>api-itemsadder</artifactId>
       <version>3.6.1</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.lumine</groupId>
+      <artifactId>Mythic-Dist</artifactId>
+      <version>5.7.2</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

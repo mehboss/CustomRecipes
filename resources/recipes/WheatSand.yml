@@ -1,6 +1,8 @@
 WheatSand:
   Enabled: false
-  Shapeless: true
+  Exact-Choice: true
+  Auto-Discover-Recipe: true
+  Book-Category: 'MISC'
   Item: SAND
   Amount: 1
   Identifier: WHEATSAND
@@ -19,5 +21,4 @@ WheatSand:
   Item-Flags: []
   Attribute: []
   Disabled-Worlds: []
-  Placeable: true
-  Ignore-Model-Data: false
+  Custom-Tags: []

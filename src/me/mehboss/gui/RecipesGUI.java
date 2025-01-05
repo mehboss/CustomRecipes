@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -22,9 +24,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import com.cryptomorin.xseries.XMaterial;
-
-import io.github.bananapuncher714.nbteditor.NBTEditor;
-import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 
 public class RecipesGUI implements Listener {
@@ -111,30 +110,33 @@ public class RecipesGUI implements Listener {
 						&& e.getCurrentItem().getItemMeta().getDisplayName().trim().equals("Add Recipe")) {
 					return;
 				}
-				
+
 				// did not click one of the recipes
 				if (e.getRawSlot() < 19 || e.getRawSlot() > 34 || e.getRawSlot() == 26 || e.getRawSlot() == 27)
 					return;
+
+				String recipeName = Main.getInstance().recipeUtil.getRecipeFromResult(e.getCurrentItem()) != null
+						? Main.getInstance().recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName()
+						: null;
+
+				logDebug("[RecipeBooklet][" + p.getName() + "] Triggered open recipe matrix.. " + recipeName);
 				
-				String name = Main.getInstance().recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName();
-				if (NBTEditor.contains(e.getCurrentItem(), "CUSTOM_ITEM_IDENTIFIER")
-						|| Main.getInstance().getRecipeUtil().getRecipe(name) != null) {
+				if (recipeName != null) {
 
 					Boolean viewing = false;
-
 					Inventory edit = null;
 
 					if (!(Main.getInstance().recipeBook.contains(p.getUniqueId()))) {
 						edit = Bukkit.getServer().createInventory(null, 54,
-								ChatColor.translateAlternateColorCodes('&', "&cEDITING: " + name));
+								ChatColor.translateAlternateColorCodes('&', "&cEDITING: " + recipeName));
 					} else {
 						edit = Bukkit.getServer().createInventory(null, 54,
-								ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + name));
+								ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + recipeName));
 						viewing = true;
 					}
-
+					logDebug("[RecipeBooklet][" + p.getName() + "] Opening recipe matrix.. " + recipeName);
 					Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
-					EditGUI.getInstance().setItems(viewing, edit, name, e.getCurrentItem(), p);
+					EditGUI.getInstance().setItems(viewing, edit, recipeName, e.getCurrentItem(), p);
 
 					p.openInventory(edit);
 				}
@@ -168,7 +170,7 @@ public class RecipesGUI implements Listener {
 
 				String loc = items.get(index);
 				if (p != null && !p.hasPermission("crecipe.gui")
-						&& !p.hasPermission(getConfig(loc).getString(loc + ".Permission")))
+						&& !p.hasPermission(Main.getInstance().getRecipeUtil().getRecipe(loc).getPerm()))
 					continue;
 
 				inv.setItem(slots[currentSlot], item);
@@ -247,5 +249,10 @@ public class RecipesGUI implements Listener {
 		items(p, inv, 0);
 		setDefaults(p, inv);
 		p.openInventory(inv);
+	}
+	
+	private void logDebug(String st) {
+		if (Main.getInstance().debug)
+			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 }

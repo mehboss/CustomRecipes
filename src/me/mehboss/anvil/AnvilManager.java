@@ -59,6 +59,12 @@ public class AnvilManager implements Listener {
 		}
 
 		if (matchedRecipe != null) {
+			if (!matchedRecipe.isActive()
+					|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))) {
+				sendNoPermsMessage(p, matchedRecipe.getName());
+				return;
+			}
+
 			logDebug(matchedRecipe.getName() + ": Requirements met.. Successfully set anvil result slot");
 			e.setResult(matchedRecipe.getResult());
 			inv.setRepairCost(matchedRecipe.getRepairCost());
@@ -91,5 +97,11 @@ public class AnvilManager implements Listener {
 	void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+	}
+
+	void sendNoPermsMessage(Player p, String recipe) {
+		logDebug("[sendNoPermsMessage] Player " + p.getName()
+				+ " does not have required recipe crafting permissions for recipe " + recipe);
+		Main.getInstance().sendnoPerms(p);
 	}
 }

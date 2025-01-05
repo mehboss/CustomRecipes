@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class CooldownManager {
     private Map<UUID, Map<String, Long>> playerCooldowns = new HashMap<>(); // Keyed by player UUID, then by recipe ID

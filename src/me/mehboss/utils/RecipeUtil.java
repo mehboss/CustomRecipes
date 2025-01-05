@@ -46,27 +46,13 @@ public class RecipeUtil {
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.STONECUTTER) && recipe.getIngredientSize() != 1) {
-			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
-					+ recipe.getType() + " and has more than 1 ingredient! Ingredients: " + recipe.getIngredientSize();
-			throw new InvalidRecipeException(errorMessage);
-		}
-
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.ANVIL
-				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.FURNACE
-				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.BLASTFURNACE) && recipe.getIngredientSize() > 2) {
-			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
-					+ recipe.getType() + " and has more than 2 ingredients! Ingredients: " + recipe.getIngredientSize();
-			throw new InvalidRecipeException(errorMessage);
-		}
-
 		if (recipe.getResult() == null || recipe.getResult().getType() == Material.AIR) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName()
 					+ ". The recipe result was null or not set.";
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if (recipe.getType() != RecipeUtil.Recipe.RecipeType.SHAPED
+		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPED || recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPELESS)
 				&& (recipe.getRow(1) == null || recipe.getRow(2) == null || recipe.getRow(3) == null)) {
 			String errorMessage = "[CRAPI] Could not add recipe because shape cannot have null rows. Recipe: "
 					+ recipe.getName();
@@ -102,6 +88,11 @@ public class RecipeUtil {
 					if (customItem != null)
 						return customItem.getItemStack();
 				}
+				if (customKey[0].equalsIgnoreCase("mythicmobs") && Main.getInstance().hasItemsAdderPlugin()) {
+					CustomStack customItem = CustomStack.getInstance(key);
+					if (customItem != null)
+						return customItem.getItemStack();
+				}
 			}
 
 		} else {
@@ -121,7 +112,7 @@ public class RecipeUtil {
 		for (Recipe recipe : recipes.values()) {
 			ItemStack result = recipe.getResult();
 
-			if (result.equals(item))
+			if (result.equals(item) || result.isSimilar(item))
 				return recipe;
 		}
 		return null;

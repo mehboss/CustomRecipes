@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,12 +35,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.cryptomorin.xseries.XMaterial;
-import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
-import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
-
-import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
-import io.lumine.mythic.bukkit.MythicBukkit;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
@@ -170,7 +164,7 @@ public class CraftManager implements Listener {
 
 	boolean amountsMatch(CraftingInventory inv, String recipeName, List<RecipeUtil.Ingredient> recipeIngredients,
 			boolean debug) {
-		
+
 		logDebug("[AmountsMatch] Checking recipe " + recipeName);
 		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
 			if (ingredient.isEmpty())
@@ -378,36 +372,8 @@ public class CraftManager implements Listener {
 				} else if (recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null) {
 					ingMaterials.add(
 							recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult().getType().toString());
-				} else {
-					String[] customItem = ingredient.getIdentifier().split(":");
-					if (customItem.length <= 1)
-						continue;
-
-					if (customItem[0].equalsIgnoreCase("itemsadder") && Main.getInstance().hasItemsAdderPlugin()) {
-						CustomStack stack = CustomStack.getInstance(customItem[1]);
-						if (stack == null)
-							continue;
-
-						ingMaterials.add(stack.getItemStack().getType().toString());
-					}
-
-					if (customItem[0].equalsIgnoreCase("mythicmobs") && Main.getInstance().hasMythicMobsPlugin()) {
-						ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(customItem[1]);
-						if (mythicItem == null)
-							continue;
-
-						ingMaterials.add(mythicItem.getType().toString());
-					}
-
-					if (customItem[0].equalsIgnoreCase("executableitems")
-							&& Main.getInstance().hasExecutableItemsPlugin()) {
-						Optional<ExecutableItemInterface> stack = ExecutableItemsAPI.getExecutableItemsManager()
-								.getExecutableItem(customItem[1]);
-						if (stack == null || !stack.isPresent())
-							continue;
-
-						ingMaterials.add(stack.get().buildItem(1, Optional.empty()).getType().toString());
-					}
+				} else if (recipeUtil.getResultFromKey(ingredient.getIdentifier()) != null) {
+					ingMaterials.add(recipeUtil.getResultFromKey(ingredient.getIdentifier()).getType().toString());
 				}
 
 				continue;
@@ -551,7 +517,7 @@ public class CraftManager implements Listener {
 						inventoryCount.put(Material.AIR, inventoryCount.getOrDefault(Material.AIR, 0) + 1);
 						continue;
 					}
-					
+
 					if (Main.getInstance().serverVersionAtLeast(1, 14) && inv.getItem(slot).hasItemMeta()
 							&& inv.getItem(slot).getItemMeta().hasCustomModelData()) {
 						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
@@ -633,7 +599,7 @@ public class CraftManager implements Listener {
 						passedCheck = false;
 						continue;
 					}
-					
+
 					if (!recipeNameCount.equals(slotNameCount)) {
 						logDebug("[handleCrafting] Display name count mismatch: recipe vs inventory");
 						logDebug("Recipe Name Map: " + recipeNameCount);
@@ -646,7 +612,7 @@ public class CraftManager implements Listener {
 
 				if (recipeUtil.getRecipeFromResult(inv.getResult()) != null) {
 					recipe = recipeUtil.getRecipeFromResult(inv.getResult());
-					
+
 					if (recipe.isExactChoice()) {
 						logDebug("[handleCrafting] Found recipe " + recipe.getName() + " to handle..");
 						logDebug("[handleCrafting] Manual checks and methods skipped because exactChoice is enabled!");

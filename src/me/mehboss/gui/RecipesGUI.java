@@ -185,7 +185,7 @@ public class RecipesGUI implements Listener {
 		ItemStack greenstained = createItem("stainedG", XMaterial.GREEN_STAINED_GLASS_PANE,
 				ChatColor.LIGHT_PURPLE + "Add Recipe", (String[]) null);
 		ItemStack redstained = createItem("stainedG", XMaterial.RED_STAINED_GLASS_PANE, ChatColor.RED + "Previous Page",
-				"none");
+				(String[]) null);
 		ItemStack orangestained = createItem("stainedG", XMaterial.ORANGE_STAINED_GLASS_PANE,
 				ChatColor.GREEN + "Next Page", (String[]) null);
 

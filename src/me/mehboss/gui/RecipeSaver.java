@@ -19,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class RecipeSaver {
 
@@ -53,49 +54,38 @@ public class RecipeSaver {
 
 	}
 
-	@SuppressWarnings("deprecation")
 	public Map<String, Object> convertToRecipeConfig(Inventory inventory) {
 		Map<String, Object> recipeConfig = new HashMap<>();
 
 		// General settings
 		recipeConfig.put("Enabled", true);
 		recipeConfig.put("Shapeless", false);
-
+		recipeConfig.put("Cooldown", 60);
 		// Get result item from slot 23
 		ItemStack resultItem = inventory.getItem(23);
 		if (resultItem != null && resultItem.getType() != Material.AIR) {
-			recipeConfig.put("Item", resultItem.getType().toString());
-			recipeConfig.put("Amount", resultItem.getAmount());
-			recipeConfig.put("Name", getItemName(resultItem));
-			recipeConfig.put("Identifier", getCustomIdentifier(resultItem));
-			recipeConfig.put("Lore", formatLore(getItemLore(resultItem)));
+			recipeConfig.put("Identifier", inventory.getItem(7).getItemMeta().getLore().get(0));
 		}
 
-		// Item-specific flags
-		recipeConfig.put("Item-Damage", "none");
 		recipeConfig.put("Placeable", true);
 		recipeConfig.put("Ignore-Data", false);
 		recipeConfig.put("Ignore-Model-Data", false);
 		recipeConfig.put("Custom-Tagged", true);
-
-		int durability = resultItem.getDurability();
-		if (durability != 100) {
-			recipeConfig.put("Durability", durability);
-		}
-
 		recipeConfig.put("Converter", "none");
+		
 		recipeConfig.put("Permission", "crecipe.recipe." + recipeConfig.get("Identifier"));
-		recipeConfig.put("Hide-Enchants", true);
-		recipeConfig.put("Effects", new ArrayList<>()); // Default empty effects list
-		recipeConfig.put("Enchantments", new ArrayList<>()); // Default empty enchantment list
 		recipeConfig.put("Custom-Tags", new ArrayList<>());
 		recipeConfig.put("Item-Flags", new ArrayList<>());
 		recipeConfig.put("Attribute", new ArrayList<>());
 		recipeConfig.put("Custom-Model-Data", "none");
 		recipeConfig.put("Disabled-Worlds", new ArrayList<>());
 
+		if (resultItem != null && resultItem.getType() != Material.AIR) {
+			recipeConfig.put("Item", resultItem.clone());
+		}
+		
 		// Ingredients and crafting pattern
-		Map<String, Map<String, Object>> ingredients = extractIngredients(inventory);
+		Map<String, Object> ingredients = extractSerializedIngredients(inventory);
 		Map<ItemStack, String> letters = setItemLetters(inventory);
 		
 		List<String> itemCrafting = generateItemCrafting(letters, inventory);
@@ -105,34 +95,30 @@ public class RecipeSaver {
 		return recipeConfig;
 	}
 
-	private Map<String, Map<String, Object>> extractIngredients(Inventory inventory) {
+	private Map<String, Object> extractSerializedIngredients(Inventory inventory) {
 		int[] ingredientSlots = { 10, 11, 12, 19, 20, 21, 28, 29, 30 };
-		Map<String, Map<String, Object>> ingredients = new HashMap<>();
-		Map<ItemStack, String> itemToLetterMap = new HashMap<>();
+		Map<String, Object> ingredients = new HashMap<>();
 		Set<String> usedLetters = new HashSet<>();
 
 		for (int i = 0; i < ingredientSlots.length; i++) {
-			ItemStack itemStack = inventory.getItem(ingredientSlots[i]);
-			if (itemStack != null && itemStack.getType() != Material.AIR) {
-				Map<String, Object> ingredient = new HashMap<>();
-				ingredient.put("Material", itemStack.getType().name());
-				ingredient.put("Identifier", getCustomIdentifier(itemStack));
-				ingredient.put("Amount", getItemAmount(itemStack));
-				ingredient.put("Name", getItemName(itemStack));
+			ItemStack item = inventory.getItem(ingredientSlots[i]);
+			if (item != null && item.getType() != Material.AIR) {
+				String letter = getUniqueLetter(usedLetters);
+				usedLetters.add(letter);
 
-				String letter;
-				if (itemToLetterMap.containsKey(itemStack)) {
-					// Use the existing letter for this item
-					letter = itemToLetterMap.get(itemStack);
+				// Check if the item is a result of a recipe
+				Recipe recipe = Main.getInstance().getRecipeUtil().getRecipeFromResult(item);
+				if (recipe != null) {
+					// Store only the identifier instead of the full ItemStack
+					Map<String, Object> ref = new HashMap<>();
+					ref.put("Identifier", recipe.getKey());
+					ingredients.put(letter, ref);
 				} else {
-					// Get a new unique letter for the item
-					letter = getUniqueLetter(usedLetters);
-					itemToLetterMap.put(itemStack, letter);
-					usedLetters.add(letter);
+					ingredients.put(letter, item.clone());
 				}
-				ingredients.put(letter, ingredient);
 			}
 		}
+
 		return ingredients;
 	}
 
@@ -142,17 +128,26 @@ public class RecipeSaver {
 		Set<String> usedLetters = new HashSet<>();
 
 		for (int i = 0; i < ingredientSlots.length; i++) {
-			ItemStack itemStack = inventory.getItem(ingredientSlots[i]);
-			if (itemStack != null && itemStack.getType() != Material.AIR) {
-				String letter;
-				if (itemToLetterMap.containsKey(itemStack)) {
-					// Use the existing letter for this item
-					letter = itemToLetterMap.get(itemStack);
+			ItemStack current = inventory.getItem(ingredientSlots[i]);
+
+			if (current != null && current.getType() != Material.AIR) {
+				// Check if we've already seen an item similar to this one
+				ItemStack matchingItem = null;
+				for (ItemStack key : itemToLetterMap.keySet()) {
+					if (key.isSimilar(current)) {
+						matchingItem = key;
+						break;
+					}
+				}
+
+				if (matchingItem != null) {
+					// Use the same letter
+					itemToLetterMap.put(current, itemToLetterMap.get(matchingItem));
 				} else {
-					// Get a new unique letter for the item
-					letter = getUniqueLetter(usedLetters);
-					itemToLetterMap.put(itemStack, letter);
+					// New letter
+					String letter = getUniqueLetter(usedLetters);
 					usedLetters.add(letter);
+					itemToLetterMap.put(current, letter);
 				}
 			}
 		}

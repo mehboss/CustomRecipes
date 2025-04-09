@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>CustomRecipes</groupId>
   <artifactId>CustomRecipes</artifactId>
-  <version>1.9.8.6</version>
+  <version>1.9.9.2</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
@@ -87,6 +87,15 @@
       <name>Lumine Releases</name>
       <url>https://mvn.lumine.io/repository/maven-public/</url>
     </repository>
+    <repository>
+      <id>oraxen</id>
+      <name>Oraxen Repository</name>
+      <url>https://repo.oraxen.com/releases</url>
+    </repository>
+    <repository>
+      <id>nexomc</id>
+      <url>https://repo.nexomc.com/releases</url>
+    </repository>
   </repositories>
   <dependencies>
     <dependency>
@@ -112,6 +121,70 @@
       <artifactId>Mythic-Dist</artifactId>
       <version>5.7.2</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.th0rgal</groupId>
+      <artifactId>oraxen</artifactId>
+      <version>1.189.0</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>actions-spigot</artifactId>
+          <groupId>me.gabytm.util</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>annotations</artifactId>
+          <groupId>org.jetbrains</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>PlayerAnimator</artifactId>
+          <groupId>com.ticxo</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>IF</artifactId>
+          <groupId>com.github.stefvanschie.inventoryframework</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>protectionlib</artifactId>
+          <groupId>io.th0rgal</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>triumph-gui</artifactId>
+          <groupId>dev.triumphteam</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>bstats-bukkit</artifactId>
+          <groupId>org.bstats</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>custom-block-data</artifactId>
+          <groupId>com.jeff-media</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>persistent-data-serializer</artifactId>
+          <groupId>com.jeff-media</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>MorePersistentDataTypes</artifactId>
+          <groupId>com.jeff_media</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>java</artifactId>
+          <groupId>gs.mclo</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.nexomc</groupId>
+      <artifactId>nexo</artifactId>
+      <version>1.3.0</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>*</artifactId>
+          <groupId>*</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>

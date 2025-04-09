@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,8 +36,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.cryptomorin.xseries.XMaterial;
+import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
+import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
 
+import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
@@ -130,13 +135,11 @@ public class CraftManager implements Listener {
 	boolean validateItem(ItemStack item, RecipeUtil.Ingredient ingredient, String recipeName, int slot, boolean debug,
 			boolean returnType) {
 
-		ItemStack itemsAdder = Main.getInstance().plugin.handleItemAdderCheck(null, recipeName, ingredient.getIdentifier(), false);
-		ItemStack mythicItem = Main.getInstance().plugin.handleMythicItemCheck(null, recipeName, ingredient.getIdentifier(), false);
 		ItemStack recipe = recipeUtil.getRecipeFromResult(item) != null
 				? recipeUtil.getRecipeFromResult(item).getResult()
 				: null;
-
-		ItemStack exactMatch = (itemsAdder != null) ? itemsAdder : (mythicItem != null) ? mythicItem : recipe;
+		ItemStack exactMatch = ingredient.hasIdentifier() ? recipeUtil.getResultFromKey(ingredient.getIdentifier())
+				: recipe;
 
 		// Attempt to match the ingredient to a recipe using the identifier
 		// Attempt to match the ingredient to an itemsadder item
@@ -167,12 +170,13 @@ public class CraftManager implements Listener {
 
 	boolean amountsMatch(CraftingInventory inv, String recipeName, List<RecipeUtil.Ingredient> recipeIngredients,
 			boolean debug) {
+		
+		logDebug("[AmountsMatch] Checking recipe " + recipeName);
 		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
 			if (ingredient.isEmpty())
 				continue;
 
 			int slot = ingredient.getSlot();
-
 			ItemStack invSlot = inv.getMatrix()[slot - 1];
 
 			if (recipeUtil.getRecipe(recipeName).getType() == RecipeType.SHAPED)
@@ -374,6 +378,36 @@ public class CraftManager implements Listener {
 				} else if (recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null) {
 					ingMaterials.add(
 							recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult().getType().toString());
+				} else {
+					String[] customItem = ingredient.getIdentifier().split(":");
+					if (customItem.length <= 1)
+						continue;
+
+					if (customItem[0].equalsIgnoreCase("itemsadder") && Main.getInstance().hasItemsAdderPlugin()) {
+						CustomStack stack = CustomStack.getInstance(customItem[1]);
+						if (stack == null)
+							continue;
+
+						ingMaterials.add(stack.getItemStack().getType().toString());
+					}
+
+					if (customItem[0].equalsIgnoreCase("mythicmobs") && Main.getInstance().hasMythicMobsPlugin()) {
+						ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(customItem[1]);
+						if (mythicItem == null)
+							continue;
+
+						ingMaterials.add(mythicItem.getType().toString());
+					}
+
+					if (customItem[0].equalsIgnoreCase("executableitems")
+							&& Main.getInstance().hasExecutableItemsPlugin()) {
+						Optional<ExecutableItemInterface> stack = ExecutableItemsAPI.getExecutableItemsManager()
+								.getExecutableItem(customItem[1]);
+						if (stack == null || !stack.isPresent())
+							continue;
+
+						ingMaterials.add(stack.get().buildItem(1, Optional.empty()).getType().toString());
+					}
 				}
 
 				continue;
@@ -401,6 +435,9 @@ public class CraftManager implements Listener {
 	}
 
 	boolean hasVanillaIngredients(CraftingInventory inv) {
+		if (inv.getResult() == null)
+			return false;
+
 		if (inv.getResult().hasItemMeta()
 				&& (inv.getResult().getItemMeta().hasDisplayName() || inv.getResult().getItemMeta().hasLore()
 						|| NBTEditor.contains(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
@@ -452,72 +489,58 @@ public class CraftManager implements Listener {
 
 			passedCheck = true;
 			found = true;
-			
-			if (recipeUtil.getRecipeFromResult(inv.getResult()) != null) {
-				recipe = recipeUtil.getRecipeFromResult(inv.getResult());
 
-				if (recipe.isExactChoice()) {
-					logDebug("[handleCrafting] Found recipe " + recipe.getName() + " to handle..");
-					logDebug("[handleCrafting] Manual checks and methods skipped because exactChoice is enabled!");
-
-					if (!(amountsMatch(inv, recipe.getName(), recipe.getIngredients(), true))) {
-						logDebug("[handleCrafting] Skipping recipe.. ");
-						logDebug("The amount check indicates that the requirements have not been met for recipe "
-								+ recipe.getName());
-						inv.setResult(new ItemStack(Material.AIR));
-						passedCheck = false;
-					}
-					break;
-				}
-			}
-			
 			if (recipe.getType() == RecipeType.SHAPELESS) {
 				// runs checks if recipe is shapeless
 
-				ArrayList<String> slotNames = new ArrayList<String>();
-				ArrayList<String> recipeNames = new ArrayList<String>();
+				if (recipeUtil.getRecipeFromResult(inv.getResult()) != null) {
+					recipe = recipeUtil.getRecipeFromResult(inv.getResult());
 
-				ArrayList<Integer> recipeMD = new ArrayList<Integer>();
-				ArrayList<Integer> inventoryMD = new ArrayList<Integer>();
+					if (recipe.isExactChoice()) {
+						logDebug("[handleCrafting] Found recipe " + recipe.getName() + " to handle..");
+						logDebug("[handleCrafting] ExactChoice is enabled, but does not work for shapeless recipes!");
+					}
+				}
+
+				ArrayList<String> slotNames = new ArrayList<>();
+				ArrayList<String> recipeNames = new ArrayList<>();
+
+				ArrayList<Integer> recipeMD = new ArrayList<>();
+				ArrayList<Integer> inventoryMD = new ArrayList<>();
 
 				Map<Material, Integer> recipeCount = new HashMap<>();
 				Map<Material, Integer> inventoryCount = new HashMap<>();
 
 				for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
-
-					if (ingredient.getMaterial() != null && !(inv.contains(ingredient.getMaterial())))
-						break;
-
 					if (ingredient.isEmpty()) {
 						recipeCount.put(Material.AIR, recipeCount.getOrDefault(Material.AIR, 0) + 1);
 						recipeNames.add("null");
 						continue;
 					}
 
-					recipeCount.put(ingredient.getMaterial(),
-							recipeCount.getOrDefault(ingredient.getMaterial(), 0) + 1);
-
 					if (ingredient.hasIdentifier() && recipeUtil.getResultFromKey(ingredient.getIdentifier()) != null) {
 						ItemStack exactMatch = recipeUtil.getResultFromKey(ingredient.getIdentifier());
+						recipeCount.put(exactMatch.getType(), recipeCount.getOrDefault(exactMatch.getType(), 0) + 1);
 
 						if (Main.getInstance().serverVersionAtLeast(1, 14) && exactMatch.hasItemMeta()
 								&& exactMatch.getItemMeta().hasCustomModelData()) {
 							recipeMD.add(exactMatch.getItemMeta().getCustomModelData());
-							// grab ingredient model data
 						}
 
 						if (exactMatch.getItemMeta().hasDisplayName()) {
 							recipeNames.add(exactMatch.getItemMeta().getDisplayName());
-
 						} else {
 							recipeNames.add("false");
 						}
 						continue;
 					}
 
-					if (ingredient.hasDisplayName())
+					recipeCount.put(ingredient.getMaterial(),
+							recipeCount.getOrDefault(ingredient.getMaterial(), 0) + 1);
+
+					if (ingredient.hasDisplayName()) {
 						recipeNames.add(ingredient.getDisplayName());
-					else {
+					} else {
 						recipeNames.add("false");
 					}
 				}
@@ -528,6 +551,11 @@ public class CraftManager implements Listener {
 						inventoryCount.put(Material.AIR, inventoryCount.getOrDefault(Material.AIR, 0) + 1);
 						continue;
 					}
+					
+					if (Main.getInstance().serverVersionAtLeast(1, 14) && inv.getItem(slot).hasItemMeta()
+							&& inv.getItem(slot).getItemMeta().hasCustomModelData()) {
+						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
+					}
 
 					inventoryCount.put(inv.getItem(slot).getType(),
 							inventoryCount.getOrDefault(inv.getItem(slot).getType(), 0) + 1);
@@ -537,14 +565,10 @@ public class CraftManager implements Listener {
 						continue;
 					}
 
-					if (Main.getInstance().serverVersionAtLeast(1, 14) && inv.getItem(slot).hasItemMeta()
-							&& inv.getItem(slot).getItemMeta().hasCustomModelData()) {
-						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
-					}
-
 					if (recipeUtil.getRecipeFromResult(inv.getItem(slot)) != null && !(NBTEditor
-							.contains(inv.getItem(slot), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
+							.contains(inv.getItem(slot), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))) {
 						continue;
+					}
 
 					slotNames.add(inv.getItem(slot).getItemMeta().getDisplayName());
 				}
@@ -570,35 +594,75 @@ public class CraftManager implements Listener {
 
 				logDebug("[handleCrafting] The recipe " + recipe.getName()
 						+ " does have all of the required ingredients!");
-				logDebug("[handleCrafting] Ingredient contains all: " + slotNames.containsAll(recipeNames));
 
-				if (!slotNames.containsAll(recipeNames)) {
-					logDebug("[handleCrafting] Debugging recipe " + recipe.getName());
-					logDebug("[handleCrafting] Slot name size: " + slotNames.size());
-					logDebug("[handleCrafting] Recipe name size: " + recipeNames.size());
-					logDebug("[handleCrafting] Sending slot name results and recipe name results..");
-					for (String names : slotNames)
-						logDebug(names);
-					for (String names : recipeNames)
-						logDebug(names);
+				// ✔️ Compare model data counts exactly if not ignored
+				if (!recipe.getIgnoreModelData()) {
+					Map<Integer, Integer> recipeModelCount = new HashMap<>();
+					Map<Integer, Integer> inventoryModelCount = new HashMap<>();
+
+					for (int model : recipeMD) {
+						recipeModelCount.put(model, recipeModelCount.getOrDefault(model, 0) + 1);
+					}
+					for (int model : inventoryMD) {
+						inventoryModelCount.put(model, inventoryModelCount.getOrDefault(model, 0) + 1);
+					}
+
+					if (!recipeModelCount.equals(inventoryModelCount)) {
+						logDebug("[handleCrafting] Model data mismatch: recipe vs inventory");
+						logDebug("Recipe Model Data Map: " + recipeModelCount);
+						logDebug("Inventory Model Data Map: " + inventoryModelCount);
+						passedCheck = false;
+						continue;
+					}
 				}
 
-				if (recipe.getIgnoreModelData() == false && recipeMD.size() != inventoryMD.size()
-						&& (!recipeMD.containsAll(inventoryMD) || !inventoryMD.containsAll(recipeMD))) {
-					passedCheck = false;
-					continue;
-				}
+				// ✔️ Compare display name counts exactly if not ignored
+				if (!recipe.getIgnoreData()) {
+					Map<String, Integer> recipeNameCount = new HashMap<>();
+					Map<String, Integer> slotNameCount = new HashMap<>();
 
-				if ((recipe.getIgnoreData() == false) && (slotNames.size() != 9 || recipeNames.size() != 9
-						|| !(slotNames.containsAll(recipeNames)))) {
-					passedCheck = false;
-					continue;
-				}
+					for (String name : recipeNames) {
+						recipeNameCount.put(name, recipeNameCount.getOrDefault(name, 0) + 1);
+					}
+					for (String name : slotNames) {
+						slotNameCount.put(name, slotNameCount.getOrDefault(name, 0) + 1);
+					}
 
+					if (!recipeNames.containsAll(slotNames) || !slotNames.containsAll(recipeNames)) {
+						logDebug("[handleCrafting] Display name mismatch: recipe vs inventory");
+						passedCheck = false;
+						continue;
+					}
+					
+					if (!recipeNameCount.equals(slotNameCount)) {
+						logDebug("[handleCrafting] Display name count mismatch: recipe vs inventory");
+						logDebug("Recipe Name Map: " + recipeNameCount);
+						logDebug("Inventory Name Map: " + slotNameCount);
+						passedCheck = false;
+						continue;
+					}
+				}
 			} else {
 
-				if (!hasShapedIngredients(inv, recipe.getName(), recipeIngredients)) {
+				if (recipeUtil.getRecipeFromResult(inv.getResult()) != null) {
+					recipe = recipeUtil.getRecipeFromResult(inv.getResult());
+					
+					if (recipe.isExactChoice()) {
+						logDebug("[handleCrafting] Found recipe " + recipe.getName() + " to handle..");
+						logDebug("[handleCrafting] Manual checks and methods skipped because exactChoice is enabled!");
 
+						if (!(amountsMatch(inv, recipe.getName(), recipe.getIngredients(), true))) {
+							logDebug("[handleCrafting] Skipping recipe.. ");
+							logDebug("The amount check indicates that the requirements have not been met for recipe "
+									+ recipe.getName());
+							inv.setResult(new ItemStack(Material.AIR));
+							passedCheck = false;
+						}
+						break;
+					}
+				}
+
+				if (!hasShapedIngredients(inv, recipe.getName(), recipeIngredients)) {
 					logDebug(
 							"[handleCrafting] Skipping to the next recipe! Ingredients did not have exact match for recipe "
 									+ recipe.getName());
@@ -703,7 +767,6 @@ public class CraftManager implements Listener {
 			}
 
 			if (!(amountsMatch(inv, recipe.getName(), recipeIngredients, true))) {
-
 				logDebug(
 						"[handleCrafting] Skipping recipe.. The amount check indicates that the requirements have not been met for recipe "
 								+ recipe.getName());
@@ -722,11 +785,18 @@ public class CraftManager implements Listener {
 		if (hasVanillaIngredients(inv) || !found)
 			return;
 
-		if ((!passedCheck) || (found) || (passedCheck && !found))
+		if ((!passedCheck) || (passedCheck && !found)) {
 			inv.setResult(new ItemStack(Material.AIR));
+			return;
+		}
 
-		if ((!(finalRecipe.isActive())
-				|| ((finalRecipe.getPerm() != null && (!(p.hasPermission(finalRecipe.getPerm()))))))) {
+		if (!finalRecipe.isActive()) {
+			inv.setResult(new ItemStack(Material.AIR));
+			logDebug(" Attempt to craft " + finalRecipe.getName() + " was detected, but recipe is disabled!");
+			return;
+		}
+
+		if (finalRecipe.getPerm() != null && !p.hasPermission(finalRecipe.getPerm())) {
 			inv.setResult(new ItemStack(Material.AIR));
 			sendNoPermsMessage(p, finalRecipe.getName());
 			return;
@@ -742,7 +812,7 @@ public class CraftManager implements Listener {
 			}
 		}
 
-		if ((finalRecipe.getPerm() == null || !(p.hasPermission(finalRecipe.getPerm() + ".bypass")))
+		if ((finalRecipe.getPerm() != null && !(p.hasPermission(finalRecipe.getPerm() + ".bypass")))
 				&& hasCooldown(inv, p, finalRecipe)) {
 			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), finalRecipe.getKey());
 
@@ -768,7 +838,8 @@ public class CraftManager implements Listener {
 				item.setItemMeta(itemMeta);
 			}
 
-			inv.setResult(item);
+			if (!finalRecipe.isExactChoice())
+				inv.setResult(item);
 
 			if (!inInventory.contains(p))
 				inInventory.add(p);

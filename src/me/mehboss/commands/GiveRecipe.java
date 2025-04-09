@@ -60,8 +60,8 @@ public class GiveRecipe implements CommandExecutor {
 					"&c/crecipe reload &8-&f Reloads the configs and resets all recipes &e(crecipe.reload)"));
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 					"&c/crecipe debug &8-&f Enables debug mode for the author to troubleshoot &e(crecipe.debug)"));
-			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-					"&c/edititem &8-&f Convenient recipe & item handler"));
+			p.sendMessage(
+					ChatColor.translateAlternateColorCodes('&', "&c/edititem &8-&f Convenient recipe & item handler"));
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
 		}
 
@@ -112,24 +112,26 @@ public class GiveRecipe implements CommandExecutor {
 					sender.sendMessage("You must be a player in order to use this command!");
 					return false;
 				}
-
-				Player player = (Player) sender;
-
-				if (!sender.hasPermission("crecipe.gui")) {
-					sender.sendMessage(
-							ChatColor.translateAlternateColorCodes('&', debug().getString("Messages.Invalid-Perms")));
-					return false;
-				}
-
-				if (Main.getInstance().recipeBook.contains(player.getUniqueId()))
-					Main.getInstance().recipeBook.remove(player.getUniqueId());
-
-				Main.getInstance().recipes.show(player);
-				String OpenMessage = ChatColor.translateAlternateColorCodes('&', debug().getString("gui.Open-Message"));
-				player.sendMessage(OpenMessage);
-				player.playSound(player.getLocation(),
-						XSound.matchXSound(debug().getString("gui.Open-Sound")).get().parseSound(), 1, 1);
-				return true;
+				
+				sender.sendMessage(ChatColor.RED + "The GUI is under development and will be coming soon!");
+				return false;
+				/*
+				 * Player player = (Player) sender;
+				 * 
+				 * if (!sender.hasPermission("crecipe.gui")) { sender.sendMessage(
+				 * ChatColor.translateAlternateColorCodes('&',
+				 * debug().getString("Messages.Invalid-Perms"))); return false; }
+				 * 
+				 * if (Main.getInstance().recipeBook.contains(player.getUniqueId()))
+				 * Main.getInstance().recipeBook.remove(player.getUniqueId());
+				 * 
+				 * Main.getInstance().recipes.show(player); String OpenMessage =
+				 * ChatColor.translateAlternateColorCodes('&',
+				 * debug().getString("gui.Open-Message")); player.sendMessage(OpenMessage);
+				 * player.playSound(player.getLocation(),
+				 * XSound.matchXSound(debug().getString("gui.Open-Sound")).get().parseSound(),
+				 * 1, 1); return true;
+				 */
 			}
 
 			if (args.length == 1 && args[0].equalsIgnoreCase("debug")) {
@@ -254,8 +256,7 @@ public class GiveRecipe implements CommandExecutor {
 					amount = Integer.parseInt(args[3]);
 				}
 
-				ItemStack item = new ItemStack(
-						Main.getInstance().getRecipeUtil().getRecipe(args[2]).getResult());
+				ItemStack item = new ItemStack(Main.getInstance().getRecipeUtil().getRecipe(args[2]).getResult());
 				item.setAmount(amount);
 
 				target.getInventory().addItem(item);

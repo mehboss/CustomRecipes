@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -189,16 +190,15 @@ public class EditGUI implements Listener {
 		effects.setItemMeta(effectsm);
 		loreList.clear();
 
-		ItemStack enchants = XMaterial.EXPERIENCE_BOTTLE.parseItem();
-		ItemMeta enchantsm = effects.getItemMeta();
-		enchantsm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fEnchantments"));
-		if (getConfig(configname).getStringList(configname + ".Enchantments") != null) {
-			for (String enchantslore : getConfig(configname).getStringList(configname + ".Enchantments")) {
-				loreList.add(ChatColor.GRAY + enchantslore);
-			}
-			enchantsm.setLore(loreList);
+		ItemStack converter = XMaterial.FURNACE.parseItem();
+		ItemMeta converterm = effects.getItemMeta();
+		converterm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fConverter"));
+		if (getConfig(configname).isSet(configname + ".Converter")) {
+			loreList.add(ChatColor.GRAY + getConfig(configname).getString(configname + ".Converter"));
+			converterm.setLore(loreList);
 		}
-		enchants.setItemMeta(enchantsm);
+
+		converter.setItemMeta(converterm);
 		loreList.clear();
 
 		ItemStack permission = XMaterial.ENDER_PEARL.parseItem();
@@ -212,15 +212,15 @@ public class EditGUI implements Listener {
 		permission.setItemMeta(permissionm);
 		loreList.clear();
 
-		ItemStack hideenchants = XMaterial.ENCHANTING_TABLE.parseItem();
+		ItemStack hideenchants = XMaterial.DIRT.parseItem();
 		ItemMeta hideenchantsm = hideenchants.getItemMeta();
-		Boolean hc = getConfig(configname).getBoolean(configname + ".Hide-Enchants");
+		Boolean hc = getConfig(configname).getBoolean(configname + ".Placeable");
 		String ht = "&cfalse";
 
 		if (hc == true)
 			ht = "&atrue";
 
-		hideenchantsm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fHide Enchants: &f" + ht));
+		hideenchantsm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fPlaceable: &f" + ht));
 		hideenchants.setItemMeta(hideenchantsm);
 
 		ItemStack shapeless = XMaterial.CRAFTING_TABLE.parseItem();
@@ -255,7 +255,7 @@ public class EditGUI implements Listener {
 		i.setItem(7, identifier);
 		i.setItem(8, hideenchants);
 		i.setItem(16, effects);
-		i.setItem(17, enchants);
+		i.setItem(17, converter);
 		i.setItem(25, permission);
 		i.setItem(26, name);
 		i.setItem(35, amount);
@@ -319,20 +319,14 @@ public class EditGUI implements Listener {
 
 		if (ingredient.hasIdentifier()) {
 			Boolean isCustomItem = recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) == null ? true : false;
-			ItemStack itemsAdder = isCustomItem ? Main.getInstance().plugin.handleItemAdderCheck(null, recipename,
-					ingredient.getIdentifier(), false) : null;
-			ItemStack mythicItem = isCustomItem ? Main.getInstance().plugin.handleMythicItemCheck(null, recipename,
-					ingredient.getIdentifier(), false) : null;
-			ItemStack item = null;
+			ItemStack item = isCustomItem ? recipeUtil.getResultFromKey(ingredient.getIdentifier())
+					: recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult();
 
-			if (isCustomItem) {
-				item = (itemsAdder != null) ? itemsAdder : (mythicItem != null) ? mythicItem : null;
-			} else {
-				item = recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult();
-			}
-
-			if (item == null)
+			if (item == null) {
+				logError("Failed to set item ingredients! Could not find itemstack for ingredient slot "
+						+ ingredient.getSlot(), recipename);
 				return null;
+			}
 
 			ItemStack finalItem = new ItemStack(item);
 			ItemMeta itemM = finalItem.getItemMeta();
@@ -428,10 +422,10 @@ public class EditGUI implements Listener {
 			ItemMeta togglem = toggle.getItemMeta();
 
 			if (e.getRawSlot() == 8) {
-				// hide enchants?
+				// placeable?
 
 				if (togglem.getDisplayName().contains("true")) {
-					togglem.setDisplayName("Hide Enchants: " + ChatColor.RED + "false");
+					togglem.setDisplayName("Placeable: " + ChatColor.RED + "false");
 					toggle.setItemMeta(togglem);
 
 					p.getOpenInventory().getTopInventory().setItem(8, toggle);
@@ -439,7 +433,7 @@ public class EditGUI implements Listener {
 				}
 
 				if (togglem.getDisplayName().contains("false")) {
-					togglem.setDisplayName("Hide Enchants: " + ChatColor.GREEN + "true");
+					togglem.setDisplayName("Placeable: " + ChatColor.GREEN + "true");
 					toggle.setItemMeta(togglem);
 
 					p.getOpenInventory().getTopInventory().setItem(8, toggle);
@@ -870,4 +864,10 @@ public class EditGUI implements Listener {
 		}
 		return false;
 	}
+
+	private void logError(String st, String recipe) {
+		Logger.getLogger("Minecraft").log(Level.WARNING,
+				"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
+	}
+
 }

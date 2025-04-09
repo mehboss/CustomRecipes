@@ -41,29 +41,22 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.RecipeChoice.ExactChoice;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.SmokingRecipe;
 import org.bukkit.inventory.StonecuttingRecipe;
 import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.inventory.recipe.CookingBookCategory;
-import org.bukkit.inventory.recipe.CraftingBookCategory;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
-
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
-
-import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
-import io.lumine.mythic.bukkit.MythicBukkit;
 import me.mehboss.utils.RecipeUtil;
-import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import net.advancedplugins.ae.api.AEAPI;
@@ -117,8 +110,12 @@ public class RecipeManager {
 		if (getConfig().isBoolean(item + ".Auto-Discover-Recipe"))
 			recipe.setDiscoverable(getConfig().getBoolean(item + ".Auto-Discover-Recipe"));
 
-		if (getConfig().isSet(item + ".Book-Category"))
-			recipe.setBookCategory(getConfig().getString(item + ".Book-Category").toUpperCase());
+		if (getConfig().isSet(item + ".Book-Category")) {
+			try {
+				recipe.setBookCategory(getConfig().getString(item + ".Book-Category").toUpperCase());
+			} catch (NoClassDefFoundError e) {
+			}
+		}
 	}
 
 	void handleFurnaceData(Recipe recipe, String configPath) {
@@ -186,6 +183,29 @@ public class RecipeManager {
 					potion.setItemMeta(meta);
 
 					return potion;
+				} else if (path.get(0).equalsIgnoreCase("Enchantments")) {
+					// Check if it's an enchantment book
+					if (item.getType() == Material.ENCHANTED_BOOK) {
+						Map<String, Integer> enchants = (Map<String, Integer>) value;
+
+						// Get the EnchantmentMeta to apply enchantments to the enchanted book
+						EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
+
+						for (Map.Entry<String, Integer> enchantEntry : enchants.entrySet()) {
+							Enchantment enchantment = !XEnchantment.matchXEnchantment(enchantEntry.getKey()).isPresent()
+									? null
+									: XEnchantment.matchXEnchantment(enchantEntry.getKey()).get().getEnchant();
+							int level = enchantEntry.getValue();
+
+							// Apply enchantment if it's valid
+							if (enchantment != null) {
+								meta.addStoredEnchant(enchantment, level, true);
+							}
+						}
+
+						// Apply the modified enchantment meta to the item
+						item.setItemMeta(meta);
+					}
 				} else {
 					// Apply general NBT tag
 					item = applyNBT(item, value, path.toArray(new String[0]));
@@ -293,7 +313,6 @@ public class RecipeManager {
 			return i;
 
 		String identifier = getConfig().getString(item + ".Identifier");
-		recipe.setKey(identifier);
 
 		if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
 			i = NBTEditor.set(i, identifier, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
@@ -495,106 +514,14 @@ public class RecipeManager {
 		return m;
 	}
 
-	private String[] customItemChecks(String item, String recipeName, String ingredientIdentifier, Boolean debug) {
-	    String[] configSplit = null;
+	void handleCommand(String item, Recipe recipe) {
+		if (!getConfig().isSet(item + ".Command") || getConfig().getString(item + ".Command").equalsIgnoreCase("false")
+				|| getConfig().getString(item + ".Command").equalsIgnoreCase("none"))
+			return;
 
-	    if (item != null) {
-	        configSplit = getConfig().isSet(item + ".Item") ? getConfig().getString(item + ".Item").split(":") : null;
-	    } else if (ingredientIdentifier != null) {
-	        if (Main.getInstance().serverVersionLessThan(1, 15)) {
-				logError("Issue detected with recipe.. ", recipeName);
-				logError("Your server version does not support custom items from 'ItemsAdder' or 'MythicMobs'", recipeName);
-				logError("You must be on 1.15 or higher!", recipeName);
-	            return null;
-	        }
-	        configSplit = ingredientIdentifier.split(":");
-	    }
-
-	    if (configSplit == null || configSplit.length < 2) {
-	        return null;
-	    }
-
-	    return configSplit;
-	}
-	
-	public ItemStack handleMythicItemCheck(String item, String recipeName, String ingredientIdentifier, Boolean debug) {
-
-		String[] configSplit = customItemChecks(item, recipeName, ingredientIdentifier, debug);
-		
-		if (configSplit == null)
-			return null;
-		
-		String customPlugin = configSplit[0];
-		String customItem = configSplit[1];
-		
-		if (customPlugin.equalsIgnoreCase("mythicmobs")) {
-			if (!Main.getInstance().hasMythicMobsPlugin()) {
-				if (debug) {
-					logError("Issue detected with recipe..", recipeName);
-					logError("Found custom item from the MythicMobs plugin, but did not detect the plugin installed!",
-							recipeName);
-					logError("Attempting to ignore..", recipeName);
-				}
-				return null;
-			}
-		    ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(customItem);
-		    
-			if (customItem == null || mythicItem == null) {
-				if (debug) {
-					logError("Issue detected with recipe.. ", recipeName);
-					logError(
-							"Custom item from MythicMobs was attempted for the result or ingredient identifier, but the item was not found.",
-							recipeName);
-					logError("Attempting to ignore..", recipeName);
-				}
-				return null;
-			}
-			if (debug)
-				logError("Found custom item from ItemsAdder: " + customItem, recipeName);
-			return mythicItem;
-		}
-		
-		return null;
-	}
-	
-	public ItemStack handleItemAdderCheck(String item, String recipeName, String ingredientIdentifier, Boolean debug) {
-
-		String[] configSplit = customItemChecks(item, recipeName, ingredientIdentifier, debug);
-		
-		if (configSplit == null)
-			return null;
-		
-		String customPlugin = configSplit[0];
-		String customItem = configSplit[1];
-		
-		if (customPlugin.equalsIgnoreCase("itemsadder")) {
-			if (!Main.getInstance().hasItemsAdderPlugin()) {
-				if (debug) {
-					logError("Issue detected with recipe.. ", recipeName);
-					logError("Found custom item from the ItemsAdder plugin, but did not detect the plugin installed!",
-							recipeName);
-					logError("Attempting to ignore..", recipeName);
-				}
-				return null;
-			}
-
-			CustomStack stack = CustomStack.getInstance(customItem);
-			if (customItem == null || stack == null) {
-				if (debug) {
-					logError("Issue detected with recipe.. ", recipeName);
-					logError(
-							"Custom item from ItemsAdder was attempted for the result or ingredient identifier, but the item was not found.",
-							recipeName);
-					logError("Attempting to ignore..", recipeName);
-				}
-				return null;
-			}
-			if (debug)
-				logError("Found custom item from ItemsAdder: " + customItem, recipeName);
-			return stack.getItemStack();
-		}
-		
-		return null;
+		String command = getConfig().getString(item + ".Command");
+		recipe.setCommand(command);
+		logDebug("Successfully set the command " + command, item);
 	}
 
 	public void addRecipes() {
@@ -695,18 +622,25 @@ public class RecipeManager {
 				continue;
 			}
 
-			String damage = getConfig().getString(item + ".Item-Damage");
-			int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
-			Optional<XMaterial> type = getConfig().isString(item + ".Item")
-					? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
-					: null;
-
-			ItemStack i = handleItemAdderCheck(item, item, null, true);
-			i = (i != null) ? i : handleMythicItemCheck(item, item, null, true);
-
+			String identifier = getConfig().getString(item + ".Identifier");
+			recipe.setKey(identifier);
+			
+			// Checks for a custom item and attempts to set it
+			ItemStack i = recipeUtil.getResultFromKey(getConfig().getString(item + ".Item"));
 			ItemMeta m = i != null ? i.getItemMeta() : null;
 
+			// handle item stack check
+			if (i == null && getConfig().getItemStack(item + ".Item") != null)
+				i = getConfig().getItemStack(item + ".Item");
+
 			if (i == null) {
+
+				String damage = getConfig().getString(item + ".Item-Damage");
+				int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
+				Optional<XMaterial> type = getConfig().isString(item + ".Item")
+						? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
+						: null;
+
 				if (!(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type)))
 					continue;
 
@@ -733,6 +667,7 @@ public class RecipeManager {
 			handleIgnoreFlags(item, recipe);
 			handleCooldown(item, recipe);
 			handlePlaceable(item, recipe);
+			handleCommand(item, recipe);
 			handleBucketConsume(i.getType(), item, recipe);
 
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
@@ -858,23 +793,50 @@ public class RecipeManager {
 				// Create recipes based on type
 				switch (recipe.getType()) {
 				case SHAPELESS:
+					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+						shapelessRecipe = Main.getInstance().exactChoice.createShapelessRecipe(recipe);
+						break;
+					}
+
 					shapelessRecipe = createShapelessRecipe(recipe);
 					break;
+
 				case SHAPED:
+					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+						shapedRecipe = Main.getInstance().exactChoice.createShapedRecipe(recipe);
+						break;
+					}
+
 					shapedRecipe = createShapedRecipe(recipe);
 					break;
+
 				case FURNACE:
+					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+						furnaceRecipe = Main.getInstance().exactChoice.createFurnaceRecipe(recipe);
+						break;
+					}
+
 					furnaceRecipe = createFurnaceRecipe(recipe);
 					break;
+
 				case BLASTFURNACE:
-					blastRecipe = createBlastFurnaceRecipe(recipe);
+					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+						blastRecipe = Main.getInstance().exactChoice.createBlastFurnaceRecipe(recipe);
+					}
 					break;
+
 				case SMOKER:
-					smokerRecipe = createSmokerRecipe(recipe);
+					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+						smokerRecipe = Main.getInstance().exactChoice.createSmokerRecipe(recipe);
+					}
 					break;
+
 				case STONECUTTER:
-					sCutterRecipe = createStonecuttingRecipe(recipe);
+					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+						sCutterRecipe = Main.getInstance().exactChoice.createStonecuttingRecipe(recipe);
+					}
 					break;
+
 				default:
 					break;
 				}
@@ -913,20 +875,8 @@ public class RecipeManager {
 			if (ingredient.isEmpty())
 				continue;
 
-			// Uses exactChoice if version is 1.14 or higher
-			if (recipe.isExactChoice() && !recipe.getIgnoreData() && !recipe.getIgnoreModelData()) {
-				shapelessRecipe.addIngredient(findExactChoice(recipe, ingredient));
-
-			} else {
-				shapelessRecipe.addIngredient(ingredient.getMaterial());
-			}
+			shapelessRecipe.addIngredient(ingredient.getMaterial());
 		}
-
-		if (recipe.isExactChoice())
-			logDebug("Created " + recipe.getType() + " recipe using the ExactChoice method.", recipe.getName());
-
-		if (Main.getInstance().serverVersionAtLeast(1, 14))
-			shapelessRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
 
 		return shapelessRecipe;
 	}
@@ -945,26 +895,13 @@ public class RecipeManager {
 
 		shapedRecipe.shape(recipe.getRow(1), recipe.getRow(2), recipe.getRow(3));
 		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
-			if (ingredient.getMaterial() == Material.AIR || ingredients.contains(ingredient.getAbbreviation()))
+			if (ingredient.isEmpty() || ingredient.getMaterial() == Material.AIR
+					|| ingredients.contains(ingredient.getAbbreviation()))
 				continue;
 
 			ingredients.add(ingredient.getAbbreviation());
-
-			// Uses exactChoice if version is 1.14 or higher
-			// Ignores if IgnoreData or IgnoreModelData is true
-			if (recipe.isExactChoice() && !recipe.getIgnoreData() && !recipe.getIgnoreModelData()) {
-				shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), findExactChoice(recipe, ingredient));
-
-			} else {
-				shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterial());
-			}
+			shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterial());
 		}
-
-		if (recipe.isExactChoice())
-			logDebug("Created " + recipe.getType() + " recipe using the ExactChoice method.", recipe.getName());
-
-		if (Main.getInstance().serverVersionAtLeast(1, 14))
-			shapedRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
 
 		return shapedRecipe;
 	}
@@ -974,115 +911,47 @@ public class RecipeManager {
 
 		FurnaceRecipe furnaceRecipe;
 
-		if (Main.getInstance().serverVersionAtLeast(1, 14)) {
-			furnaceRecipe = new FurnaceRecipe(createNamespacedKey(recipe), recipe.getResult(),
-					findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
-		} else if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
 			furnaceRecipe = new FurnaceRecipe(createNamespacedKey(recipe), recipe.getResult(),
 					recipe.getSlot(1).getMaterial(), recipe.getExperience(), recipe.getCookTime());
 		} else {
 			furnaceRecipe = new FurnaceRecipe(recipe.getResult(), recipe.getSlot(1).getMaterial());
 		}
 
-		if (Main.getInstance().serverVersionAtLeast(1, 14))
-			furnaceRecipe.setCategory(CookingBookCategory.valueOf(recipe.getBookCategory()));
-
 		return furnaceRecipe;
 	}
 
-	private BlastingRecipe createBlastFurnaceRecipe(Recipe recipe) {
-
-		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-			logError("Error loading recipe. Your server version does not support BlastFurnace recipes!",
-					recipe.getName());
-			return null;
-		}
-
-		BlastingRecipe blastRecipe = new BlastingRecipe(createNamespacedKey(recipe), recipe.getResult(),
-				findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
-
-		if (Main.getInstance().serverVersionAtLeast(1, 14))
-			blastRecipe.setCategory(CookingBookCategory.valueOf(recipe.getBookCategory()));
-
-		return blastRecipe;
-	}
-
-	private SmokingRecipe createSmokerRecipe(Recipe recipe) {
-		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-			logError("Error loading recipe. Your server version does not support Smoker recipes!", recipe.getName());
-			return null;
-		}
-
-		SmokingRecipe smokingRecipe = new SmokingRecipe(createNamespacedKey(recipe), recipe.getResult(),
-				findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
-
-		if (Main.getInstance().serverVersionAtLeast(1, 14))
-			smokingRecipe.setCategory(CookingBookCategory.valueOf(recipe.getBookCategory()));
-
-		return smokingRecipe;
-	}
-
-	private StonecuttingRecipe createStonecuttingRecipe(Recipe recipe) {
-		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-			logError("Error loading recipe. Your server version does not support Stonecutting recipes!",
-					recipe.getName());
-			return null;
-		}
-
-		return new StonecuttingRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
-				findExactChoice(recipe, null));
-	}
-
-	private NamespacedKey createNamespacedKey(Recipe recipe) {
+	NamespacedKey createNamespacedKey(Recipe recipe) {
 		return new NamespacedKey(Main.getInstance(), recipe.getKey());
 	}
 
 	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
-		if (type == null || type.isEmpty() || !type.isPresent()) {
+		if (type == null || !type.isPresent()) {
 			logError("Error loading recipe..", recipe);
 			logError("We are having trouble matching the material " + materialInput.toUpperCase()
-					+ " to a minecraft item. Please double check you have inputted the correct material enum into the 'Item'"
+					+ " to a minecraft item or custom item. Please double check you have inputted the correct material enum into the 'Item'"
 					+ " section and try again. If this problem persists please contact Mehboss on Spigot!", recipe);
 			return false;
 		}
 		return true;
 	}
 
-	private ExactChoice findExactChoice(Recipe recipe, Ingredient ingredient) {
-		Ingredient item = ingredient;
-
-		// if item is null, the converter will never be shaped or shapeless.
-		if (item == null) {
-			for (Ingredient ingredients : recipe.getIngredients()) {
-				if (ingredients.isEmpty())
-					continue;
-				item = recipe.getSlot(ingredients.getSlot());
-			}
+	String isCustomItem(String identifier, String recipe) {
+		String[] key = identifier.split(":");
+		if (key.length < 2)
+			return null;
+		
+		String plugin = key[0];
+		
+		if (Bukkit.getPluginManager().getPlugin(plugin) == null) {
+			logError("Found custom item from " + plugin + ", but did not find the required plugin. Skipping recipe..", recipe);
+			return null;
 		}
+		
+		return plugin;
 
-		ItemStack itemsAdder = handleItemAdderCheck(null, recipe.getName(), item.getIdentifier(), true);
-		ItemStack mythicItem = handleMythicItemCheck(null, recipe.getName(), item.getIdentifier(), true);
-
-		if (item.hasIdentifier() && recipeUtil.getRecipeFromKey(item.getIdentifier()) != null) {
-			return new ExactChoice(recipeUtil.getRecipeFromKey(item.getIdentifier()).getResult());
-
-		} else if (item.hasIdentifier() && itemsAdder != null) {
-			return new ExactChoice(itemsAdder);
-
-		} else if (item.hasIdentifier() && mythicItem != null) {
-			return new ExactChoice(mythicItem);
-
-		} else {
-			ItemStack exactItem = new ItemStack(item.getMaterial());
-			ItemMeta exactMeta = exactItem.getItemMeta();
-
-			if (item.hasDisplayName())
-				exactMeta.setDisplayName(item.getDisplayName());
-			exactItem.setItemMeta(exactMeta);
-			return new ExactChoice(exactItem);
-		}
 	}
-
+	
 	boolean isInt(String s) {
 		try {
 			Integer.parseInt(s);

@@ -2,6 +2,9 @@ package me.mehboss.utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -11,8 +14,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.recipe.CookingBookCategory;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
 
+import com.nexomc.nexo.api.NexoItems;
+import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
+import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
+
 import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import me.mehboss.recipe.Main;
 
 public class RecipeUtil {
@@ -52,7 +60,8 @@ public class RecipeUtil {
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPED || recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPELESS)
+		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPED
+				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPELESS)
 				&& (recipe.getRow(1) == null || recipe.getRow(2) == null || recipe.getRow(3) == null)) {
 			String errorMessage = "[CRAPI] Could not add recipe because shape cannot have null rows. Recipe: "
 					+ recipe.getName();
@@ -73,30 +82,72 @@ public class RecipeUtil {
 	}
 
 	/**
-	 * Getter for a result from a namespacedkey
-	 * 
-	 * @param key the NamespacedKey
+	 * Getter for a result from a namespaced key.
+	 *
+	 * @param key the NamespacedKey as a String (e.g., itemsadder:my_item)
 	 * @return the ItemStack if found, can be null
 	 */
 	public ItemStack getResultFromKey(String key) {
-		if (getRecipeFromKey(key) == null) {
-			String[] customKey = key.split(":");
-
-			if (customKey.length >= 2) {
-				if (customKey[0].equalsIgnoreCase("itemsadder") && Main.getInstance().hasItemsAdderPlugin()) {
-					CustomStack customItem = CustomStack.getInstance(key);
-					if (customItem != null)
-						return customItem.getItemStack();
-				}
-				if (customKey[0].equalsIgnoreCase("mythicmobs") && Main.getInstance().hasItemsAdderPlugin()) {
-					CustomStack customItem = CustomStack.getInstance(key);
-					if (customItem != null)
-						return customItem.getItemStack();
-				}
-			}
-
-		} else {
+		// First, try to get the result from a regular recipe
+		if (getRecipeFromKey(key) != null) {
 			return getRecipeFromKey(key).getResult();
+		}
+
+		// If not found, treat it as a custom item key
+		String[] split = key.split(":");
+		if (split.length < 2)
+			return null;
+
+		String namespace = split[0];
+		String itemId = split[1];
+
+		if (Main.getInstance().serverVersionLessThan(1, 15)) {
+			logDebug("Issue detected with recipe.. ", "");
+			logDebug("Your server version does not support custom items from other plugins!", "");
+			logDebug("You must be on 1.15 or higher!", "");
+			return null;
+		}
+
+		switch (namespace.toLowerCase()) {
+		case "itemsadder":
+			if (Main.getInstance().hasItemsAdderPlugin()) {
+				CustomStack iaItem = CustomStack.getInstance(itemId);
+				if (iaItem != null)
+					return iaItem.getItemStack();
+			}
+			break;
+
+		case "mythicmobs":
+			if (Main.getInstance().hasMythicMobsPlugin()) {
+				ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(itemId);
+				if (mythicItem != null)
+					return mythicItem;
+			}
+			break;
+
+		case "executableitems":
+			if (Main.getInstance().hasExecutableItemsPlugin()) {
+				Optional<ExecutableItemInterface> ei = ExecutableItemsAPI.getExecutableItemsManager()
+						.getExecutableItem(itemId);
+				if (ei.isPresent())
+					return ei.get().buildItem(1, Optional.empty());
+			}
+			break;
+
+		case "oraxen":
+			if (Main.getInstance().hasOraxenPlugin()) {
+				ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(itemId);
+				if (mythicItem != null)
+					return mythicItem;
+			}
+			break;
+
+		case "nexo":
+			if (Main.getInstance().hasNexoPlugin()) {
+				if (NexoItems.itemFromId(itemId) != null)
+					return NexoItems.itemFromId(itemId).build();
+			}
+			break;
 		}
 
 		return null;
@@ -189,7 +240,7 @@ public class RecipeUtil {
 	 */
 	public void addRecipe(Recipe recipe) {
 		this.clearDuplicates(recipe);
-		Main.getInstance().plugin.addRecipesFromAPI(recipe);
+		Main.getInstance().recipeManager.addRecipesFromAPI(recipe);
 	}
 
 	/**
@@ -198,7 +249,7 @@ public class RecipeUtil {
 	 */
 	public void reloadRecipes() {
 		this.clearDuplicates(null);
-		Main.getInstance().plugin.addRecipesFromAPI(null);
+		Main.getInstance().recipeManager.addRecipesFromAPI(null);
 	}
 
 	/**
@@ -242,6 +293,7 @@ public class RecipeUtil {
 		private String name;
 		private String key;
 		private String permission;
+		private String command;
 
 		private boolean exactChoice = false;
 		private boolean placeable = true;
@@ -251,6 +303,7 @@ public class RecipeUtil {
 		private boolean ignoreModelData = false;
 		private boolean isTagged = false;
 		private boolean discoverable = false;
+		private boolean isCommand = false;
 
 		private String row1;
 		private String row2;
@@ -297,16 +350,13 @@ public class RecipeUtil {
 			try {
 				if (CraftingBookCategory.valueOf(category.toUpperCase()) != null)
 					this.category = category.toUpperCase();
-			} catch (IllegalArgumentException e) {
-				try {
-					if (CookingBookCategory.valueOf(category.toUpperCase()) != null)
-						this.category = category.toUpperCase();
-				} catch (IllegalArgumentException e2) {
-
-				}
+				if (CookingBookCategory.valueOf(category.toUpperCase()) != null)
+					this.category = category.toUpperCase();
+			} catch (NoClassDefFoundError e) {
+			} catch (Exception e) {
 			}
 		}
-		
+
 		/**
 		 * Getter for setDiscoverable
 		 * 
@@ -331,7 +381,10 @@ public class RecipeUtil {
 		 * @return true if the recipe is exactChoice, false otherwise.
 		 */
 		public boolean isExactChoice() {
-			return exactChoice;
+			if (Main.getInstance().serverVersionAtLeast(1, 14))
+				return exactChoice;
+
+			return false;
 		}
 
 		/**
@@ -342,6 +395,34 @@ public class RecipeUtil {
 		public void setExactChoice(Boolean exactChoice) {
 			if (Main.getInstance().serverVersionAtLeast(1, 14))
 				this.exactChoice = exactChoice;
+		}
+
+		/**
+		 * Gets whether the recipe is an item or a command
+		 * 
+		 * @return true if the recipe is a command, false otherwise
+		 */
+		public boolean isCommand() {
+			return isCommand;
+		}
+
+		/**
+		 * Sets the command to perform upon crafting a recipe
+		 * 
+		 * @param command the command string
+		 */
+		public void setCommand(String command) {
+			this.command = command;
+			this.isCommand = true;
+		}
+
+		/**
+		 * Gets the command to perform upon crafting a recipe
+		 * 
+		 * @return the command to be performed
+		 */
+		public String getCommand() {
+			return command;
 		}
 
 		/**
@@ -356,7 +437,7 @@ public class RecipeUtil {
 		/**
 		 * Sets whether or not a recipe is allowed to be placed.
 		 * 
-		 * @param status true or false boolean
+		 * @param placeable true or false boolean
 		 */
 		public void setPlaceable(Boolean placeable) {
 			this.placeable = placeable;
@@ -759,6 +840,7 @@ public class RecipeUtil {
 	}
 
 	public static class Ingredient {
+		private ItemStack item;
 		private Material material;
 
 		private String displayName = "false";
@@ -777,6 +859,29 @@ public class RecipeUtil {
 		public Ingredient(String abbreviation, Material material) {
 			this.material = material;
 			this.abbreviation = abbreviation;
+		}
+
+		/**
+		 * Setter for the itemstack of the ingredient
+		 * 
+		 * @param item the itemstack for the ingredient to have, not required
+		 */
+		public void setItem(ItemStack item) {
+			if (item == null || item.getType() == Material.AIR) {
+				String errorMessage = "[CRAPI] The ingredient result can not be set to null or air";
+				throw new InvalidRecipeException(errorMessage);
+			}
+
+			this.item = item;
+		}
+
+		/**
+		 * Getter for an ingredient itemstack
+		 * 
+		 * @returns the ingredient itemstack, can be null
+		 */
+		public ItemStack getItem() {
+			return item;
 		}
 
 		/**
@@ -884,8 +989,8 @@ public class RecipeUtil {
 		 * @returns true if the ingredient has one, false otherwise
 		 */
 		public boolean hasDisplayName() {
-			return displayName == null || displayName.equalsIgnoreCase("false") || displayName.equalsIgnoreCase("none")
-					|| displayName.isBlank() ? false : true;
+			return displayName != null && !displayName.equalsIgnoreCase("false")
+					&& !displayName.equalsIgnoreCase("none") && !displayName.equalsIgnoreCase("null");
 		}
 
 		/**
@@ -906,5 +1011,11 @@ public class RecipeUtil {
 		public String getAbbreviation() {
 			return abbreviation;
 		}
+	}
+
+	private void logDebug(String st, String recipe) {
+		if (Main.getInstance().debug)
+			Logger.getLogger("Minecraft").log(Level.WARNING,
+					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
 	}
 }

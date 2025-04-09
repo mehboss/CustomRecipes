@@ -51,10 +51,11 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
-	public RecipeManager plugin;
+	public RecipeManager recipeManager;
 	public RecipesGUI recipes;
 	public CooldownManager cooldownManager;
 	public RecipeUtil recipeUtil;
+	public ExactChoice exactChoice;
 	public InventoryManager guiUtil;
 
 	EditGUI editItem;
@@ -103,7 +104,7 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
-	
+
 	public boolean hasMythicMobsPlugin() {
 		if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
 			return true;
@@ -111,6 +112,27 @@ public class Main extends JavaPlugin implements Listener {
 		return false;
 	}
 
+	public boolean hasExecutableItemsPlugin() {
+		if (Bukkit.getPluginManager().getPlugin("ExecutableItems") != null) {
+			return true;
+		}
+		return false;
+	}
+
+	public boolean hasNexoPlugin() {
+		if (Bukkit.getPluginManager().getPlugin("Nexo") != null) {
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean hasOraxenPlugin() {
+		if (Bukkit.getPluginManager().getPlugin("Oraxen") != null) {
+			return true;
+		}
+		return false;
+	}
+	
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
 		crecipeCommand.setExecutor(new GiveRecipe(this));
@@ -182,7 +204,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (isFirstLoad && !sandYml.exists()) {
 			saveResource("recipes/WheatSand.yml", false);
 		}
-		
+
 		if (ymlFile.exists() && ymlConfig != null) {
 			try {
 				ymlConfig.save(ymlFile);
@@ -230,9 +252,12 @@ public class Main extends JavaPlugin implements Listener {
 		instance = this;
 		cooldownManager = new CooldownManager();
 		recipeUtil = new RecipeUtil();
-		plugin = new RecipeManager();
+		recipeManager = new RecipeManager();
 		guiUtil = new InventoryManager();
 		metaChecks = new MetaChecks();
+
+		if (serverVersionAtLeast(1, 12))
+			exactChoice = new ExactChoice();
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
@@ -289,7 +314,16 @@ public class Main extends JavaPlugin implements Listener {
 		registerBstats();
 		removeRecipes();
 		addCooldowns();
-		plugin.addRecipes();
+
+		// Make task run later, for itemsadder plugin
+		Bukkit.getScheduler().runTaskLater(this, new Runnable() {
+			@Override
+			public void run() {
+				recipeManager.addRecipes();
+				registerCommands();
+				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipes.");
+			}
+		}, 20L);
 
 		editItem = new EditGUI(this, null);
 		recipes = new RecipesGUI(this);
@@ -304,9 +338,6 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
-
-		registerCommands();
-		getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipes.");
 	}
 
 	public void clear() {
@@ -354,12 +385,14 @@ public class Main extends JavaPlugin implements Listener {
 
 	public void reload() {
 		clear();
+
+		customConfig = YamlConfiguration.loadConfiguration(customYml);
 		saveCustomYml(customConfig, customYml);
 		saveAllCustomYml();
 
 		debug = getConfig().getBoolean("Debug");
 
-		plugin.addRecipes();
+		recipeManager.addRecipes();
 		removeRecipes();
 
 		recipes = new RecipesGUI(this);
@@ -524,21 +557,27 @@ public class Main extends JavaPlugin implements Listener {
 		if (serverVersionLessThan(1, 14))
 			return;
 
-		for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
-			NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
-			if (key == null)
-				continue;
+		try {
+			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
+				NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
+				Recipe result = Bukkit.getRecipe(key);
 
-			if (!recipe.isDiscoverable())
-				continue;
+				if (key == null || (result != null && !recipe.getResult().isSimilar(result.getResult())))
+					continue;
 
-			if (recipe.getPerm() == null || !p.hasPermission(recipe.getPerm())) {
-				if (p.hasDiscoveredRecipe(key))
-					p.undiscoverRecipe(key);
-			} else if (p.hasPermission(recipe.getPerm())) {
-				if (!p.hasDiscoveredRecipe(key))
-					p.discoverRecipe(key);
+				if (!recipe.isDiscoverable())
+					continue;
+
+				if (recipe.getPerm() == null || !p.hasPermission(recipe.getPerm())) {
+					if (p.hasDiscoveredRecipe(key))
+						p.undiscoverRecipe(key);
+				} else if (p.hasPermission(recipe.getPerm())) {
+					if (!p.hasDiscoveredRecipe(key))
+						p.discoverRecipe(key);
+				}
+
 			}
+		} catch (NoClassDefFoundError error) {
 
 		}
 	}

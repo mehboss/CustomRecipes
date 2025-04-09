@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,7 +20,6 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
-import me.mehboss.recipe.RecipeManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -110,17 +110,14 @@ public class AmountManager implements Listener {
 	// Helper method for the handleShiftClick method
 	boolean matchesIngredient(ItemStack item, String recipeName, RecipeUtil.Ingredient ingredient, Material material,
 			String displayName, boolean hasIdentifier) {
-		RecipeManager recipeManager = Main.getInstance().plugin;
 		Recipe exactMatch = recipeUtil.getRecipeFromKey(ingredient.getIdentifier());
-
-		ItemStack itemsAdder = recipeManager.handleItemAdderCheck(null, recipeName, ingredient.getIdentifier(), false);
-		ItemStack mythicItem = recipeManager.handleMythicItemCheck(null, recipeName, ingredient.getIdentifier(), false);
+		ItemStack customItem = ingredient.hasIdentifier() ? recipeUtil.getResultFromKey(ingredient.getIdentifier())
+				: null;
 
 		return ((ingredient.hasIdentifier() && NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
 				&& ingredient.getIdentifier()
 						.equals(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
-				|| (ingredient.hasIdentifier() && itemsAdder != null && item.isSimilar(itemsAdder))
-				|| (ingredient.hasIdentifier() && mythicItem != null && item.isSimilar(mythicItem))
+				|| (customItem != null && item.isSimilar(customItem))
 				|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
 				|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
 						ingredient.getIdentifier(), hasIdentifier, false)));
@@ -189,10 +186,9 @@ public class AmountManager implements Listener {
 			return;
 		}
 
-		logDebug("[handleShiftClicks] Checking amount requirements for " + recipeName);
-
 		Recipe recipe = recipeUtil.getRecipe(recipeName);
 
+		logDebug("[handleShiftClicks] Checking amount requirements for " + recipeName);
 		ArrayList<String> handledIngredients = new ArrayList<String>();
 		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
 			if (ingredient.isEmpty())
@@ -264,13 +260,32 @@ public class AmountManager implements Listener {
 
 		// Add the result items to the player's inventory
 		Player player = (Player) e.getWhoClicked();
+		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(),
+				System.currentTimeMillis());
+
+		if (recipe.isCommand()) {
+			logDebug("Cancelling craft of " + recipeName + " because a command to perform was found instead.");
+			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), recipe.getCommand());
+
+			Bukkit.getScheduler().runTaskLater(Main.getInstance(), new Runnable() {
+				@Override
+				public void run() {
+					e.getWhoClicked().setItemOnCursor(null);
+				}
+			}, 2L);
+
+			return;
+		}
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 			logDebug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");
 
 		} else {
-
 			e.setCancelled(true);
+
+			if (recipe.isCommand())
+				return;
+
 			inv.setResult(new ItemStack(Material.AIR));
 
 			for (int i = 0; i < itemsToAdd; i++) {
@@ -284,8 +299,5 @@ public class AmountManager implements Listener {
 			logDebug("[handleShiftClicks] Shift click detected. Adding " + itemsToAdd + " to inventory.");
 			logDebug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
 		}
-
-		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(),
-				System.currentTimeMillis());
 	}
 }

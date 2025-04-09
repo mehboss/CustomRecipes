@@ -55,25 +55,11 @@ public class Placeholders extends PlaceholderExpansion {
 			return "";
 		}
 
-		// %someplugin_placeholder1%
-		if (identifier.contains("_ingredient_")) {
-			String[] split = identifier.split("_");
-			String recipe = split[0];
-			int ingredient = Integer.parseInt(split[2]) - 1;
-
-			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
-				return null;
-
-			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
-			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
-
-			return ingredients.get(ingredient).getMaterial().toString();
-		}
-
 		if (identifier.contains("_ingredient_name_")) {
 			String[] split = identifier.split("_");
 			String recipe = split[0];
-			int ingredient = Integer.parseInt(split[3]) - 1;
+
+			int ingredient = Integer.parseInt(split[3]);
 
 			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
 				return null;
@@ -81,13 +67,13 @@ public class Placeholders extends PlaceholderExpansion {
 			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
-			return ingredients.get(ingredient).getDisplayName();
+			return ingredients.get(ingredient).getDisplayName().replaceAll("false", "None");
 		}
 
 		if (identifier.contains("_ingredient_amount_")) {
 			String[] split = identifier.split("_");
 			String recipe = split[0];
-			int ingredient = Integer.parseInt(split[3]) - 1;
+			int ingredient = Integer.parseInt(split[3]);
 
 			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
 				return null;
@@ -102,7 +88,7 @@ public class Placeholders extends PlaceholderExpansion {
 		if (identifier.contains("_ingredient_identifier_")) {
 			String[] split = identifier.split("_");
 			String recipe = split[0];
-			int ingredient = Integer.parseInt(split[3]) - 1;
+			int ingredient = Integer.parseInt(split[3]);
 
 			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
 				return null;
@@ -111,6 +97,21 @@ public class Placeholders extends PlaceholderExpansion {
 			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return String.valueOf(ingredients.get(ingredient).getIdentifier());
+		}
+		
+		// %someplugin_placeholder1%
+		if (identifier.contains("_ingredient_")) {
+			String[] split = identifier.split("_");
+			String recipe = split[0];
+			int ingredient = Integer.parseInt(split[2]);
+
+			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
+				return null;
+
+			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
+
+			return ingredients.get(ingredient).getMaterial().toString();
 		}
 
 		// We return null if an invalid placeholder (f.e. %someplugin_placeholder3%)

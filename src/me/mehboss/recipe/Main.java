@@ -125,14 +125,14 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
-	
+
 	public boolean hasOraxenPlugin() {
 		if (Bukkit.getPluginManager().getPlugin("Oraxen") != null) {
 			return true;
 		}
 		return false;
 	}
-	
+
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
 		crecipeCommand.setExecutor(new GiveRecipe(this));
@@ -356,10 +356,10 @@ public class Main extends JavaPlugin implements Listener {
 
 		if (cooldownManager != null) {
 			// Check if there are any cooldowns
-			if (cooldownManager.getCooldowns().isEmpty()) {
-				cooldownConfig.set("Cooldowns.", null); // Remove cooldowns if none exist
+			if (cooldownManager.getCooldowns().isEmpty() && cooldownConfig.isConfigurationSection("Cooldowns")) {
+				cooldownConfig.set("Cooldowns", null);
 				saveCustomYml(cooldownConfig, cooldownYml);
-			} else {
+			} else if (!cooldownManager.getCooldowns().isEmpty()) {
 				// Iterate over each player's cooldowns
 				for (Map.Entry<UUID, Map<String, Long>> playerEntry : cooldownManager.getCooldowns().entrySet()) {
 					UUID playerUUID = playerEntry.getKey();

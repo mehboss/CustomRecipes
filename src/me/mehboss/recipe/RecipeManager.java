@@ -54,6 +54,7 @@ import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
+
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
 import me.mehboss.utils.RecipeUtil;
@@ -740,6 +741,10 @@ public class RecipeManager {
 				int ingredientAmount = getConfig().isInt(configPath + ".Amount")
 						? getConfig().getInt(configPath + ".Amount")
 						: 1;
+				int ingredientCMD = getConfig().isInt(configPath + ".CustomModelData")
+						? getConfig().getInt(configPath + ".CustomModelData")
+						: -1;
+				
 
 				logDebug("Ingredient Name: " + ingredientName, recipe.getName());
 				logDebug("Ingredient Identifier: " + ingredientIdentifier, recipe.getName());
@@ -748,6 +753,7 @@ public class RecipeManager {
 
 				recipeIngredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
 				recipeIngredient.setDisplayName(ingredientName);
+				recipeIngredient.setCustomModelData(ingredientCMD);
 				recipeIngredient.setIdentifier(ingredientIdentifier);
 				recipeIngredient.setAmount(ingredientAmount);
 				recipeIngredient.setSlot(slot);

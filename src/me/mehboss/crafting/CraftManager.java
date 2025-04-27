@@ -35,6 +35,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.cryptomorin.xseries.XMaterial;
+
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
@@ -504,6 +505,9 @@ public class CraftManager implements Listener {
 					recipeCount.put(ingredient.getMaterial(),
 							recipeCount.getOrDefault(ingredient.getMaterial(), 0) + 1);
 
+					if (Main.getInstance().serverVersionAtLeast(1, 14))
+						recipeMD.add(ingredient.getCustomModelData());
+
 					if (ingredient.hasDisplayName()) {
 						recipeNames.add(ingredient.getDisplayName());
 					} else {
@@ -518,9 +522,12 @@ public class CraftManager implements Listener {
 						continue;
 					}
 
-					if (Main.getInstance().serverVersionAtLeast(1, 14) && inv.getItem(slot).hasItemMeta()
-							&& inv.getItem(slot).getItemMeta().hasCustomModelData()) {
-						inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
+					if (Main.getInstance().serverVersionAtLeast(1, 14)) {
+						if (inv.getItem(slot).hasItemMeta() && inv.getItem(slot).getItemMeta().hasCustomModelData()) {
+							inventoryMD.add(inv.getItem(slot).getItemMeta().getCustomModelData());
+						} else {
+							inventoryMD.add(-1);
+						}
 					}
 
 					inventoryCount.put(inv.getItem(slot).getType(),
@@ -571,6 +578,12 @@ public class CraftManager implements Listener {
 					}
 					for (int model : inventoryMD) {
 						inventoryModelCount.put(model, inventoryModelCount.getOrDefault(model, 0) + 1);
+					}
+
+					if (!recipeMD.containsAll(inventoryMD) || !inventoryMD.containsAll(recipeMD)) {
+						logDebug("[handleCrafting] Model data mismatch: recipe vs inventory");
+						passedCheck = false;
+						continue;
 					}
 
 					if (!recipeModelCount.equals(inventoryModelCount)) {
@@ -624,6 +637,7 @@ public class CraftManager implements Listener {
 							inv.setResult(new ItemStack(Material.AIR));
 							passedCheck = false;
 						}
+
 						break;
 					}
 				}
@@ -728,6 +742,37 @@ public class CraftManager implements Listener {
 						}
 
 						logDebug("[handleCrafting] Inventory and recipe ingredient displayname matched for slot " + i);
+
+						// checks if displayname is null
+						if ((!meta.hasCustomModelData() && ingredient.hasCustomModelData())
+								|| (meta.hasCustomModelData() && !ingredient.hasCustomModelData())) {
+							passedCheck = false;
+							logDebug("[handleCrafting] Skipping recipe..");
+							logDebug(
+									"[handleCrafting] The recipe ingredient CMD and the inventory slot CMD do not match for recipe "
+											+ recipe.getName());
+							logDebug("[handleCrafting] The inventory slot in question: " + i
+									+ ". The ingredient slot in question: " + ingredient.getSlot());
+							logDebug("[handleCrafting] Does the ingredient have CMD? "
+									+ ingredient.hasCustomModelData());
+							logDebug("[handleCrafting] Does the inventory have CMD? " + meta.hasCustomModelData());
+							continue recipeLoop;
+						}
+
+						if (ingredient.hasCustomModelData() && meta.hasCustomModelData()
+								&& (ingredient.getCustomModelData() != meta.getCustomModelData())) {
+							passedCheck = false;
+							logDebug("[handleCrafting] Skipping recipe..");
+							logDebug(
+									"[handleCrafting] The ingredient CMD for the recipe and inventory do not match for recipe "
+											+ recipe.getName());
+							logDebug("[handleCrafting] The inventory slot in question: " + i
+									+ ". The ingredient slot in question: " + ingredient.getSlot());
+							logDebug("[handleCrafting] The ingredient CMD: " + ingredient.getCustomModelData());
+							logDebug("[handleCrafting] The inventory CMD: " + meta.getCustomModelData());
+							continue recipeLoop;
+						}
+						logDebug("[handleCrafting] Inventory and recipe ingredient CMD matched for slot " + i);
 					}
 				}
 			}
@@ -742,6 +787,7 @@ public class CraftManager implements Listener {
 
 			if (passedCheck && found) {
 				break;
+
 			}
 		}
 

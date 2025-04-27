@@ -124,7 +124,7 @@ public class NBTCommands implements CommandExecutor {
 				p.sendMessage(ChatColor.GREEN + "Successfully discovered recipe for " + args[1]);
 				return false;
 			}
-			
+
 			if (args.length >= 2 && args[0].equalsIgnoreCase("name")) {
 
 				StringBuilder sb = new StringBuilder();
@@ -140,6 +140,23 @@ public class NBTCommands implements CommandExecutor {
 				return false;
 			}
 
+			if (args.length >= 2 && args[0].equalsIgnoreCase("modeldata")) {
+
+				Integer modelData = -1;
+
+				try {
+					modelData = Integer.parseInt(args[1]);
+				} catch (NumberFormatException e) {
+					p.sendMessage(ChatColor.RED + "Custom model data must be an int! " + args[1]);
+					return false;
+				}
+
+				p.sendMessage(ChatColor.GREEN + "Successfully updated item model data!");
+				it.setCustomModelData(modelData);
+				inhand.setItemMeta(it);
+				return false;
+			}
+
 			if (args.length == 1 && args[0].equalsIgnoreCase("lore")) {
 				EditGUI.getInstance().sendLoremsg(p);
 				EditGUI.getInstance().editmeta.put(p.getUniqueId(), "Lore");
@@ -151,6 +168,7 @@ public class NBTCommands implements CommandExecutor {
 					"&aCUSTOM-RECIPES &fv" + Main.getInstance().getDescription().getVersion()));
 			p.sendMessage(" ");
 			p.sendMessage(ChatColor.RED + "/edititem name [name]");
+			p.sendMessage(ChatColor.RED + "/edititem modeldata [int]");
 			p.sendMessage(ChatColor.RED + "/edititem enchant add/remove [enchantment] [level]");
 			p.sendMessage(ChatColor.RED + "/edititem hideenchants [true/false]");
 			p.sendMessage(ChatColor.RED + "/edititem lore");

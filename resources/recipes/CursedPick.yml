@@ -32,6 +32,9 @@ CursedPick:
   # Should model data be considered even if ignore-data is true?
   Ignore-Model-Data: false  
 
+  # Does this recipe have multiple results?
+  Multi-Resulted: false
+  
   # Should this recipe use precise ItemStacks and show up in the vanilla recipe book?
   # Does not work on versions < 1.14
   Exact-Choice: true

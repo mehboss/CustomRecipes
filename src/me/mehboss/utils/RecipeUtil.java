@@ -294,7 +294,7 @@ public class RecipeUtil {
 		private String key;
 		private String permission;
 		private String command;
-
+		
 		private boolean exactChoice = false;
 		private boolean placeable = true;
 		private boolean bucketConsume = true;
@@ -828,7 +828,7 @@ public class RecipeUtil {
 		public void setConsume(Boolean consume) {
 			this.bucketConsume = consume;
 		}
-
+		
 		/**
 		 * Getter for whether a bucket is consumed or emptied
 		 * 
@@ -848,7 +848,8 @@ public class RecipeUtil {
 		private String identifier;
 		private int slot = 0;
 		private int amount = 1;
-
+		private int modelData = -1;
+		
 		/**
 		 * Parameterized constructor. Initializes an Ingredient object with specified
 		 * abbreviation and material
@@ -1010,6 +1011,36 @@ public class RecipeUtil {
 		 */
 		public String getAbbreviation() {
 			return abbreviation;
+		}
+		
+		/**
+		 * Getter for if an ingredient has CMD
+		 * 
+		 * @returns true if the recipe has CMD, false otherwise
+		 */
+		public Boolean hasCustomModelData() {
+			if (modelData == -1)
+				return false;
+			
+			return true;
+		}
+
+		/**
+		 * Setter for an ingredients custom model data
+		 * 
+		 * @param data the custom model data of the ingredient
+		 */
+		public void setCustomModelData(int data) {
+			this.modelData = data;
+		}
+
+		/**
+		 * Getter for an ingredients model data
+		 * 
+		 * @returns an int representing the custom model data
+		 */
+		public int getCustomModelData() {
+			return modelData;
 		}
 	}
 

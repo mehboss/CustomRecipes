@@ -21,7 +21,9 @@ import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
 import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.lumine.mythic.bukkit.MythicBukkit;
+import io.th0rgal.oraxen.api.OraxenItems;
 import me.mehboss.recipe.Main;
+import net.Indyuce.mmoitems.MMOItems;
 
 public class RecipeUtil {
 	private HashMap<String, Recipe> recipes = new HashMap<>();
@@ -81,6 +83,18 @@ public class RecipeUtil {
 		recipes.remove(recipeName);
 	}
 
+	public String getCustomItemPlugin(String key) {
+		if (key == null)
+			return null;
+
+		String[] split = key.split(":");
+		if (split.length < 2)
+			return null;
+
+		String namespace = split[0];
+		return namespace;
+	}
+
 	/**
 	 * Getter for a result from a namespaced key.
 	 *
@@ -89,6 +103,9 @@ public class RecipeUtil {
 	 */
 	public ItemStack getResultFromKey(String key) {
 		// First, try to get the result from a regular recipe
+
+		if (key == null)
+			return null;
 		if (getRecipeFromKey(key) != null) {
 			return getRecipeFromKey(key).getResult();
 		}
@@ -136,9 +153,9 @@ public class RecipeUtil {
 
 		case "oraxen":
 			if (Main.getInstance().hasOraxenPlugin()) {
-				ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(itemId);
-				if (mythicItem != null)
-					return mythicItem;
+				ItemStack oraxenItem = OraxenItems.exists(itemId) ? OraxenItems.getItemById(itemId).build() : null;
+				if (oraxenItem != null)
+					return oraxenItem;
 			}
 			break;
 
@@ -146,6 +163,21 @@ public class RecipeUtil {
 			if (Main.getInstance().hasNexoPlugin()) {
 				if (NexoItems.itemFromId(itemId) != null)
 					return NexoItems.itemFromId(itemId).build();
+			}
+			break;
+
+		case "mmoitems":
+			if (split.length < 3) {
+				logDebug(
+						"[CRAPI] Could not complete recipe because MMOItems must specify a type, which can not be found. Key: ",
+						key);
+				return null;
+			}
+
+			ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()), itemId.toUpperCase());
+			if (Main.getInstance().hasMMOItemsPlugin()) {
+				if (mmoitem != null)
+					return mmoitem;
 			}
 			break;
 		}
@@ -294,7 +326,7 @@ public class RecipeUtil {
 		private String key;
 		private String permission;
 		private String command;
-		
+
 		private boolean exactChoice = false;
 		private boolean placeable = true;
 		private boolean bucketConsume = true;
@@ -828,7 +860,7 @@ public class RecipeUtil {
 		public void setConsume(Boolean consume) {
 			this.bucketConsume = consume;
 		}
-		
+
 		/**
 		 * Getter for whether a bucket is consumed or emptied
 		 * 
@@ -849,7 +881,7 @@ public class RecipeUtil {
 		private int slot = 0;
 		private int amount = 1;
 		private int modelData = -1;
-		
+
 		/**
 		 * Parameterized constructor. Initializes an Ingredient object with specified
 		 * abbreviation and material
@@ -1012,7 +1044,7 @@ public class RecipeUtil {
 		public String getAbbreviation() {
 			return abbreviation;
 		}
-		
+
 		/**
 		 * Getter for if an ingredient has CMD
 		 * 
@@ -1021,7 +1053,7 @@ public class RecipeUtil {
 		public Boolean hasCustomModelData() {
 			if (modelData == -1)
 				return false;
-			
+
 			return true;
 		}
 

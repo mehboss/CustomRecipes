@@ -30,8 +30,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.cryptomorin.xseries.XMaterial;
 
 import me.mehboss.anvil.AnvilManager;
-import me.mehboss.commands.GiveRecipe;
-import me.mehboss.commands.NBTCommands;
 import me.mehboss.commands.TabCompletion;
 import me.mehboss.cooking.CookingManager;
 import me.mehboss.crafting.AmountManager;
@@ -132,17 +130,22 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
+	
+	public boolean hasMMOItemsPlugin() {
+		if (Bukkit.getPluginManager().getPlugin("MMOItems") != null) {
+			return true;
+		}
+		return false;
+	}
 
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
-		crecipeCommand.setExecutor(new GiveRecipe(this));
+		crecipeCommand.setExecutor(new CommandListener());
 
 		if (serverVersionAtLeast(1, 15)) {
 			TabCompletion tabCompleter = new TabCompletion();
 			crecipeCommand.setTabCompleter(tabCompleter);
 		}
-
-		getCommand("edititem").setExecutor(new NBTCommands());
 	}
 
 	void registerUpdateChecker() {
@@ -315,6 +318,8 @@ public class Main extends JavaPlugin implements Listener {
 		removeRecipes();
 		addCooldowns();
 
+		disableRecipes();
+		
 		// Make task run later, for itemsadder plugin
 		Bukkit.getScheduler().runTaskLater(this, new Runnable() {
 			@Override
@@ -323,7 +328,7 @@ public class Main extends JavaPlugin implements Listener {
 				registerCommands();
 				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipes.");
 			}
-		}, 20L);
+		}, 40L);
 
 		editItem = new EditGUI(this, null);
 		recipes = new RecipesGUI(this);
@@ -397,6 +402,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		recipes = new RecipesGUI(this);
 		editItem = new EditGUI(Main.getInstance(), null);
+		disableRecipes();
 	}
 
 	void addCooldowns() {

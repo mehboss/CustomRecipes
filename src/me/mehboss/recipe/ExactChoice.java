@@ -55,10 +55,10 @@ public class ExactChoice {
 
 			if (item.hasDisplayName())
 				exactMeta.setDisplayName(item.getDisplayName());
-			
+
 			if (item.hasCustomModelData())
 				exactMeta.setCustomModelData(item.getCustomModelData());
-			
+
 			exactItem.setItemMeta(exactMeta);
 			return new RecipeChoice.ExactChoice(exactItem);
 		}

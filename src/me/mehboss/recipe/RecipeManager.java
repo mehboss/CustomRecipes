@@ -254,13 +254,26 @@ public class RecipeManager {
 	}
 
 	ItemStack applyNBT(ItemStack item, Object value, String... path) {
-
-		if (path == null || path.length == 0) {
+		if (path == null || path.length == 0)
 			throw new IllegalArgumentException("NBT path cannot be null or empty");
-		}
-		return NBTEditor.set(item, value, (Object[]) path);
-	}
 
+		// Handle common numeric conversions (e.g., byte for flags like Invisible, Glowing)
+		if (value instanceof Number) {
+			Number num = (Number) value;
+
+			// If value is 0 or 1, treat it as a byte (for compatibility with boolean-like NBT tags)
+			if (num.intValue() == 0 || num.intValue() == 1) {
+				value = num.byteValue();
+			}
+		}
+
+		try {
+			return NBTEditor.set(item, value, (Object[]) path);
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
+		}
+	}
+	
 	@SuppressWarnings("unchecked")
 	List<Map<String, Object>> getCustomTags(String recipe) {
 		List<Map<?, ?>> rawList = getConfig().getMapList(recipe + ".Custom-Tags");

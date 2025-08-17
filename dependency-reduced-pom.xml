@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>CustomRecipes</groupId>
   <artifactId>CustomRecipes</artifactId>
-  <version>1.9.9.4</version>
+  <version>1.9.9.6</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
@@ -59,6 +59,27 @@
           </filters>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <id>shade</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <relocations>
+            <relocation>
+              <pattern>de.tr7zw.changeme.nbtapi</pattern>
+              <shadedPattern>me.mehboss.utils.NBTAPI</shadedPattern>
+            </relocation>
+          </relocations>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <repositories>
@@ -96,6 +117,10 @@
       <id>nexomc</id>
       <url>https://repo.nexomc.com/releases</url>
     </repository>
+    <repository>
+      <id>phoenix</id>
+      <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
+    </repository>
   </repositories>
   <dependencies>
     <dependency>
@@ -120,6 +145,19 @@
       <groupId>io.lumine</groupId>
       <artifactId>Mythic-Dist</artifactId>
       <version>5.7.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.lumine</groupId>
+      <artifactId>MythicLib-dist</artifactId>
+      <version>1.6.2-SNAPSHOT</version>
+      <scope>provided</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>net.Indyuce</groupId>
+      <artifactId>MMOItems-API</artifactId>
+      <version>6.9.5-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -136,12 +137,16 @@ public class CraftManager implements Listener {
 		ItemStack exactMatch = ingredient.hasIdentifier() ? recipeUtil.getResultFromKey(ingredient.getIdentifier())
 				: recipe;
 
+		if (item == null || (ingredient.hasIdentifier() && exactMatch == null))
+			return returnType;
+
 		// Attempt to match the ingredient to a recipe using the identifier
 		// Attempt to match the ingredient to an itemsadder item
 		// If all else fail, match the itemstack to the regular ingredient requirements
-		if (item != null && ((ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch))
+		if ((ingredient.hasIdentifier() && item.isSimilar(exactMatch))
+				|| (ingredient.hasIdentifier() && checkMythicMobsItem(exactMatch, item, ingredient.getIdentifier()))
 				|| (item.getType() == ingredient.getMaterial() && hasMatchingDisplayName(recipeName, item,
-						ingredient.getDisplayName(), ingredient.getIdentifier(), ingredient.hasIdentifier(), false)))) {
+						ingredient.getDisplayName(), ingredient.getIdentifier(), ingredient.hasIdentifier(), false))) {
 
 			if (debug)
 				logDebug("[amountsMatch] Checking slot " + slot + " for required amounts.. ");
@@ -200,21 +205,21 @@ public class CraftManager implements Listener {
 
 	@SuppressWarnings("deprecation")
 	boolean isBlacklisted(CraftingInventory inv, Player p) {
-		if (customConfig().getBoolean("blacklist-recipes") == true) {
+		if (customConfig().getBoolean("blacklist-recipes")) {
 			for (String item : disabledrecipe()) {
 
 				String[] split = item.split(":");
 				String id = split[0];
 				ItemStack i = null;
 
-				if (customConfig().isString("vanilla-recipes." + split[0]))
-					return false;
+				if (!customConfig().isConfigurationSection("vanilla-recipes." + split[0]))
+					continue;
 
 				if (!XMaterial.matchXMaterial(split[0]).isPresent()) {
 					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + split[0]
 							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
 							+ "ID into the blacklisted config file and try again. If this problem persists please contact Mehboss on Spigot!");
-					return false;
+					continue;
 				}
 				i = XMaterial.matchXMaterial(split[0]).get().parseItem();
 
@@ -225,21 +230,20 @@ public class CraftManager implements Listener {
 				String getPerm = customConfig().getString("vanilla-recipes." + item + ".permission");
 
 				if (i == null)
-					return false;
+					continue;
 
 				if ((NBTEditor.contains(i, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER", id)
 						&& NBTEditor.getString(i, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER", id).equals(id)
 						&& recipeUtil.getRecipe(id) == null) || inv.getResult().isSimilar(i)) {
 
-					if (getPerm == null || getPerm.equalsIgnoreCase("none") || p.hasPermission("crecipe." + getPerm)) {
-
-						logDebug("[isBlacklisted] Player " + p.getName() + " does have required permission " + getPerm
-								+ " for item " + item);
+					if (getPerm != null && !getPerm.equalsIgnoreCase("none") && p.hasPermission("crecipe." + getPerm)) {
+						logDebug("[isBlacklisted] Player " + p.getName() + " does have required permission '" + getPerm
+								+ "' for item " + item);
 						return false;
 					}
 
-					logDebug("[isBlacklisted] Player " + p.getName() + " does not have required permission " + getPerm
-							+ " for item " + item);
+					logDebug("[isBlacklisted] Player " + p.getName() + " does not have required permission '" + getPerm
+							+ "' for item " + item + " or this recipe has been globally blacklisted!");
 
 					sendMessages(p, getPerm, 0);
 					inv.setResult(new ItemStack(Material.AIR));
@@ -368,13 +372,13 @@ public class CraftManager implements Listener {
 		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
 			if (!ingredient.isEmpty()) {
 
-				if (!ingredient.hasIdentifier()) {
-					ingMaterials.add(ingredient.getMaterial().toString());
-				} else if (recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null) {
+				if (recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) != null) {
 					ingMaterials.add(
 							recipeUtil.getRecipeFromKey(ingredient.getIdentifier()).getResult().getType().toString());
 				} else if (recipeUtil.getResultFromKey(ingredient.getIdentifier()) != null) {
 					ingMaterials.add(recipeUtil.getResultFromKey(ingredient.getIdentifier()).getType().toString());
+				} else {
+					ingMaterials.add(ingredient.getMaterial().toString());
 				}
 
 				continue;
@@ -418,6 +422,33 @@ public class CraftManager implements Listener {
 		return true;
 	}
 
+	boolean checkMythicMobsItem(ItemStack exactMatch, ItemStack item, String identifier) {
+		ItemStack ingredientItem = exactMatch != null ? exactMatch.clone() : null;
+		ItemMeta ingredientMeta = ingredientItem != null ? ingredientItem.getItemMeta() : null;
+		ItemStack inventoryItem = item.clone();
+		ItemMeta inventoryMeta = item.getItemMeta();
+
+		String customItem = recipeUtil.getCustomItemPlugin(identifier);
+		if (customItem != null && customItem.toLowerCase().equals("mythicmobs")) {
+			for (Attribute am : Attribute.values()) {
+				inventoryMeta.removeAttributeModifier(am);
+				if (ingredientItem != null)
+					ingredientMeta.removeAttributeModifier(am);
+			}
+
+			ingredientItem.setItemMeta(ingredientMeta);
+			inventoryItem.setItemMeta(inventoryMeta);
+		}
+
+		logDebug("MM Ingredient: " + ingredientItem.toString());
+		logDebug("MM Inventory: " + inventoryItem.toString());
+
+		if (ingredientItem != null && inventoryItem != null && ingredientItem.isSimilar(inventoryItem))
+			return true;
+
+		return false;
+	}
+
 	@EventHandler(priority = EventPriority.HIGHEST)
 	void handleCrafting(PrepareItemCraftEvent e) {
 
@@ -432,7 +463,7 @@ public class CraftManager implements Listener {
 			return;
 
 		Player p = (Player) e.getView().getPlayer();
-
+		
 		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
 				|| !(matchedRecipe(inv)) || isBlacklisted(inv, p))
 			return;
@@ -443,7 +474,7 @@ public class CraftManager implements Listener {
 			finalRecipe = recipe;
 
 			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
-
+			
 			if (!hasAllIngredients(inv, recipe.getName(), recipeIngredients)) {
 				logDebug("[handleCrafting] Skipping to the next recipe! Ingredients did not match for recipe "
 						+ recipe.getName());
@@ -682,29 +713,27 @@ public class CraftManager implements Listener {
 						ItemMeta meta = inv.getItem(i).getItemMeta();
 
 						if (ingredient.hasIdentifier()
-								&& recipeUtil.getResultFromKey(ingredient.getIdentifier()) != null
-								&& inv.getItem(i).isSimilar(recipeUtil.getResultFromKey(ingredient.getIdentifier()))) {
+								&& recipeUtil.getResultFromKey(ingredient.getIdentifier()) != null) {
 
+							ItemStack ingredientItem = recipeUtil.getResultFromKey(ingredient.getIdentifier());
+
+							if (!inv.getItem(i).isSimilar(ingredientItem) && !checkMythicMobsItem(ingredientItem,
+									inv.getItem(i), ingredient.getIdentifier())) {
+								logDebug("[handleCrafting] Skipping recipe.. Recipe: " + recipe.getName());
+								logDebug("[handleCrafting] Ingredient hasID: " + ingredient.hasIdentifier());
+								logDebug("[handleCrafting] isSimilar: " + inv.getItem(i)
+										.isSimilar(recipeUtil.getResultFromKey(ingredient.getIdentifier())));
+								logDebug("[handleCrafting] invIngredient ID is " + NBTEditor.getString(inv.getItem(i),
+										NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"));
+								logDebug("[handleCrafting] recipeIngredient ID is " + ingredient.getIdentifier());
+
+								passedCheck = false;
+								continue recipeLoop;
+							}
 							logDebug("[handleCrafting] Passed all required checks for the recipe ingredient in slot "
 									+ i + " for recipe " + recipe.getName());
 							continue;
 
-						} else if (ingredient.hasIdentifier()) {
-
-							logDebug(
-									"[handleCrafting] Skipping recipe.. We should never reach this line of code.. please reach out for support.. Recipe: "
-											+ recipe.getName());
-
-							logDebug("[handleCrafting] Ingredient hasID: " + ingredient.hasIdentifier());
-
-							logDebug("[handleCrafting] Invoke getRecipeFromKey:	"
-									+ recipeUtil.getRecipeFromKey(ingredient.getIdentifier()));
-							logDebug("[handleCrafting] invIngredient ID is " + NBTEditor.getString(inv.getItem(i),
-									NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"));
-							logDebug("[handleCrafting] recipeIngredient ID is " + ingredient.getIdentifier());
-
-							passedCheck = false;
-							continue recipeLoop;
 						}
 
 						logDebug("[handleCrafting] The recipe " + recipe.getName() + " ingredient slot " + i

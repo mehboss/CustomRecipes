@@ -28,7 +28,7 @@ public class CommandHelp {
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&c/crecipe debug &8-&f Enables debug mode for the author to troubleshoot &e(crecipe.debug)"));
 		p.sendMessage(
-				ChatColor.translateAlternateColorCodes('&', "&c/cr edititem &8-&f Convenient recipe & item handler"));
+				ChatColor.translateAlternateColorCodes('&', "&c/crecipe edititem &8-&f Convenient recipe & item handler"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
 		return true;
 	}

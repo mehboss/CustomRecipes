@@ -33,6 +33,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.cryptomorin.xseries.XMaterial;
@@ -177,11 +178,12 @@ public class CraftManager implements Listener {
 				continue;
 
 			int slot = ingredient.getSlot();
-			ItemStack invSlot = inv.getMatrix()[slot - 1];
+			if (recipeUtil.getRecipe(recipeName).getType() == RecipeType.SHAPED) {
+				ItemStack invSlot = inv.getMatrix()[slot - 1];
 
-			if (recipeUtil.getRecipe(recipeName).getType() == RecipeType.SHAPED)
 				if (!validateItem(invSlot, ingredient, recipeName, slot, debug, false))
 					return false;
+			}
 
 			if (recipeUtil.getRecipe(recipeName).getType() == RecipeType.SHAPELESS) {
 				slot = 0;
@@ -463,9 +465,12 @@ public class CraftManager implements Listener {
 			return;
 
 		Player p = (Player) e.getView().getPlayer();
-		
+
 		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
 				|| !(matchedRecipe(inv)) || isBlacklisted(inv, p))
+			return;
+
+		if (inv.getType() == InventoryType.CRAFTING && !(inv.getRecipe() instanceof ShapelessRecipe))
 			return;
 
 		recipeLoop: for (String recipes : recipeUtil.getRecipeNames()) {
@@ -474,6 +479,9 @@ public class CraftManager implements Listener {
 			finalRecipe = recipe;
 
 			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
+
+			if (recipe.getType() != RecipeType.SHAPELESS && recipe.getType() != RecipeType.SHAPED)
+				continue;
 			
 			if (!hasAllIngredients(inv, recipe.getName(), recipeIngredients)) {
 				logDebug("[handleCrafting] Skipping to the next recipe! Ingredients did not match for recipe "

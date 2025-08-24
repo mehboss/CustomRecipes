@@ -26,36 +26,36 @@ public class CommandEditItem {
 
 		ItemMeta it = inhand.getItemMeta();
 
-		if (command.args.length >= 3 && command.args.length <= 4 && command.args[0].equalsIgnoreCase("enchant")) {
+		if (command.args.length >= 4 && command.args.length <= 5 && command.args[1].equalsIgnoreCase("enchant")) {
 
-			if (Enchantment.getByName(command.args[2].toUpperCase()) == null || p.getItemInHand() == null) {
+			if (Enchantment.getByName(command.args[3].toUpperCase()) == null || p.getItemInHand() == null) {
 				p.sendMessage(ChatColor.RED + "Invalid enchantment!");
 				return false;
 			}
 
-			if (command.args[1].equalsIgnoreCase("remove")) {
-				p.getItemInHand().removeEnchantment(Enchantment.getByName(command.args[2].toUpperCase()));
-				p.sendMessage(ChatColor.GREEN + "Successfully removed item enchantment " + command.args[2].toUpperCase());
+			if (command.args[2].equalsIgnoreCase("remove")) {
+				p.getItemInHand().removeEnchantment(Enchantment.getByName(command.args[3].toUpperCase()));
+				p.sendMessage(ChatColor.GREEN + "Successfully removed item enchantment " + command.args[3].toUpperCase());
 
-			} else if (command.args[1].equalsIgnoreCase("add")) {
-				p.getItemInHand().addUnsafeEnchantment(Enchantment.getByName(command.args[2].toUpperCase()),
-						Integer.parseInt(command.args[3]));
-				p.sendMessage(ChatColor.GREEN + "Successfully added item enchantment " + command.args[2].toUpperCase());
+			} else if (command.args[2].equalsIgnoreCase("add")) {
+				p.getItemInHand().addUnsafeEnchantment(Enchantment.getByName(command.args[3].toUpperCase()),
+						Integer.parseInt(command.args[4]));
+				p.sendMessage(ChatColor.GREEN + "Successfully added item enchantment " + command.args[3].toUpperCase());
 			}
 
 			return false;
 		}
 
-		if (command.args.length == 2 && command.args[0].equalsIgnoreCase("hideenchants")) {
+		if (command.args.length == 3 && command.args[1].equalsIgnoreCase("hideenchants")) {
 
 			ItemStack item = p.getItemInHand();
 			ItemMeta itemm = item.getItemMeta();
 
-			if (command.args[1].equalsIgnoreCase("false")) {
+			if (command.args[2].equalsIgnoreCase("false")) {
 				itemm.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
 				p.getItemInHand().setItemMeta(itemm);
 
-			} else if (command.args[1].equalsIgnoreCase("true")) {
+			} else if (command.args[2].equalsIgnoreCase("true")) {
 				itemm.addItemFlags(ItemFlag.HIDE_ENCHANTS);
 				p.getItemInHand().setItemMeta(itemm);
 
@@ -68,18 +68,18 @@ public class CommandEditItem {
 			return false;
 		}
 
-		if (command.args.length == 2 && command.args[0].equalsIgnoreCase("key")) {
+		if (command.args.length == 3 && command.args[1].equalsIgnoreCase("key")) {
 			ItemStack item = p.getItemInHand();
-			item = NBTEditor.set(item, command.args[1], "CUSTOM_ITEM_IDENTIFIER");
+			item = NBTEditor.set(item, command.args[2], "CUSTOM_ITEM_IDENTIFIER");
 			p.setItemInHand(item);
 
 			p.sendMessage(ChatColor.GREEN + "Successfully updated item identifier!");
 			return false;
 		}
 
-		if (command.args.length == 3 && command.args[0].equalsIgnoreCase("undiscover")) {
-			NamespacedKey key = NamespacedKey.fromString(command.args[2]);
-			Player player = Bukkit.getPlayer(command.args[1]);
+		if (command.args.length == 4 && command.args[1].equalsIgnoreCase("undiscover")) {
+			NamespacedKey key = NamespacedKey.fromString(command.args[3]);
+			Player player = Bukkit.getPlayer(command.args[2]);
 
 			if (key == null) {
 				p.sendMessage(ChatColor.RED + "Invalid NamespacedKey to undiscover!");
@@ -91,13 +91,13 @@ public class CommandEditItem {
 				return false;
 			}
 			player.undiscoverRecipe(key);
-			p.sendMessage(ChatColor.GREEN + "Successfully undiscovered recipe for " + command.args[1]);
+			p.sendMessage(ChatColor.GREEN + "Successfully undiscovered recipe for " + command.args[2]);
 			return false;
 		}
 
-		if (command.args.length == 3 && command.args[0].equalsIgnoreCase("discover")) {
-			NamespacedKey key = NamespacedKey.fromString(command.args[2]);
-			Player player = Bukkit.getPlayer(command.args[1]);
+		if (command.args.length == 4 && command.args[1].equalsIgnoreCase("discover")) {
+			NamespacedKey key = NamespacedKey.fromString(command.args[3]);
+			Player player = Bukkit.getPlayer(command.args[2]);
 
 			if (key == null) {
 				p.sendMessage(ChatColor.RED + "Invalid NamespacedKey to discover!");
@@ -109,16 +109,16 @@ public class CommandEditItem {
 				return false;
 			}
 			player.discoverRecipe(key);
-			p.sendMessage(ChatColor.GREEN + "Successfully discovered recipe for " + command.args[1]);
+			p.sendMessage(ChatColor.GREEN + "Successfully discovered recipe for " + command.args[2]);
 			return false;
 		}
 
-		if (command.args.length >= 2 && command.args[0].equalsIgnoreCase("name")) {
+		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("name")) {
 
 			StringBuilder sb = new StringBuilder();
 
-			for (int i = 1; i < command.args.length; i++) {
-				if (i > 1)
+			for (int i = 2; i < command.args.length; i++) {
+				if (i > 2)
 					sb.append(" ");
 				sb.append(command.args[i]);
 			}
@@ -128,7 +128,7 @@ public class CommandEditItem {
 			return false;
 		}
 
-		if (command.args.length >= 2 && command.args[0].equalsIgnoreCase("modeldata")) {
+		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("modeldata")) {
 
 			Integer modelData = -1;
 
@@ -145,7 +145,7 @@ public class CommandEditItem {
 			return false;
 		}
 
-		if (command.args.length == 1 && command.args[0].equalsIgnoreCase("lore")) {
+		if (command.args.length == 2 && command.args[1].equalsIgnoreCase("lore")) {
 			EditGUI.getInstance().sendLoremsg(p);
 			EditGUI.getInstance().editmeta.put(p.getUniqueId(), "Lore");
 			return false;
@@ -155,14 +155,14 @@ public class CommandEditItem {
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&aCUSTOM-RECIPES &fv" + Main.getInstance().getDescription().getVersion()));
 		p.sendMessage(" ");
-		p.sendMessage(ChatColor.RED + "/edititem name [name]");
-		p.sendMessage(ChatColor.RED + "/edititem modeldata [int]");
-		p.sendMessage(ChatColor.RED + "/edititem enchant add/remove [enchantment] [level]");
-		p.sendMessage(ChatColor.RED + "/edititem hideenchants [true/false]");
-		p.sendMessage(ChatColor.RED + "/edititem lore");
-		p.sendMessage(ChatColor.RED + "/edititem key [key])");
-		p.sendMessage(ChatColor.RED + "/edititem undiscover [player] [NamespacedKey]");
-		p.sendMessage(ChatColor.RED + "/edititem discover [player] [NamespacedKey]");
+		p.sendMessage(ChatColor.RED + "/cr edititem name [name]");
+		p.sendMessage(ChatColor.RED + "/cr edititem modeldata [int]");
+		p.sendMessage(ChatColor.RED + "/cr edititem enchant add/remove [enchantment] [level]");
+		p.sendMessage(ChatColor.RED + "/cr edititem hideenchants [true/false]");
+		p.sendMessage(ChatColor.RED + "/cr edititem lore");
+		p.sendMessage(ChatColor.RED + "/cr edititem key [key])");
+		p.sendMessage(ChatColor.RED + "/cr edititem undiscover [player] [NamespacedKey]");
+		p.sendMessage(ChatColor.RED + "/cr edititem discover [player] [NamespacedKey]");
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
 		return true;
 	}

@@ -2,6 +2,7 @@ package me.mehboss.utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -325,7 +326,7 @@ public class RecipeUtil {
 		private String name;
 		private String key;
 		private String permission;
-		private String command;
+		private List<String> commands;
 
 		private boolean exactChoice = false;
 		private boolean placeable = true;
@@ -335,7 +336,8 @@ public class RecipeUtil {
 		private boolean ignoreModelData = false;
 		private boolean isTagged = false;
 		private boolean discoverable = false;
-		private boolean isCommand = false;
+		private boolean hasCommands = false;
+		private boolean isGrantItem = true;
 
 		private String row1;
 		private String row2;
@@ -429,32 +431,51 @@ public class RecipeUtil {
 				this.exactChoice = exactChoice;
 		}
 
+		
+		/**
+		 * Sets whether the recipe output should be granted after a command is performed
+		 * 
+		 * @return true if the recipe is granted, false otherwise.
+		 */
+		public void setGrantItem(Boolean grantItem) {
+			this.isGrantItem = grantItem;
+		}
+		
+		/**
+		 * Gets whether the recipe output should be granted after a command is performed
+		 * 
+		 * @return true if the recipe is granted, false otherwise.
+		 */
+		public boolean isGrantItem() {
+			return isGrantItem;
+		}
+		
 		/**
 		 * Gets whether the recipe is an item or a command
 		 * 
 		 * @return true if the recipe is a command, false otherwise
 		 */
-		public boolean isCommand() {
-			return isCommand;
+		public boolean hasCommands() {
+			return hasCommands;
 		}
 
 		/**
-		 * Sets the command to perform upon crafting a recipe
-		 * 
-		 * @param command the command string
+		 * Sets the commands to perform upon crafting a recipe
+		 *
+		 * @param commands the list of command strings
 		 */
-		public void setCommand(String command) {
-			this.command = command;
-			this.isCommand = true;
+		public void setCommands(List<String> commands) {
+		    this.commands = commands;
+		    this.hasCommands = true;
 		}
 
 		/**
-		 * Gets the command to perform upon crafting a recipe
-		 * 
-		 * @return the command to be performed
+		 * Gets the commands to perform upon crafting a recipe
+		 *
+		 * @return the list of commands to be performed
 		 */
-		public String getCommand() {
-			return command;
+		public List<String> getCommand() {
+		    return commands;
 		}
 
 		/**

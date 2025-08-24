@@ -36,25 +36,25 @@ public class CommandListener implements CommandExecutor {
 		} else if (args.length >= 1) {
 			try {
 
-				if (!sender.hasPermission("cr." + args[0])) {
+				if (!sender.hasPermission("crecipe." + args[0])) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							getConfig().getString("Messages.Invalid-Perms")));
 					return true;
 				}
 
-				if (args[0].equalsIgnoreCase("help") && sender.hasPermission("cr.help")) {
+				if (args[0].equalsIgnoreCase("help") && sender.hasPermission("crecipe.help")) {
 					return CommandHelp.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("list") && sender.hasPermission("cr.list")) {
+				if (args[0].equalsIgnoreCase("list") && sender.hasPermission("crecipe.list")) {
 					return CommandList.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("give") && sender.hasPermission("cr.give")) {
+				if (args[0].equalsIgnoreCase("give") && sender.hasPermission("crecipe.give")) {
 					return CommandGive.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("book") && sender.hasPermission("cr.book")) {
+				if (args[0].equalsIgnoreCase("book") && sender.hasPermission("crecipe.book")) {
 					if (sender instanceof Player) {
 						return CommandBook.Run(cmd);
 					} else {
@@ -63,7 +63,7 @@ public class CommandListener implements CommandExecutor {
 					}
 				}
 
-				if (args[0].equalsIgnoreCase("gui") && sender.hasPermission("cr.gui")) {
+				if (args[0].equalsIgnoreCase("gui") && sender.hasPermission("crecipe.gui")) {
 					if (sender instanceof Player) {
 						return CommandGUI.Run(cmd);
 					} else {
@@ -72,15 +72,15 @@ public class CommandListener implements CommandExecutor {
 					}
 				}
 
-				if (args[0].equalsIgnoreCase("reload") && sender.hasPermission("cr.reload")) {
+				if (args[0].equalsIgnoreCase("reload") && sender.hasPermission("crecipe.reload")) {
 					return CommandReload.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("debug") && sender.hasPermission("cr.debug")) {
+				if (args[0].equalsIgnoreCase("debug") && sender.hasPermission("crecipe.debug")) {
 					return CommandDebug.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("edititem") && sender.hasPermission("cr.admin")) {
+				if (args[0].equalsIgnoreCase("edititem") && sender.hasPermission("crecipe.edititem")) {
 					if (sender instanceof Player) {
 						return CommandEditItem.Run(cmd);
 					} else {

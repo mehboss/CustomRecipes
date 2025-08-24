@@ -23,6 +23,9 @@ CursedSword:
   Hide-Enchants: true
   Enchantments:
    - 'DURABILITY:255'
+  Commands:
+    Give-Item: true
+    Run-Commands: []
   ItemCrafting:
    - 'XDX'
    - 'XBX'

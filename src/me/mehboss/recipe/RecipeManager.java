@@ -257,11 +257,13 @@ public class RecipeManager {
 		if (path == null || path.length == 0)
 			throw new IllegalArgumentException("NBT path cannot be null or empty");
 
-		// Handle common numeric conversions (e.g., byte for flags like Invisible, Glowing)
+		// Handle common numeric conversions (e.g., byte for flags like Invisible,
+		// Glowing)
 		if (value instanceof Number) {
 			Number num = (Number) value;
 
-			// If value is 0 or 1, treat it as a byte (for compatibility with boolean-like NBT tags)
+			// If value is 0 or 1, treat it as a byte (for compatibility with boolean-like
+			// NBT tags)
 			if (num.intValue() == 0 || num.intValue() == 1) {
 				value = num.byteValue();
 			}
@@ -270,10 +272,11 @@ public class RecipeManager {
 		try {
 			return NBTEditor.set(item, value, (Object[]) path);
 		} catch (Exception ex) {
-			throw new RuntimeException("Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
+			throw new RuntimeException(
+					"Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	List<Map<String, Object>> getCustomTags(String recipe) {
 		List<Map<?, ?>> rawList = getConfig().getMapList(recipe + ".Custom-Tags");
@@ -308,16 +311,16 @@ public class RecipeManager {
 	}
 
 	@SuppressWarnings("deprecation")
-	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type, int amount) {
+	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type) {
 		if (!getConfig().isSet(item + ".Item-Damage") || damage.equalsIgnoreCase("none")) {
-			return new ItemStack(type.get().parseMaterial(), amount);
+			return new ItemStack(type.get().parseMaterial(), 1);
 		} else {
 			try {
-				return new ItemStack(type.get().parseMaterial(), amount, Short.valueOf(damage));
+				return new ItemStack(type.get().parseMaterial(), 1, Short.valueOf(damage));
 			} catch (Exception e) {
 				Main.getInstance().getLogger().log(Level.WARNING, "Couldn't apply item damage to the recipe " + item
 						+ ". Please double check that it is a valid item-damage. Skipping for now.");
-				return new ItemStack(type.get().parseMaterial(), amount);
+				return new ItemStack(type.get().parseMaterial(), 1);
 			}
 		}
 	}
@@ -529,13 +532,19 @@ public class RecipeManager {
 	}
 
 	void handleCommand(String item, Recipe recipe) {
-		if (!getConfig().isSet(item + ".Command") || getConfig().getString(item + ".Command").equalsIgnoreCase("false")
-				|| getConfig().getString(item + ".Command").equalsIgnoreCase("none"))
+		String path = item + ".Commands.Run-Commands";
+		String grantItem = item + ".Commands.Give-Item";
+
+		// Check if the list exists and is not empty
+		if (!getConfig().isSet(path) || getConfig().getStringList(path).isEmpty())
 			return;
 
-		String command = getConfig().getString(item + ".Command");
-		recipe.setCommand(command);
-		logDebug("Successfully set the command " + command, item);
+		if (getConfig().isSet(grantItem))
+			recipe.setGrantItem(getConfig().getBoolean(grantItem));
+
+		List<String> commands = getConfig().getStringList(path);
+		recipe.setCommands(commands);
+		logDebug("Successfully set commands: " + commands, item);
 	}
 
 	public void addRecipes() {
@@ -638,7 +647,7 @@ public class RecipeManager {
 
 			String identifier = getConfig().getString(item + ".Identifier");
 			recipe.setKey(identifier);
-			
+
 			// Checks for a custom item and attempts to set it
 			ItemStack i = recipeUtil.getResultFromKey(getConfig().getString(item + ".Item"));
 			ItemMeta m = i != null ? i.getItemMeta() : null;
@@ -650,7 +659,6 @@ public class RecipeManager {
 			if (i == null) {
 
 				String damage = getConfig().getString(item + ".Item-Damage");
-				int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
 				Optional<XMaterial> type = getConfig().isString(item + ".Item")
 						? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
 						: null;
@@ -658,7 +666,7 @@ public class RecipeManager {
 				if (!(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type)))
 					continue;
 
-				i = handleItemDamage(i, item, damage, type, amount);
+				i = handleItemDamage(i, item, damage, type);
 				i = handleEnchants(i, item);
 				i = handleCustomEnchants(i, item);
 				i = applyCustomTags(i, item);
@@ -676,6 +684,9 @@ public class RecipeManager {
 
 			if (isHavenBag(item))
 				i = handleBagCreation(i.getType(), item);
+
+			int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
+			i.setAmount(amount);
 
 			recipe.setResult(i);
 			handleIgnoreFlags(item, recipe);
@@ -757,7 +768,6 @@ public class RecipeManager {
 				int ingredientCMD = getConfig().isInt(configPath + ".CustomModelData")
 						? getConfig().getInt(configPath + ".CustomModelData")
 						: -1;
-				
 
 				logDebug("Ingredient Name: " + ingredientName, recipe.getName());
 				logDebug("Ingredient Identifier: " + ingredientIdentifier, recipe.getName());
@@ -959,18 +969,19 @@ public class RecipeManager {
 		String[] key = identifier.split(":");
 		if (key.length < 2)
 			return null;
-		
+
 		String plugin = key[0];
-		
+
 		if (Bukkit.getPluginManager().getPlugin(plugin) == null) {
-			logError("Found custom item from " + plugin + ", but did not find the required plugin. Skipping recipe..", recipe);
+			logError("Found custom item from " + plugin + ", but did not find the required plugin. Skipping recipe..",
+					recipe);
 			return null;
 		}
-		
+
 		return plugin;
 
 	}
-	
+
 	boolean isInt(String s) {
 		try {
 			Integer.parseInt(s);

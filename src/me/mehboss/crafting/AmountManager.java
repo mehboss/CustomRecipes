@@ -263,18 +263,24 @@ public class AmountManager implements Listener {
 		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(),
 				System.currentTimeMillis());
 
-		if (recipe.isCommand()) {
+		if (recipe.hasCommands()) {
 			logDebug("Cancelling craft of " + recipeName + " because a command to perform was found instead.");
-			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), recipe.getCommand());
 
-			Bukkit.getScheduler().runTaskLater(Main.getInstance(), new Runnable() {
-				@Override
-				public void run() {
-					e.getWhoClicked().setItemOnCursor(null);
-				}
-			}, 2L);
+			for (String command : recipe.getCommand()) {
+				String parsedCommand = command.replace("%crafter%", player.getName());
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand);
+			}
 
-			return;
+			if (!recipe.isGrantItem()) {
+				Bukkit.getScheduler().runTaskLater(Main.getInstance(), new Runnable() {
+					@Override
+					public void run() {
+						e.getWhoClicked().setItemOnCursor(null);
+					}
+				}, 2L);
+
+				return;
+			}
 		}
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
@@ -283,7 +289,7 @@ public class AmountManager implements Listener {
 		} else {
 			e.setCancelled(true);
 
-			if (recipe.isCommand())
+			if (recipe.hasCommands() && !recipe.isGrantItem())
 				return;
 
 			inv.setResult(new ItemStack(Material.AIR));

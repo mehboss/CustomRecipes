@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
@@ -15,13 +17,16 @@ import org.bukkit.ChatColor;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
@@ -30,11 +35,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.cryptomorin.xseries.XMaterial;
 
 import me.mehboss.anvil.AnvilManager;
+import me.mehboss.anvil.GrindstoneManager;
 import me.mehboss.commands.TabCompletion;
 import me.mehboss.cooking.CookingManager;
 import me.mehboss.crafting.AmountManager;
 import me.mehboss.crafting.CooldownManager;
 import me.mehboss.crafting.CraftManager;
+import me.mehboss.crafting.CrafterManager;
 import me.mehboss.gui.EditGUI;
 import me.mehboss.gui.InventoryManager;
 import me.mehboss.gui.RecipesGUI;
@@ -49,6 +56,7 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
+	public CraftManager craftManager;
 	public RecipeManager recipeManager;
 	public RecipesGUI recipes;
 	public CooldownManager cooldownManager;
@@ -130,7 +138,7 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
-	
+
 	public boolean hasMMOItemsPlugin() {
 		if (Bukkit.getPluginManager().getPlugin("MMOItems") != null) {
 			return true;
@@ -258,6 +266,7 @@ public class Main extends JavaPlugin implements Listener {
 		recipeManager = new RecipeManager();
 		guiUtil = new InventoryManager();
 		metaChecks = new MetaChecks();
+		craftManager = new CraftManager();
 
 		if (serverVersionAtLeast(1, 12))
 			exactChoice = new ExactChoice();
@@ -319,7 +328,7 @@ public class Main extends JavaPlugin implements Listener {
 		addCooldowns();
 
 		disableRecipes();
-		
+
 		// Make task run later, for itemsadder plugin
 		Bukkit.getScheduler().runTaskLater(this, new Runnable() {
 			@Override
@@ -332,16 +341,17 @@ public class Main extends JavaPlugin implements Listener {
 
 		editItem = new EditGUI(this, null);
 		recipes = new RecipesGUI(this);
-		CraftManager craftManager = new CraftManager();
 
 		Bukkit.getPluginManager().registerEvents(editItem, this);
 		Bukkit.getPluginManager().registerEvents(recipes, this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
+		Bukkit.getPluginManager().registerEvents(new CrafterManager(), this);
 		Bukkit.getPluginManager().registerEvents(new AmountManager(craftManager), this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
+		Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 	}
 
@@ -426,36 +436,82 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	void removeRecipes() {
-		if (customConfig == null)
-			return;
+	    if (customConfig == null) return;
 
-		if (customConfig.isSet("override-recipes"))
-			for (String recipe : customConfig.getStringList("override-recipes")) {
+	    if (customConfig.isConfigurationSection("override-recipes")) {
+	        ConfigurationSection sec = customConfig.getConfigurationSection("override-recipes");
 
-				if (!(XMaterial.matchXMaterial(recipe).isPresent()))
-					continue;
+	        for (String typeKey : sec.getKeys(false)) {
+	            List<String> targets = sec.getStringList(typeKey);
+	            if (targets == null || targets.isEmpty()) continue;
 
-				for (Recipe foundRecipes : Bukkit.getRecipesFor(XMaterial.matchXMaterial(recipe).get().parseItem())) {
-					Keyed rKey = (Keyed) foundRecipes;
+	            for (String name : targets) {
+	                Optional<XMaterial> xm = XMaterial.matchXMaterial(name);
+	                if (!xm.isPresent()) continue;
 
-					if (!(foundRecipes instanceof ShapedRecipe) && !(foundRecipes instanceof ShapelessRecipe))
-						continue;
+	                ItemStack result = xm.get().parseItem();
+	                if (result == null) continue;
 
-					if (debug)
-						debug("foundRecipes: " + foundRecipes);
+	                // Find all recipes that produce this result, then filter by type bucket
+	                for (Recipe r : Bukkit.getRecipesFor(result)) {
+	                    if (!(r instanceof Keyed)) continue; // cannot remove without a key
+	                    if (!matchesType(typeKey, r)) continue;
 
-					try {
-						Bukkit.removeRecipe(NamespacedKey.minecraft(rKey.getKey().getKey()));
-					} catch (Exception e) {
-						getLogger().log(Level.SEVERE,
-								"Could not find NameSpacedKey for " + NamespacedKey.minecraft(rKey.getKey().getKey())
-										+ ", therefore we can not remove this recipe.");
-					}
-				}
-			}
+	                    NamespacedKey key = ((Keyed) r).getKey();
 
-		if (customConfig.isSet("disable-all-vanilla") && customConfig.getBoolean("disable-all-vanilla") == true)
-			Bukkit.clearRecipes();
+	                    if (debug) debug("Removing recipe: " + key.getKey());
+	                    try {
+	                        Bukkit.removeRecipe(key); // use the recipe's own key (namespace preserved)
+	                    } catch (Exception ex) {
+	                        getLogger().warning("Could not remove recipe " + key + ": " + ex.getMessage());
+	                    }
+	                }
+	            }
+	        }
+	    }
+
+	    if (customConfig.getBoolean("disable-all-vanilla", false)) {
+	        Bukkit.clearRecipes();
+	    }
+	}
+
+	// --- Optional recipe classes; null if not present on this server ---
+	private static final Class<?> C_BLASTING    = classOrNull("org.bukkit.inventory.BlastingRecipe");
+	private static final Class<?> C_SMOKING     = classOrNull("org.bukkit.inventory.SmokingRecipe");
+	private static final Class<?> C_CAMPFIRE    = classOrNull("org.bukkit.inventory.CampfireRecipe");
+	private static final Class<?> C_STONECUT    = classOrNull("org.bukkit.inventory.StonecuttingRecipe");
+	private static final Class<?> C_COOKING     = classOrNull("org.bukkit.inventory.CookingRecipe"); // abstract base on newer versions
+
+	private static Class<?> classOrNull(String fqn) {
+	    try { return Class.forName(fqn); } catch (Throwable t) { return null; }
+	}
+	private static boolean isInstance(Object obj, Class<?> cls) {
+	    return cls != null && cls.isInstance(obj);
+	}
+
+	private static boolean matchesType(String typeKey, Recipe r) {
+	    String t = (typeKey == null ? "" : typeKey.toLowerCase());
+	    switch (t) {
+	        case "crafting":
+	            // These have existed forever; safe to reference directly
+	            return (r instanceof ShapedRecipe) || (r instanceof ShapelessRecipe);
+
+	        case "furnace":
+	        case "smelting":
+	            // Accept classic Furnace plus any cooking variants that exist on this server
+	            return (r instanceof FurnaceRecipe)
+	                || isInstance(r, C_BLASTING)
+	                || isInstance(r, C_SMOKING)
+	                || isInstance(r, C_CAMPFIRE)
+	                || isInstance(r, C_COOKING); // broad fallback if present
+
+	        case "stonecutter":
+	        case "stonecutting":
+	            return isInstance(r, C_STONECUT);
+
+	        default:
+	            return false;
+	    }
 	}
 
 	public void disableRecipes() {

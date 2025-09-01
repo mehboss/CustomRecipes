@@ -37,6 +37,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.BlastingRecipe;
+import org.bukkit.inventory.CampfireRecipe;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemFlag;
@@ -129,7 +130,18 @@ public class RecipeManager {
 
 	void handleAnvilData(Recipe recipe, String configPath) {
 		if (getConfig().isInt(configPath + ".Repair-Cost"))
-			recipe.setRepairCost(getConfig().getInt(configPath + ".Cost"));
+			recipe.setRepairCost(getConfig().getInt(configPath + ".Repair-Cost"));
+	}
+
+	void handleGrindstoneData(Recipe recipe, String configPath) {
+		if (getConfig().isInt(configPath + ".Experience"))
+			recipe.setExperience(getConfig().getInt(configPath + ".Experience"));
+	}
+
+	void handleStonecutterData(Recipe recipe, String configPath) {
+		if (getConfig().isSet(configPath + ".Group")
+				&& !getConfig().getString(configPath + ".Group").equalsIgnoreCase("none"))
+			recipe.setGroup(getConfig().getString(configPath + ".Group"));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -598,6 +610,7 @@ public class RecipeManager {
 			switch (converter) {
 			case "stonecutter":
 				recipe.setType(RecipeType.STONECUTTER);
+				handleStonecutterData(recipe, item);
 				amountRequirement = 1;
 				break;
 			case "furnace":
@@ -614,11 +627,23 @@ public class RecipeManager {
 				recipe.setType(RecipeType.SMOKER);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 2;
+				break;
+			case "campfire":
+				recipe.setType(RecipeType.CAMPFIRE);
+				handleFurnaceData(recipe, item);
+				amountRequirement = 1;
+				break;
 			case "anvil":
 				recipe.setType(RecipeType.ANVIL);
 				handleAnvilData(recipe, item);
 				amountRequirement = 2;
 				break;
+			case "grindstone":
+				recipe.setType(RecipeType.GRINDSTONE);
+				handleGrindstoneData(recipe, item);
+				amountRequirement = 2;
+				break;
+
 			default:
 				if (getConfig().isBoolean(item + ".Shapeless") && getConfig().getBoolean(item + ".Shapeless") == true) {
 					recipe.setType(RecipeType.SHAPELESS);
@@ -629,10 +654,18 @@ public class RecipeManager {
 				}
 			}
 
-			if (!Main.getInstance().serverVersionAtLeast(1, 14) && (recipe.getType() == RecipeType.STONECUTTER
-					|| recipe.getType() == RecipeType.BLASTFURNACE || recipe.getType() == RecipeType.SMOKER)) {
+			if (!Main.getInstance().serverVersionAtLeast(1, 14)
+					&& (recipe.getType() == RecipeType.STONECUTTER || recipe.getType() == RecipeType.BLASTFURNACE
+							|| recipe.getType() == RecipeType.SMOKER || recipe.getType() == RecipeType.CAMPFIRE)) {
 				logError("Error loading recipe..", recipe.getName());
 				logError("Found recipe type  " + converter + ", but your server version is below 1.14.",
+						recipe.getName());
+				continue;
+			}
+
+			if (!Main.getInstance().serverVersionAtLeast(1, 16) && (recipe.getType() == RecipeType.GRINDSTONE)) {
+				logError("Error loading recipe..", recipe.getName());
+				logError("Found recipe type  " + converter + ", but your server version is below 1.16.",
 						recipe.getName());
 				continue;
 			}
@@ -726,7 +759,6 @@ public class RecipeManager {
 				// Iterate through the specified 9x9 grid and get it from the Ingredients
 				// section..
 				slot++;
-				count++;
 
 				RecipeUtil.Ingredient recipeIngredient;
 
@@ -738,6 +770,7 @@ public class RecipeManager {
 					continue;
 				}
 
+				count++;
 				String configPath = item + ".Ingredients." + abbreviation;
 				String material = getConfig().getString(configPath + ".Material");
 				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
@@ -818,6 +851,7 @@ public class RecipeManager {
 				StonecuttingRecipe sCutterRecipe = null;
 				BlastingRecipe blastRecipe = null;
 				SmokingRecipe smokerRecipe = null;
+				CampfireRecipe campfireRecipe = null;
 
 				// Create recipes based on type
 				switch (recipe.getType()) {
@@ -866,6 +900,12 @@ public class RecipeManager {
 					}
 					break;
 
+				case CAMPFIRE:
+					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+						campfireRecipe = Main.getInstance().exactChoice.createCampfireRecipe(recipe);
+					}
+					break;
+
 				default:
 					break;
 				}
@@ -883,6 +923,8 @@ public class RecipeManager {
 					Bukkit.getServer().addRecipe(sCutterRecipe);
 				if (smokerRecipe != null)
 					Bukkit.getServer().addRecipe(smokerRecipe);
+				if (campfireRecipe != null)
+					Bukkit.getServer().addRecipe(campfireRecipe);
 
 			} catch (Exception e) {
 				Main.getInstance().getLogger().log(Level.SEVERE, "Error loading recipe: " + e.getMessage(), e);

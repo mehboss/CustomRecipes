@@ -60,7 +60,8 @@ public class AnvilManager implements Listener {
 
 		if (matchedRecipe != null) {
 			if (!matchedRecipe.isActive()
-					|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))) {
+					|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))
+					|| matchedRecipe.getDisabledWorlds().contains(p.getWorld().getName())) {
 				sendNoPermsMessage(p, matchedRecipe.getName());
 				return;
 			}

@@ -11,7 +11,7 @@
 # item and will allow you to add your own!                             #
 ########################################################################
 
-# Whethere or not you want the recipes below to be blacklisted
+# Whether or not you want the recipes below to be blacklisted
 blacklist-recipes: false
 
 # Whether or not to disable all vanilla recipes
@@ -48,8 +48,11 @@ crafting-limit:
     enabled: false
     message: '&cYou cannot craft this recipe!'
 
-# Add craftable vanilla materials here if you plan on changing how you craft it.
-override-recipes: []
+# Add craftable vanilla materials here if you plan on changing how you craft it. Completely removes the original recipe from the server.
+override-recipes:
+	Crafting: []
+	Smelting: []
+	Stonecutter: []
 vanilla-recipes:
   'BEETROOT_SOUP': # item ID for soup
     permission: 'soup' # permission will then be crecipe.soup in order to craft this vanilla recipe. set to 'none' if not needed.

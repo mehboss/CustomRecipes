@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.BlastingRecipe;
+import org.bukkit.inventory.CampfireRecipe;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
@@ -185,8 +186,22 @@ public class ExactChoice {
 			return null;
 		}
 
-		return new StonecuttingRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
+		StonecuttingRecipe sRecipe = new StonecuttingRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
 				findExactChoice(recipe, null));
+		sRecipe.setGroup(recipe.getGroup());
+		
+		return sRecipe;
+	}
+	
+	CampfireRecipe createCampfireRecipe(Recipe recipe) {
+		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
+			logError("Error loading recipe. Your server version does not support Campfire recipes!",
+					recipe.getName());
+			return null;
+		}
+
+		return new CampfireRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
+				findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 	}
 
 	private void logError(String st, String recipe) {

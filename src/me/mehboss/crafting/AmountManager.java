@@ -44,8 +44,8 @@ public class AmountManager implements Listener {
 		return craftManager.hasAllIngredients(inv, recipes, recipeIngredients);
 	}
 
-	private boolean matchedRecipe(CraftingInventory inv) {
-		return craftManager.matchedRecipe(inv);
+	private boolean matchedRecipe(ItemStack result) {
+		return craftManager.matchedRecipe(result);
 	}
 
 	private boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
@@ -127,7 +127,7 @@ public class AmountManager implements Listener {
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 
-		if (!(matchedRecipe(inv)))
+		if (!(matchedRecipe(inv.getResult())))
 			return;
 
 		if (recipeUtil.getRecipeFromResult(inv.getResult()) == null)

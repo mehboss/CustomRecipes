@@ -347,9 +347,11 @@ public class RecipeUtil {
 		private int cookTime = 200;
 		private int anvilCost = 0;
 		private float furnaceExperience = 1.0f;
+		
+		private String group = "";
 
 		public enum RecipeType {
-			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER;
+			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE;
 		}
 
 		private RecipeType recipeType = RecipeType.SHAPED;
@@ -796,6 +798,24 @@ public class RecipeUtil {
 			return furnaceExperience;
 		}
 
+		/**
+		 * Setter for the group of a stonecutter recipe
+		 * 
+		 * @param group the group of a stonecutter recipe
+		 */
+		public void setGroup(String group) {
+			this.group = group;
+		}
+
+		/**
+		 * Getter for a stonecutter group
+		 * 
+		 * @returns the group of a stonecutter recipe
+		 */
+		public String getGroup() {
+			return group;
+		}
+		
 		/**
 		 * Setter for the cost required for an anvil recipe
 		 * 

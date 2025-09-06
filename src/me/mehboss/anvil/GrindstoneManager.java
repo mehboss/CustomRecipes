@@ -22,8 +22,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryInteractEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.PrepareAnvilEvent;
-import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.GrindstoneInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
@@ -39,9 +37,6 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 public class GrindstoneManager implements Listener {
 
 	private final RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
-
-	// Track which recipe was matched for each player between "preview" and "take
-	// result"
 	private static final Map<UUID, Recipe> matchedByPlayer = new HashMap<>();
 
 	@EventHandler(priority = EventPriority.HIGHEST)
@@ -151,8 +146,6 @@ public class GrindstoneManager implements Listener {
 		}
 	}
 
-	/* -------------------------- Core logic -------------------------- */
-
 	private void processGrindstone(Inventory inv, Player player, InventoryInteractEvent event) {
 		if (!(inv instanceof GrindstoneInventory))
 			return;
@@ -176,6 +169,7 @@ public class GrindstoneManager implements Listener {
 
 			g.setItem(2, safeResultOf(r));
 			matchedByPlayer.put(player.getUniqueId(), r);
+			logDebug("Successfully passed checks..", r.getName());
 		} else {
 			clearResultSlot(g);
 			matchedByPlayer.remove(player.getUniqueId());
@@ -186,19 +180,36 @@ public class GrindstoneManager implements Listener {
 		if (recipeUtil.getAllRecipes() == null)
 			return Optional.empty();
 
+		// only run if grindstone
+		if (view.getTopInventory().getType() != InventoryType.GRINDSTONE) {
+			return Optional.empty();
+		}
+
+		// only run if both slots have items
+		if (InventoryUtils.isAirOrNull(top) || InventoryUtils.isAirOrNull(bottom)) {
+			return Optional.empty();
+		}
+
 		// We only care about GRINDSTONE type, order: slot 0 then slot 1
 		for (Recipe recipe : recipeUtil.getAllRecipes().values()) {
 			if (recipe.getType() != RecipeType.GRINDSTONE)
 				continue;
 
 			List<Ingredient> ing = recipe.getIngredients();
-			// Expect 2 ingredients (top, bottom). If your format allows empty, adapt below
-			// checks.
 			if (ing.size() < 2)
 				continue;
 
-			Ingredient topIng = ing.get(0);
-			Ingredient bottomIng = ing.get(1);
+			Ingredient topIng = null;
+			Ingredient bottomIng = null;
+
+			for (Ingredient item : ing) {
+				if (item.isEmpty())
+					continue;
+				if (topIng == null)
+					topIng = item;
+				else if (bottomIng == null)
+					bottomIng = item;
+			}
 
 			if (!itemsMatch(recipe.getName(), top, topIng) || !amountsMatch(recipe.getName(), top, topIng))
 				continue;
@@ -221,12 +232,24 @@ public class GrindstoneManager implements Listener {
 	}
 
 	private void consumeIngredients(GrindstoneInventory inv, Recipe recipe, Player p) {
+
+		Ingredient topIng = null;
+		Ingredient bottomIng = null;
 		List<Ingredient> ing = recipe.getIngredients();
+		for (Ingredient item : ing) {
+			if (item.isEmpty())
+				continue;
+			if (topIng == null)
+				topIng = item;
+			else if (bottomIng == null)
+				bottomIng = item;
+		}
+
 		// Defensive: only shrink if we actually had those two
-		if (ing.size() >= 1)
-			shrinkSlot(inv, 0, ing.get(0), p);
-		if (ing.size() >= 2)
-			shrinkSlot(inv, 1, ing.get(1), p);
+		if (topIng != null)
+			shrinkSlot(inv, 0, topIng, p);
+		if (bottomIng != null)
+			shrinkSlot(inv, 1, bottomIng, p);
 	}
 
 	private void shrinkSlot(GrindstoneInventory inv, int slot, Ingredient ing, Player p) {
@@ -234,7 +257,7 @@ public class GrindstoneManager implements Listener {
 		if (stack == null)
 			return;
 
-		int toRemove = Math.max(1, ing.getAmount()); // default to 1 if your Ingredient amount is 0/unspecified
+		int toRemove = ing.getAmount();
 		int newAmount = stack.getAmount() - toRemove;
 
 		if (newAmount > 0) {
@@ -246,35 +269,28 @@ public class GrindstoneManager implements Listener {
 	}
 
 	private void tryGiveXp(Player p, Recipe recipe) {
-		// If your Recipe model has XP, use it. Otherwise, no-op.
-		// Assuming: recipe.getXp() exists; if not, delete this method and its call.
-		try {
-			int xp = (int) recipe.getExperience();
-			if (xp > 0) {
-				ExperienceOrb orb = p.getWorld().spawn(p.getLocation(), ExperienceOrb.class);
-				orb.setExperience(xp);
-			}
-		} catch (NoSuchMethodError | Exception ignored) {
-			// XP not defined on this recipe model → do nothing
+
+		if (recipe.getExperience() <= 0)
+			return;
+
+		int xp = (int) recipe.getExperience();
+		if (xp > 0) {
+			ExperienceOrb orb = p.getWorld().spawn(p.getLocation(), ExperienceOrb.class);
+			orb.setExperience(xp);
 		}
 	}
 
-	/*
-	 * -------------------------- Helpers copied from your Anvil style
-	 * --------------------------
-	 */
-
 	private boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		if (item == null || ingredient == null) {
-			logDebug(recipeName + ": Item or Ingredient is null");
-			logDebug(recipeName + ": Item - " + item);
-			logDebug(recipeName + ": Ingredient - " + ingredient);
+			logDebug("Item or Ingredient is null", recipeName);
+			logDebug("Item - " + item, recipeName);
+			logDebug("Ingredient - " + ingredient, recipeName);
 			return false;
 		}
 		if (item.getAmount() < ingredient.getAmount()) {
-			logDebug(recipeName + ": Amount requirements not met");
-			logDebug(recipeName + ": Slot amount - " + item.getAmount());
-			logDebug(recipeName + ": Ingredient amount - " + ingredient.getAmount());
+			logDebug("Amount requirements not met", recipeName);
+			logDebug("Slot amount - " + item.getAmount(), recipeName);
+			logDebug("Ingredient amount - " + ingredient.getAmount(), recipeName);
 			return false;
 		}
 		return true;
@@ -284,14 +300,14 @@ public class GrindstoneManager implements Listener {
 		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
 	}
 
-	private void logDebug(String st) {
+	private void logDebug(String st, String recipeName) {
 		if (Main.getInstance().debug)
-			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+			Logger.getLogger("Minecraft").log(Level.WARNING,
+					"[DEBUG][" + Main.getInstance().getName() + "][Grindstone][" + recipeName + "] " + st);
 	}
 
-	private void sendNoPermsMessage(Player p, String recipe) {
-		logDebug("[sendNoPermsMessage] Player " + p.getName()
-				+ " does not have required grindstone permissions for recipe " + recipe);
+	void sendNoPermsMessage(Player p, String recipe) {
+		logDebug("Player " + p.getName() + " does not have required recipe crafting permissions.", recipe);
 		Main.getInstance().sendnoPerms(p);
 	}
 }

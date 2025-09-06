@@ -81,7 +81,10 @@ public class RecipeUtil {
 	 * @param recipeName the string name of the recipe you wanting to remove.
 	 */
 	public void removeRecipe(String recipeName) {
-		recipes.remove(recipeName);
+		if (recipes.containsKey(recipeName)) {
+			clearDuplicates(recipes.get(recipeName));
+			recipes.remove(recipeName);
+		}
 	}
 
 	public String getCustomItemPlugin(String key) {
@@ -175,7 +178,8 @@ public class RecipeUtil {
 				return null;
 			}
 
-			ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()), itemId.toUpperCase());
+			ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()),
+					itemId.toUpperCase());
 			if (Main.getInstance().hasMMOItemsPlugin()) {
 				if (mmoitem != null)
 					return mmoitem;
@@ -347,7 +351,7 @@ public class RecipeUtil {
 		private int cookTime = 200;
 		private int anvilCost = 0;
 		private float furnaceExperience = 1.0f;
-		
+
 		private String group = "";
 
 		public enum RecipeType {
@@ -433,7 +437,6 @@ public class RecipeUtil {
 				this.exactChoice = exactChoice;
 		}
 
-		
 		/**
 		 * Sets whether the recipe output should be granted after a command is performed
 		 * 
@@ -442,7 +445,7 @@ public class RecipeUtil {
 		public void setGrantItem(Boolean grantItem) {
 			this.isGrantItem = grantItem;
 		}
-		
+
 		/**
 		 * Gets whether the recipe output should be granted after a command is performed
 		 * 
@@ -451,7 +454,7 @@ public class RecipeUtil {
 		public boolean isGrantItem() {
 			return isGrantItem;
 		}
-		
+
 		/**
 		 * Gets whether the recipe is an item or a command
 		 * 
@@ -467,8 +470,8 @@ public class RecipeUtil {
 		 * @param commands the list of command strings
 		 */
 		public void setCommands(List<String> commands) {
-		    this.commands = commands;
-		    this.hasCommands = true;
+			this.commands = commands;
+			this.hasCommands = true;
 		}
 
 		/**
@@ -477,7 +480,7 @@ public class RecipeUtil {
 		 * @return the list of commands to be performed
 		 */
 		public List<String> getCommand() {
-		    return commands;
+			return commands;
 		}
 
 		/**
@@ -815,7 +818,7 @@ public class RecipeUtil {
 		public String getGroup() {
 			return group;
 		}
-		
+
 		/**
 		 * Setter for the cost required for an anvil recipe
 		 * 

@@ -333,7 +333,7 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getScheduler().runTaskLater(this, new Runnable() {
 			@Override
 			public void run() {
-				recipeManager.addRecipes();
+				recipeManager.addRecipes(null);
 				registerCommands();
 				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipes.");
 			}
@@ -407,8 +407,9 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 
-		recipeManager.addRecipes();
 		removeRecipes();
+		recipeUtil = new RecipeUtil();
+		recipeManager.addRecipes(null);
 
 		recipes = new RecipesGUI(this);
 		editItem = new EditGUI(Main.getInstance(), null);
@@ -436,82 +437,120 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	void removeRecipes() {
-	    if (customConfig == null) return;
+		if (customConfig == null)
+			return;
 
-	    if (customConfig.isConfigurationSection("override-recipes")) {
-	        ConfigurationSection sec = customConfig.getConfigurationSection("override-recipes");
+		if (customConfig.isConfigurationSection("override-recipes")) {
+			ConfigurationSection sec = customConfig.getConfigurationSection("override-recipes");
 
-	        for (String typeKey : sec.getKeys(false)) {
-	            List<String> targets = sec.getStringList(typeKey);
-	            if (targets == null || targets.isEmpty()) continue;
+			for (String typeKey : sec.getKeys(false)) {
+				List<String> targets = sec.getStringList(typeKey);
+				if (targets == null || targets.isEmpty())
+					continue;
 
-	            for (String name : targets) {
-	                Optional<XMaterial> xm = XMaterial.matchXMaterial(name);
-	                if (!xm.isPresent()) continue;
+				for (String entry : targets) {
+					String s = entry == null ? "" : entry;
+					if (s.isEmpty())
+						continue;
 
-	                ItemStack result = xm.get().parseItem();
-	                if (result == null) continue;
+					// --- First: try explicit namespaced key, e.g. "minecraft:stick"
+					NamespacedKey nk = NamespacedKey.fromString(s.toLowerCase());
+					if (nk != null) {
+						Recipe rec = Bukkit.getRecipe(nk);
+						if (rec == null) {
+							if (debug)
+								debug("[Blacklisted] Could not find recipe to remove for key " + nk);
+							continue;
+						}
+						if (!(rec instanceof Keyed))
+							continue; // sanity
+						if (!matchesType(typeKey, rec)) {
+							if (debug)
+								debug("[Blacklisted] Recipe key " + nk + " does not match type bucket " + typeKey);
+							continue;
+						}
+						if (debug)
+							debug("[Blacklisted] Removing recipe " + nk + " from the server..");
+						try {
+							Bukkit.removeRecipe(nk);
+						} catch (Exception ex) {
+							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + nk + ": " + ex.getMessage());
+						}
+						continue; // done with this entry
+					}
 
-	                // Find all recipes that produce this result, then filter by type bucket
-	                for (Recipe r : Bukkit.getRecipesFor(result)) {
-	                    if (!(r instanceof Keyed)) continue; // cannot remove without a key
-	                    if (!matchesType(typeKey, r)) continue;
+					// --- Fallback: treat entry as an item name (your old behavior)
+					Optional<XMaterial> xm = XMaterial.matchXMaterial(s);
+					if (!xm.isPresent())
+						continue;
 
-	                    NamespacedKey key = ((Keyed) r).getKey();
+					ItemStack result = xm.get().parseItem();
+					if (result == null)
+						continue;
 
-	                    if (debug) debug("Removing recipe: " + key.getKey());
-	                    try {
-	                        Bukkit.removeRecipe(key); // use the recipe's own key (namespace preserved)
-	                    } catch (Exception ex) {
-	                        getLogger().warning("Could not remove recipe " + key + ": " + ex.getMessage());
-	                    }
-	                }
-	            }
-	        }
-	    }
+					for (Recipe r : Bukkit.getRecipesFor(result)) {
+						if (!(r instanceof Keyed))
+							continue;
+						if (!matchesType(typeKey, r))
+							continue;
 
-	    if (customConfig.getBoolean("disable-all-vanilla", false)) {
-	        Bukkit.clearRecipes();
-	    }
+						NamespacedKey key = ((Keyed) r).getKey();
+						if (debug)
+							debug("[Blacklisted] Removing recipe " + key + " from the server..");
+						try {
+							Bukkit.removeRecipe(key);
+						} catch (Exception ex) {
+							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + key + ": " + ex.getMessage());
+						}
+					}
+				}
+			}
+		}
+
+		if (customConfig.getBoolean("disable-all-vanilla", false)) {
+			Bukkit.clearRecipes();
+		}
 	}
 
 	// --- Optional recipe classes; null if not present on this server ---
-	private static final Class<?> C_BLASTING    = classOrNull("org.bukkit.inventory.BlastingRecipe");
-	private static final Class<?> C_SMOKING     = classOrNull("org.bukkit.inventory.SmokingRecipe");
-	private static final Class<?> C_CAMPFIRE    = classOrNull("org.bukkit.inventory.CampfireRecipe");
-	private static final Class<?> C_STONECUT    = classOrNull("org.bukkit.inventory.StonecuttingRecipe");
-	private static final Class<?> C_COOKING     = classOrNull("org.bukkit.inventory.CookingRecipe"); // abstract base on newer versions
+	private static final Class<?> C_BLASTING = classOrNull("org.bukkit.inventory.BlastingRecipe");
+	private static final Class<?> C_SMOKING = classOrNull("org.bukkit.inventory.SmokingRecipe");
+	private static final Class<?> C_CAMPFIRE = classOrNull("org.bukkit.inventory.CampfireRecipe");
+	private static final Class<?> C_STONECUT = classOrNull("org.bukkit.inventory.StonecuttingRecipe");
+	private static final Class<?> C_COOKING = classOrNull("org.bukkit.inventory.CookingRecipe"); // abstract base on
+																									// newer versions
 
 	private static Class<?> classOrNull(String fqn) {
-	    try { return Class.forName(fqn); } catch (Throwable t) { return null; }
+		try {
+			return Class.forName(fqn);
+		} catch (Throwable t) {
+			return null;
+		}
 	}
+
 	private static boolean isInstance(Object obj, Class<?> cls) {
-	    return cls != null && cls.isInstance(obj);
+		return cls != null && cls.isInstance(obj);
 	}
 
+	/** Java-8 friendly type filter (no switch expressions). */
 	private static boolean matchesType(String typeKey, Recipe r) {
-	    String t = (typeKey == null ? "" : typeKey.toLowerCase());
-	    switch (t) {
-	        case "crafting":
-	            // These have existed forever; safe to reference directly
-	            return (r instanceof ShapedRecipe) || (r instanceof ShapelessRecipe);
+		String t = (typeKey == null ? "" : typeKey.toLowerCase(java.util.Locale.ROOT));
+		switch (t) {
+		case "crafting":
+			return (r instanceof ShapedRecipe) || (r instanceof ShapelessRecipe);
 
-	        case "furnace":
-	        case "smelting":
-	            // Accept classic Furnace plus any cooking variants that exist on this server
-	            return (r instanceof FurnaceRecipe)
-	                || isInstance(r, C_BLASTING)
-	                || isInstance(r, C_SMOKING)
-	                || isInstance(r, C_CAMPFIRE)
-	                || isInstance(r, C_COOKING); // broad fallback if present
+		case "furnace":
+		case "smelting":
+			return (r instanceof FurnaceRecipe) || isInstance(r, C_BLASTING) || isInstance(r, C_SMOKING)
+					|| isInstance(r, C_CAMPFIRE) || isInstance(r, C_COOKING); // broad fallback if present
 
-	        case "stonecutter":
-	        case "stonecutting":
-	            return isInstance(r, C_STONECUT);
+		case "stonecutter":
+		case "stonecutting":
+			return isInstance(r, C_STONECUT);
 
-	        default:
-	            return false;
-	    }
+		default:
+			return false;
+		}
 	}
 
 	public void disableRecipes() {

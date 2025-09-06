@@ -14,17 +14,17 @@ public class MetaChecks {
 	public Boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		// Null check first
 		if ((ingredient.isEmpty() && item != null) || (!ingredient.isEmpty() && item == null)) {
-			logDebug(recipeName + ": Unexpected item found");
-			logDebug(recipeName + ": Item - " + item);
-			logDebug(recipeName + ": Ingredient - " + ingredient);
+			logDebug("Unexpected item found", recipeName);
+			logDebug("Item - " + item, recipeName);
+			logDebug("Ingredient - " + ingredient, recipeName);
 			return false;
 		}
 
 		// Material checks
 		if (item.getType() != ingredient.getMaterial()) {
-			logDebug(recipeName + ": Materials do not match");
-			logDebug(recipeName + ": Item - " + item);
-			logDebug(recipeName + ": Ingredient - " + ingredient);
+			logDebug("Materials do not match", recipeName);
+			logDebug("Item - " + item, recipeName);
+			logDebug("Ingredient - " + ingredient, recipeName);
 			return false;
 		}
 
@@ -33,12 +33,12 @@ public class MetaChecks {
 			ItemStack foundItem = recipeUtil.getResultFromKey(ingredient.getIdentifier());
 
 			if (foundItem == null) {
-				logDebug(recipeName + ": Ingredient identifier does not match to a valid recipe");
+				logDebug("Ingredient identifier does not match to a valid recipe", recipeName);
 				return false;
 			}
 
 			if (!(foundItem.isSimilar(item))) {
-				logDebug(recipeName + ": Identifier isSimilar returned false");
+				logDebug("Identifier isSimilar returned false", recipeName);
 				return false;
 			}
 
@@ -46,23 +46,23 @@ public class MetaChecks {
 		} else {
 
 			if (ingredient.hasDisplayName() && (!item.hasItemMeta() || !item.getItemMeta().hasDisplayName())) {
-				logDebug(recipeName + ": Ingredient has displayname, item in slot does not have one");
+				logDebug("Ingredient has displayname, item in slot does not have one", recipeName);
 				return false;
 			}
 
 			if (ingredient.hasDisplayName()
 					&& !(item.getItemMeta().getDisplayName().equals(ingredient.getDisplayName()))) {
-				logDebug(recipeName + ": Displaynames do not match");
-				logDebug(recipeName + ": Slot displayname - " + item.getItemMeta().getDisplayName());
-				logDebug(recipeName + ": Ingredient displayname - " + ingredient.getDisplayName());
+				logDebug("Displaynames do not match", recipeName);
+				logDebug("Slot displayname - " + item.getItemMeta().getDisplayName(), recipeName);
+				logDebug("Ingredient displayname - " + ingredient.getDisplayName(), recipeName);
 				return false;
 			}
 		}
 		return true;
 	}
 	
-	void logDebug(String st) {
+	private void logDebug(String st, String recipeName) {
 		if (Main.getInstance().debug)
-			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "][Metachecks][" + recipeName + "] " + st);
 	}
 }

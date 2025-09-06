@@ -16,13 +16,12 @@ import me.mehboss.recipe.Main;
 public class CommandEditItem {
 	@SuppressWarnings("deprecation")
 	public static boolean Run(CRCommand command) {
-		
+
 		Player p = (Player) command.sender;
 		ItemStack inhand = p.getItemInHand();
 
 		if (inhand == null)
 			return true;
-		
 
 		ItemMeta it = inhand.getItemMeta();
 
@@ -35,7 +34,8 @@ public class CommandEditItem {
 
 			if (command.args[2].equalsIgnoreCase("remove")) {
 				p.getItemInHand().removeEnchantment(Enchantment.getByName(command.args[3].toUpperCase()));
-				p.sendMessage(ChatColor.GREEN + "Successfully removed item enchantment " + command.args[3].toUpperCase());
+				p.sendMessage(
+						ChatColor.GREEN + "Successfully removed item enchantment " + command.args[3].toUpperCase());
 
 			} else if (command.args[2].equalsIgnoreCase("add")) {
 				p.getItemInHand().addUnsafeEnchantment(Enchantment.getByName(command.args[3].toUpperCase()),
@@ -74,6 +74,21 @@ public class CommandEditItem {
 			p.setItemInHand(item);
 
 			p.sendMessage(ChatColor.GREEN + "Successfully updated item identifier!");
+			return false;
+		}
+
+		if (command.args.length == 3 && command.args[1].equalsIgnoreCase("give")) {
+			String key = command.args[2];
+			ItemStack recipe = Bukkit.getRecipe(NamespacedKey.fromString(key)) == null ? null
+					: Bukkit.getRecipe(NamespacedKey.fromString(key)).getResult();
+
+			if (recipe == null) {
+				p.sendMessage(ChatColor.RED + "Could not find bukkit recipe to give! ex: minecraft:stick");
+				return false;
+			}
+
+			p.getInventory().addItem(recipe);
+			p.sendMessage(ChatColor.GREEN + "Successfully retrieved recipe result for " + key + "!");
 			return false;
 		}
 
@@ -151,10 +166,17 @@ public class CommandEditItem {
 			return false;
 		}
 
+		if (command.args.length == 2 && command.args[1].equalsIgnoreCase("print")) {
+			p.sendMessage(p.getItemInHand().toString());
+			return false;
+		}
+
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&aCUSTOM-RECIPES &fv" + Main.getInstance().getDescription().getVersion()));
 		p.sendMessage(" ");
+		p.sendMessage(ChatColor.RED + "/cr edititem give <bukkit recipe>");
+		p.sendMessage(ChatColor.RED + "/cr edititem print");
 		p.sendMessage(ChatColor.RED + "/cr edititem name [name]");
 		p.sendMessage(ChatColor.RED + "/cr edititem modeldata [int]");
 		p.sendMessage(ChatColor.RED + "/cr edititem enchant add/remove [enchantment] [level]");

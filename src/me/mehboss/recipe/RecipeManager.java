@@ -67,6 +67,8 @@ import valorless.havenbags.hooks.CustomRecipes.BagInfo;
 
 public class RecipeManager {
 
+	List<String> delayedRecipes = new ArrayList<>();
+	boolean allFinished = false;
 	RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 	FileConfiguration recipeConfig = null;
 
@@ -559,7 +561,7 @@ public class RecipeManager {
 		logDebug("Successfully set commands: " + commands, item);
 	}
 
-	public void addRecipes() {
+	public void addRecipes(String name) {
 		File recipeFolder = new File(Main.getInstance().getDataFolder(), "recipes");
 		if (!recipeFolder.exists()) {
 			recipeFolder.mkdirs();
@@ -567,10 +569,21 @@ public class RecipeManager {
 
 		File[] recipeFiles = recipeFolder.listFiles();
 		if (recipeFiles == null) {
-			logError("Could not add recipes because none were found to load!", "null");
+			logError("Could not add recipes because none were found to load!", "");
 			return;
 		}
 
+		if (name != null) {
+			File single = new File(recipeFolder, name);
+			if (single.exists() && single.isFile()) {
+				recipeFiles = new File[] { single };
+			} else {
+				logError("Recipe file " + name + " not found!", name);
+				return;
+			}
+		}
+
+		recipeUtil = Main.getInstance().recipeUtil;
 		recipeLoop: for (File recipeFile : recipeFiles) {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
 			String item = recipeFile.getName().replace(".yml", "");
@@ -671,11 +684,18 @@ public class RecipeManager {
 			}
 
 			// HavenBag detected, but converter is not SHAPED or SHAPELESS
-			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS && isHavenBag(item)) {
-				logError("Error loading recipe..", recipe.getName());
-				logError("Got " + recipe.getType() + ", but the recipe is a havenbag recipe! Skipping..",
-						recipe.getName());
-				continue;
+			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS) {
+				if (isHavenBag(item)) {
+					logError("Error loading recipe..", recipe.getName());
+					logError("Got " + recipe.getType() + ", but the recipe is a havenbag recipe! Skipping..",
+							recipe.getName());
+					continue;
+				}
+
+				if (name == null) {
+					delayedRecipes.add(recipeFile.getName());
+					continue;
+				}
 			}
 
 			String identifier = getConfig().getString(item + ".Identifier");
@@ -807,6 +827,8 @@ public class RecipeManager {
 				logDebug("Ingredient Type: " + ingredientMaterial, recipe.getName());
 				logDebug("Ingredient Amount: " + ingredientAmount, recipe.getName());
 
+				handleECOverride(ingredientIdentifier, recipe);
+
 				recipeIngredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
 				recipeIngredient.setDisplayName(ingredientName);
 				recipeIngredient.setCustomModelData(ingredientCMD);
@@ -828,10 +850,25 @@ public class RecipeManager {
 			if (getConfig().isString(item + ".Permission"))
 				recipe.setPerm(getConfig().getString(item + ".Permission"));
 
+			handleECOverride(getConfig().getString(item + ".Item"), recipe);
 			recipeUtil.createRecipe(recipe);
 		}
 
-		recipeUtil.reloadRecipes();
+		if (name == null && !delayedRecipes.isEmpty()) {
+			for (String recipe : delayedRecipes)
+				addRecipes(recipe);
+
+			delayedRecipes.clear();
+		}
+
+		if (delayedRecipes.isEmpty())
+			recipeUtil.reloadRecipes();
+	}
+
+	void handleECOverride(String append, Recipe recipe) {
+		String id = append.split(":")[0];
+		if (id != null && (id.equalsIgnoreCase("itemsadder") || id.equalsIgnoreCase("mythicmobs")))
+			recipe.setExactChoice(false);
 	}
 
 	public void addRecipesFromAPI(Recipe specificRecipe) {
@@ -839,7 +876,8 @@ public class RecipeManager {
 		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes();
 
 		if (specificRecipe != null) {
-			recipeList.clear();
+			if (recipeList.containsKey(specificRecipe.getName()))
+				recipeList.remove(specificRecipe.getName());
 			recipeList.put(specificRecipe.getName(), specificRecipe);
 		}
 

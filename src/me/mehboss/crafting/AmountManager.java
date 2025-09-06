@@ -118,6 +118,7 @@ public class AmountManager implements Listener {
 				&& ingredient.getIdentifier()
 						.equals(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
 				|| (customItem != null && item.isSimilar(customItem))
+				|| (customItem != null && craftManager.checkCustomItems(customItem, item, ingredient.getIdentifier(), false))
 				|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
 				|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
 						ingredient.getIdentifier(), hasIdentifier, false)));

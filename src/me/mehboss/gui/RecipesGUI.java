@@ -25,6 +25,7 @@ import org.bukkit.plugin.Plugin;
 
 import com.cryptomorin.xseries.XMaterial;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 
 public class RecipesGUI implements Listener {
 
@@ -56,13 +57,15 @@ public class RecipesGUI implements Listener {
 			return;
 		}
 
+		String title = CompatibilityUtil.getTitle(e);
+
 		if (e.getClickedInventory().getType() == InventoryType.CHEST) {
 
-			if (e.getClickedInventory() == null || e.getView().getTitle() == null) {
+			if (e.getClickedInventory() == null || title == null) {
 				return;
 			}
 
-			if (e.getView().getTitle().contains(ChatColor.translateAlternateColorCodes('&',
+			if (title.contains(ChatColor.translateAlternateColorCodes('&',
 					getConfig().getString("gui.Displayname").replaceAll(" %page%", "")))) {
 
 				Player p = (Player) e.getWhoClicked();
@@ -74,8 +77,8 @@ public class RecipesGUI implements Listener {
 				}
 
 				if (e.getRawSlot() == 48 || e.getRawSlot() == 50) {
-					String original = e.getView().getTitle();
-					String[] cp = e.getView().getTitle().split("Page ");
+					String original = CompatibilityUtil.getTitle(e);
+					String[] cp = original.split("Page ");
 					int currentpage = Integer.valueOf(cp[1]);
 					int newpage = currentpage;
 
@@ -106,8 +109,13 @@ public class RecipesGUI implements Listener {
 					return;
 				}
 
-				if (e.getRawSlot() == 49
-						&& e.getCurrentItem().getItemMeta().getDisplayName().trim().equals("Add Recipe")) {
+				// add recipe button
+				if (e.getRawSlot() == 49 && inv.getItem(49).getType() == Material.GREEN_STAINED_GLASS_PANE) {
+					Inventory cInv = Bukkit.getServer().createInventory(null, 54,
+							ChatColor.translateAlternateColorCodes('&', "&aEDITING: " + " "));
+					Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
+					EditGUI.getInstance().setItems(true, false, cInv, "", null, p);
+					p.openInventory(cInv);
 					return;
 				}
 
@@ -120,7 +128,7 @@ public class RecipesGUI implements Listener {
 						: null;
 
 				logDebug("[RecipeBooklet][" + p.getName() + "] Triggered open recipe matrix.. " + recipeName);
-				
+
 				if (recipeName != null) {
 
 					Boolean viewing = false;
@@ -136,7 +144,7 @@ public class RecipesGUI implements Listener {
 					}
 					logDebug("[RecipeBooklet][" + p.getName() + "] Opening recipe matrix.. " + recipeName);
 					Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
-					EditGUI.getInstance().setItems(viewing, edit, recipeName, e.getCurrentItem(), p);
+					EditGUI.getInstance().setItems(false, viewing, edit, recipeName, e.getCurrentItem(), p);
 
 					p.openInventory(edit);
 				}
@@ -250,7 +258,7 @@ public class RecipesGUI implements Listener {
 		setDefaults(p, inv);
 		p.openInventory(inv);
 	}
-	
+
 	private void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);

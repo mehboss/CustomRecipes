@@ -30,6 +30,7 @@ import org.bukkit.plugin.Plugin;
 import com.cryptomorin.xseries.XMaterial;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 
@@ -66,7 +67,8 @@ public class EditGUI implements Listener {
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
-	public void setItems(Boolean viewing, Inventory i, String invname, ItemStack item, OfflinePlayer p) {
+	public void setItems(Boolean creating, Boolean viewing, Inventory i, String invname, ItemStack item,
+			OfflinePlayer p) {
 
 		String configname = invname;
 
@@ -83,62 +85,68 @@ public class EditGUI implements Listener {
 			i.setItem(slot, stained);
 		}
 
-		int slot = 1;
-		for (Ingredient ingredient : Main.getInstance().getRecipeUtil().getRecipe(configname).getIngredients()) {
+		// not creating new recipe, fill in slots
+		if (!creating) {
+			// set recipe items to the menu
+			int slot = 1;
+			for (Ingredient ingredient : Main.getInstance().getRecipeUtil().getRecipe(configname).getIngredients()) {
 
-			if (ingredient.isEmpty() || !XMaterial.matchXMaterial(ingredient.getMaterial().toString()).isPresent()) {
+				if (ingredient.isEmpty()
+						|| !XMaterial.matchXMaterial(ingredient.getMaterial().toString()).isPresent()) {
+					slot++;
+					continue;
+				}
+
+				boolean foundIdentifier = itemIngredients(ingredient, configname, slot, p) != null ? true : false;
+				ItemStack mat = foundIdentifier ? itemIngredients(ingredient, configname, slot, p)
+						: XMaterial.matchXMaterial(ingredient.getMaterial().toString()).get().parseItem();
+
+				mat.setAmount(getAmounts(ingredient, slot));
+
+				if (!foundIdentifier) {
+					ItemMeta matm = mat.getItemMeta();
+
+					if (getNames(ingredient, slot) != null)
+						matm.setDisplayName(getNames(ingredient, slot));
+
+					mat.setItemMeta(matm);
+				}
+
+				if (slot == 1)
+					i.setItem(10, mat);
+				if (slot == 2)
+					i.setItem(11, mat);
+				if (slot == 3)
+					i.setItem(12, mat);
+				if (slot == 4)
+					i.setItem(19, mat);
+				if (slot == 5)
+					i.setItem(20, mat);
+				if (slot == 6)
+					i.setItem(21, mat);
+				if (slot == 7)
+					i.setItem(28, mat);
+				if (slot == 8)
+					i.setItem(29, mat);
+				if (slot == 9)
+					i.setItem(30, mat);
+
 				slot++;
-				continue;
+
 			}
 
-			boolean foundIdentifier = itemIngredients(ingredient, configname, slot, p) != null ? true : false;
-			ItemStack mat = foundIdentifier ? itemIngredients(ingredient, configname, slot, p)
-					: XMaterial.matchXMaterial(ingredient.getMaterial().toString()).get().parseItem();
+			ItemStack result = new ItemStack(Main.getInstance().recipeUtil.getRecipe(configname).getResult());
+			ItemMeta resultM = result.getItemMeta();
 
-			mat.setAmount(getAmounts(ingredient, slot));
-
-			if (!foundIdentifier) {
-				ItemMeta matm = mat.getItemMeta();
-
-				if (getNames(ingredient, slot) != null)
-					matm.setDisplayName(getNames(ingredient, slot));
-
-				mat.setItemMeta(matm);
+			if (result.hasItemMeta() && resultM.hasLore() && hasPlaceholder()) {
+				resultM.setLore(PlaceholderAPI.setPlaceholders(p, resultM.getLore()));
+				result.setItemMeta(resultM);
 			}
 
-			if (slot == 1)
-				i.setItem(10, mat);
-			if (slot == 2)
-				i.setItem(11, mat);
-			if (slot == 3)
-				i.setItem(12, mat);
-			if (slot == 4)
-				i.setItem(19, mat);
-			if (slot == 5)
-				i.setItem(20, mat);
-			if (slot == 6)
-				i.setItem(21, mat);
-			if (slot == 7)
-				i.setItem(28, mat);
-			if (slot == 8)
-				i.setItem(29, mat);
-			if (slot == 9)
-				i.setItem(30, mat);
-
-			slot++;
+			i.setItem(23, result);
 
 		}
-
-		ItemStack result = new ItemStack(Main.getInstance().recipeUtil.getRecipe(configname).getResult());
-		ItemMeta resultM = result.getItemMeta();
-
-		if (result.hasItemMeta() && resultM.hasLore() && hasPlaceholder()) {
-			resultM.setLore(PlaceholderAPI.setPlaceholders(p, resultM.getLore()));
-			result.setItemMeta(resultM);
-		}
-
-		i.setItem(23, result);
-
+		// viewing so do not add creation items
 		if (viewing) {
 			int[] emptySlots = { 7, 8, 16, 17, 25, 26, 35, 40, 44, 53 };
 
@@ -169,7 +177,7 @@ public class EditGUI implements Listener {
 		ItemMeta lorem = lore.getItemMeta();
 		lorem.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fLore"));
 
-		if (item.hasItemMeta() && item.getItemMeta().hasLore()) {
+		if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
 			lorem.setLore(item.getItemMeta().getLore());
 
 			if (hasPlaceholder())
@@ -354,8 +362,7 @@ public class EditGUI implements Listener {
 			return;
 
 		Player p = (Player) e.getWhoClicked();
-		InventoryView view = e.getView();
-		String inventoryTitle = view.getTitle();
+		String inventoryTitle = CompatibilityUtil.getTitle(e);
 
 		if (e.getInventory() != null && inventoryTitle != null && inventoryTitle.contains("VIEWING: ")) {
 			e.setCancelled(true);
@@ -370,7 +377,7 @@ public class EditGUI implements Listener {
 				Inventory edit = Bukkit.getServer().createInventory(null, 54,
 						ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + name));
 
-				setItems(true, edit, name, e.getCurrentItem(), p);
+				setItems(false, true, edit, name, e.getCurrentItem(), p);
 
 				Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
 				p.openInventory(edit);
@@ -729,6 +736,10 @@ public class EditGUI implements Listener {
 	}
 
 	public void handleStringMessage(Player p, String s, InventoryClickEvent e) {
+
+		InventoryView view = e.getView();
+		String title = view.getTitle();
+
 		inventoryinstance.put(p.getUniqueId(), p.getOpenInventory().getTopInventory());
 		editmeta.put(p.getUniqueId(), s.toLowerCase());
 		p.closeInventory();
@@ -749,7 +760,7 @@ public class EditGUI implements Listener {
 					"Something went wrong while using the GUI! This was unexpected.. Please PM Mehboss on Spigot for further information regarding this issue. STRING: "
 							+ s);
 
-		String[] split = e.getView().getTitle().split("EDITING: ");
+		String[] split = title.split("EDITING: ");
 		String recipe = split[1];
 
 		getr.put(p.getUniqueId(), recipe);

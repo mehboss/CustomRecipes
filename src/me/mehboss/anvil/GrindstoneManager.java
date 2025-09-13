@@ -28,6 +28,7 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.InventoryUtils;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
@@ -115,8 +116,9 @@ public class GrindstoneManager implements Listener {
 
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onClick(InventoryClickEvent event) {
-		if (event.getClickedInventory() == null
-				|| event.getView().getTopInventory().getType() != InventoryType.GRINDSTONE) {
+		Inventory topInventory = CompatibilityUtil.getTopInventory(event);
+
+		if (event.getClickedInventory() == null || topInventory.getType() != InventoryType.GRINDSTONE) {
 			return;
 		}
 

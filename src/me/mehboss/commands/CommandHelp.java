@@ -26,7 +26,9 @@ public class CommandHelp {
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&c/crecipe reload &8-&f Reloads the configs and resets all recipes &e(crecipe.reload)"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-				"&c/crecipe debug &8-&f Enables debug mode for the author to troubleshoot &e(crecipe.debug)"));
+				"&c/crecipe debug &8-&f Enables debug mode for crafting &e(crecipe.debug)"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
+				"&c/crecipe crafterdebug &8-&f Enables debug mode for the crafter &e(crecipe.debug)"));
 		p.sendMessage(
 				ChatColor.translateAlternateColorCodes('&', "&c/crecipe edititem &8-&f Convenient recipe & item handler"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));

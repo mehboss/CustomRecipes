@@ -24,8 +24,10 @@ public class TabCompletion implements TabCompleter {
             // Main subcommands
             List<String> subCommands = new ArrayList<>();
 
-            if (sender.hasPermission("crecipe.debug"))
+            if (sender.hasPermission("crecipe.debug")) {
                 subCommands.add("debug");
+                subCommands.add("crafterdebug");
+            }
             if (sender.hasPermission("crecipe.list"))
                 subCommands.add("list");
             if (sender.hasPermission("crecipe.give"))

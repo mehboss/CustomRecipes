@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 
 import me.mehboss.commands.CRCommand;
 import me.mehboss.commands.CommandBook;
+import me.mehboss.commands.CommandCrafterDebug;
 import me.mehboss.commands.CommandDebug;
 import me.mehboss.commands.CommandEditItem;
 import me.mehboss.commands.CommandGUI;
@@ -78,6 +79,10 @@ public class CommandListener implements CommandExecutor {
 
 				if (args[0].equalsIgnoreCase("debug") && sender.hasPermission("crecipe.debug")) {
 					return CommandDebug.Run(cmd);
+				}
+				
+				if (args[0].equalsIgnoreCase("crafterdebug") && sender.hasPermission("crecipe.debug")) {
+					return CommandCrafterDebug.Run(cmd);
 				}
 
 				if (args[0].equalsIgnoreCase("edititem") && sender.hasPermission("crecipe.edititem")) {

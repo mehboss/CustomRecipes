@@ -74,7 +74,7 @@ public class ExactChoice {
 				continue;
 
 			// Uses exactChoice if version is 1.14 or higher
-			if (recipe.isExactChoice() && !recipe.getIgnoreData() && !recipe.getIgnoreModelData()) {
+			if (recipe.isExactChoice() && !recipe.getIgnoreData()) {
 				shapelessRecipe.addIngredient(findExactChoice(recipe, ingredient));
 
 				try {
@@ -106,7 +106,7 @@ public class ExactChoice {
 
 			// Uses exactChoice if version is 1.14 or higher
 			// Ignores if IgnoreData or IgnoreModelData is true
-			if (recipe.isExactChoice() && !recipe.getIgnoreData() && !recipe.getIgnoreModelData()) {
+			if (recipe.isExactChoice() && !recipe.getIgnoreData()) {
 				shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), findExactChoice(recipe, ingredient));
 
 				try {

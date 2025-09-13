@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v1.9.9.9                                                                                  #
+# Version v2.0.2                                                                                    #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
@@ -20,6 +20,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 firstLoad: true # internally managed do not remove
 Debug: false
+Crafter-Debug: false
 Update-Check: true
 Messages:
   Invalid-Args: '&cInvalid args! (use: /crecipe give <player> <recipename> [amount])'

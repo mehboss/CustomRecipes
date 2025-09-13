@@ -56,6 +56,7 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
+	public AmountManager amountManager;
 	public CraftManager craftManager;
 	public RecipeManager recipeManager;
 	public RecipesGUI recipes;
@@ -92,6 +93,7 @@ public class Main extends JavaPlugin implements Listener {
 	String newupdate = null;
 
 	public Boolean debug = false;
+	public Boolean crafterdebug = false;
 
 	public RecipeUtil getRecipeUtil() {
 		return recipeUtil;
@@ -267,6 +269,7 @@ public class Main extends JavaPlugin implements Listener {
 		guiUtil = new InventoryManager();
 		metaChecks = new MetaChecks();
 		craftManager = new CraftManager();
+		amountManager = new AmountManager(craftManager);
 
 		if (serverVersionAtLeast(1, 12))
 			exactChoice = new ExactChoice();
@@ -320,6 +323,8 @@ public class Main extends JavaPlugin implements Listener {
 			getConfig().set("Messages.No-Perm-Place", "&cYou cannot place an unplaceable block!");
 
 		debug = getConfig().getBoolean("Debug");
+		crafterdebug = getConfig().getBoolean("Crafter-Debug");
+		
 		saveAllCustomYml();
 		saveConfig();
 		registerUpdateChecker();
@@ -406,7 +411,9 @@ public class Main extends JavaPlugin implements Listener {
 		saveAllCustomYml();
 
 		debug = getConfig().getBoolean("Debug");
-
+		crafterdebug = getConfig().getBoolean("Crafter-Debug");
+		
+		removeCustomRecipes();
 		removeRecipes();
 		recipeUtil = new RecipeUtil();
 		recipeManager.addRecipes(null);
@@ -436,9 +443,29 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}
 
+	void removeCustomRecipes() {
+		if (!serverVersionAtLeast(1, 16) || recipeUtil.getAllRecipes().isEmpty())
+			return;
+
+		for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
+			String key = recipe.getKey();
+			NamespacedKey npk = NamespacedKey.fromString("customrecipes:" + key.toLowerCase());
+
+			if (npk == null)
+				continue;
+
+			Bukkit.removeRecipe(npk);
+		}
+	}
+
 	void removeRecipes() {
 		if (customConfig == null)
 			return;
+
+		if (!serverVersionAtLeast(1, 16)) {
+			debug("[Blacklisted] You must be on 1.16 or higher to utilize the blacklisted feature!");
+			return;
+		}
 
 		if (customConfig.isConfigurationSection("override-recipes")) {
 			ConfigurationSection sec = customConfig.getConfigurationSection("override-recipes");
@@ -474,7 +501,8 @@ public class Main extends JavaPlugin implements Listener {
 						try {
 							Bukkit.removeRecipe(nk);
 						} catch (Exception ex) {
-							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + nk + ": " + ex.getMessage());
+							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + nk + ": "
+									+ ex.getMessage());
 						}
 						continue; // done with this entry
 					}
@@ -500,7 +528,8 @@ public class Main extends JavaPlugin implements Listener {
 						try {
 							Bukkit.removeRecipe(key);
 						} catch (Exception ex) {
-							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + key + ": " + ex.getMessage());
+							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + key + ": "
+									+ ex.getMessage());
 						}
 					}
 				}
@@ -663,23 +692,23 @@ public class Main extends JavaPlugin implements Listener {
 				NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
 				Recipe result = Bukkit.getRecipe(key);
 
-				if (key == null || (result != null && !recipe.getResult().isSimilar(result.getResult())))
+				if (key == null || (result == null))
 					continue;
 
 				if (!recipe.isDiscoverable())
 					continue;
 
-				if (recipe.getPerm() == null || !p.hasPermission(recipe.getPerm())) {
+				if (recipe.getPerm() != null && !p.hasPermission(recipe.getPerm())) {
 					if (p.hasDiscoveredRecipe(key))
 						p.undiscoverRecipe(key);
-				} else if (p.hasPermission(recipe.getPerm())) {
+				} else if (recipe.getPerm() == null || p.hasPermission(recipe.getPerm())) {
 					if (!p.hasDiscoveredRecipe(key))
 						p.discoverRecipe(key);
 				}
 
 			}
 		} catch (NoClassDefFoundError error) {
-
+			Main.getInstance().getLogger().log(Level.WARNING, "Couldn't discover recipe upon player join.");
 		}
 	}
 

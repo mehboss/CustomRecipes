@@ -47,9 +47,10 @@ public class CookingManager implements Listener {
 
 		for (FurnaceInventory furnace : cooking.keySet()) {
 			if (furnace == inv) {
-				
+
 				Player p = Bukkit.getPlayer(cooking.get(furnace));
-				if (!recipe.isActive() || (recipe.getPerm() != null && !p.hasPermission(recipe.getPerm()))) {
+				if (!recipe.isActive() || (recipe.getPerm() != null && !p.hasPermission(recipe.getPerm()))
+						|| (recipe.getDisabledWorlds().contains(p.getWorld().getName()))) {
 					sendNoPermsMessage(p, recipe.getName());
 					e.setCancelled(true);
 				}
@@ -88,12 +89,12 @@ public class CookingManager implements Listener {
 	RecipeUtil recipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
-	
+
 	void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
-	
+
 	void sendNoPermsMessage(Player p, String recipe) {
 		logDebug("[sendNoPermsMessage] Player " + p.getName()
 				+ " does not have required recipe crafting permissions for recipe " + recipe);

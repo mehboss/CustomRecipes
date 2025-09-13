@@ -99,6 +99,20 @@ public class RecipeUtil {
 		return namespace;
 	}
 
+	public Boolean isCustomItem(String key) {
+		if (key == null)
+			return false;
+
+		String pluginID = key.toLowerCase();
+		String[] plugins = { "mythicmobs", "itemsadder", "mmoitems", "oraxen", "nexo", "executableitems" };
+
+		for (String plugin : plugins)
+			if (plugin.equals(pluginID))
+				return true;
+
+		return false;
+	}
+
 	/**
 	 * Getter for a result from a namespaced key.
 	 *
@@ -178,9 +192,9 @@ public class RecipeUtil {
 				return null;
 			}
 
-			ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()),
-					itemId.toUpperCase());
 			if (Main.getInstance().hasMMOItemsPlugin()) {
+				ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()),
+						itemId.toUpperCase());
 				if (mmoitem != null)
 					return mmoitem;
 			}

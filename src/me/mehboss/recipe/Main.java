@@ -324,7 +324,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 		crafterdebug = getConfig().getBoolean("Crafter-Debug");
-		
+
 		saveAllCustomYml();
 		saveConfig();
 		registerUpdateChecker();
@@ -412,7 +412,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		debug = getConfig().getBoolean("Debug");
 		crafterdebug = getConfig().getBoolean("Crafter-Debug");
-		
+
 		removeCustomRecipes();
 		removeRecipes();
 		recipeUtil = new RecipeUtil();
@@ -586,13 +586,15 @@ public class Main extends JavaPlugin implements Listener {
 		if (customConfig == null)
 			return;
 
-		for (String vanilla : customConfig.getConfigurationSection("vanilla-recipes").getKeys(false)) {
-			disabledrecipe.add(vanilla);
-		}
+		if (customConfig.isConfigurationSection("vanilla-recipe"))
+			for (String vanilla : customConfig.getConfigurationSection("vanilla-recipes").getKeys(false)) {
+				disabledrecipe.add(vanilla);
+			}
 
-		for (String custom : customConfig.getConfigurationSection("custom-recipes").getKeys(false)) {
-			disabledrecipe.add(custom);
-		}
+		if (customConfig.isConfigurationSection("custom-recipes"))
+			for (String custom : customConfig.getConfigurationSection("custom-recipes").getKeys(false)) {
+				disabledrecipe.add(custom);
+			}
 	}
 
 	String getCooldownMessage(long totalSeconds) {

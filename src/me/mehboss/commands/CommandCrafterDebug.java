@@ -17,7 +17,7 @@ public class CommandCrafterDebug {
 			if (Main.getInstance().crafterdebug) {
 				p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 						"&c[CustomRecipes] &fCrafterDebug mode has been turned &cOFF."));
-				getConfig().set("Debug", false);
+				getConfig().set("Crafter-Debug", false);
 				Main.getInstance().crafterdebug = false;
 				Main.getInstance().saveConfig();
 				Main.getInstance().reloadConfig();
@@ -27,7 +27,7 @@ public class CommandCrafterDebug {
 			if (!(Main.getInstance().crafterdebug)) {
 				p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 						"&c[CustomRecipes] &fCrafterDebug mode has been turned &aON.&f Check console for INFO."));
-				getConfig().set("Debug", true);
+				getConfig().set("Crafter-Debug", true);
 				Main.getInstance().crafterdebug = true;
 				Main.getInstance().saveConfig();
 				Main.getInstance().reloadConfig();

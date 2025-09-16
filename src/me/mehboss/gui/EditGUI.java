@@ -332,7 +332,7 @@ public class EditGUI implements Listener {
 
 			if (item == null) {
 				logError("Failed to set item ingredients! Could not find itemstack for ingredient slot "
-						+ ingredient.getSlot(), recipename);
+						+ ingredient.getSlot() + ". isCustomItem: " + isCustomItem, recipename);
 				return null;
 			}
 
@@ -416,6 +416,13 @@ public class EditGUI implements Listener {
 				return;
 			// enchants button
 
+			if (recipe == null || recipe.isEmpty() || recipe.equals(" ") || recipe.equals("null")) {
+				String newTitle = e.getInventory().getItem(7).getItemMeta().getLore().get(0);
+				if (!recipe.equals(newTitle))
+					e.getView().setTitle(ChatColor.GREEN + "EDITING: " + newTitle);
+
+				inventoryinstance.put(p.getUniqueId(), p.getOpenInventory().getTopInventory());
+			}
 			if (e.getRawSlot() == 35) {
 				// amount button
 				handleStringMessage(p, "Amount", e);
@@ -539,6 +546,9 @@ public class EditGUI implements Listener {
 			}
 
 			if (e.getRawSlot() == 45) {
+
+				if (recipe == null || recipe.isEmpty() || recipe.equals(" ") || recipe.equals("null"))
+					return;
 
 				if (ChatColor.stripColor(e.getClickedInventory().getItem(45).getItemMeta().getDisplayName())
 						.equals("Confirm Recipe Deletion")) {
@@ -737,8 +747,7 @@ public class EditGUI implements Listener {
 
 	public void handleStringMessage(Player p, String s, InventoryClickEvent e) {
 
-		InventoryView view = e.getView();
-		String title = view.getTitle();
+		String title = CompatibilityUtil.getTitle(e);
 
 		inventoryinstance.put(p.getUniqueId(), p.getOpenInventory().getTopInventory());
 		editmeta.put(p.getUniqueId(), s.toLowerCase());

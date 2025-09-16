@@ -33,6 +33,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -43,6 +44,7 @@ import dev.lone.itemsadder.api.CustomStack;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
@@ -91,9 +93,22 @@ public class CraftManager implements Listener {
 
 	public boolean matchedRecipe(CraftingInventory inv) {
 //		if (result == null || result == new ItemStack(Material.AIR)) {
-		if (inv.isEmpty()) {
-			logDebug("[matchedRecipe] Could not find a recipe to match with!", "");
-			return false;
+		if (Main.getInstance().serverVersionAtLeast(1, 13)) {
+			if (inv.isEmpty()) {
+				logDebug("[matchedRecipe] Could not find a recipe to match with!", "");
+				return false;
+			}
+		} else {
+			boolean isEmpty = true;
+			for (ItemStack item : inv.getContents())
+				if (item != null && item.getType() != Material.AIR) {
+					isEmpty = false;
+					break;
+				}
+			if (isEmpty) {
+				logDebug("[matchedRecipe] Could not find a recipe to match with!", "");
+				return false;
+			}
 		}
 		return true;
 	}
@@ -727,6 +742,12 @@ public class CraftManager implements Listener {
 						recipe.getName());
 
 				// checks if displayname is null
+				
+				if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
+					logDebug("[handleShaped] Skipping CMD checks.. Version is less than 1.14..", recipe.getName());
+					return true;
+				}
+				
 				if ((!meta.hasCustomModelData() && ingredient.hasCustomModelData())
 						|| (meta.hasCustomModelData() && !ingredient.hasCustomModelData())) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
@@ -763,11 +784,12 @@ public class CraftManager implements Listener {
 
 		CraftingInventory inv = e.getInventory();
 
-		logDebug("[handleCrafting] Fired craft event!", "");
-		if (!(e.getView().getPlayer() instanceof Player))
-			return;
+		Object view = CompatibilityUtil.getInventoryView(e);
+		Player p = CompatibilityUtil.getPlayerFromView(view);
 
-		Player p = (Player) e.getView().getPlayer();
+		logDebug("[handleCrafting] Fired craft event!", "");
+		if (!(p instanceof Player) || p == null)
+			return;
 
 		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
 				|| !(matchedRecipe(inv)))

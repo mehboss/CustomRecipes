@@ -1,6 +1,8 @@
 package me.mehboss.recipe;
 
 import java.io.File;
+import java.lang.reflect.Method;
+import java.net.URL;
 
 /*
  * Mozilla Public License v2.0
@@ -24,6 +26,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.lang.NoSuchMethodException;
+import java.lang.IllegalAccessException;
+import java.lang.reflect.InvocationTargetException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -50,14 +55,21 @@ import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
+
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
@@ -146,6 +158,63 @@ public class RecipeManager {
 			recipe.setGroup(getConfig().getString(configPath + ".Group"));
 	}
 
+	ItemStack handleHeadTexture(String material) {
+		if (material == null || material.isEmpty() || !XMaterial.matchXMaterial(material.split(":")[0]).isPresent())
+			return null;
+
+		String[] split = material.split(":");
+		String item = split[0];
+		ItemStack head = XMaterial.matchXMaterial(item).get().parseItem();
+
+		// If it's not a player head, just return the item
+		if (split.length < 2 || XMaterial.matchXMaterial(item).get() != XMaterial.PLAYER_HEAD)
+			return head;
+
+		String texture = split[1];
+		UUID uuid = UUID.randomUUID();
+		SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
+
+		try {
+			if (Main.getInstance().serverVersionAtLeast(1, 21)) {
+				// Modern API (Spigot 1.21+)
+				PlayerProfile profile = Bukkit.createPlayerProfile(uuid);
+				PlayerTextures textures = profile.getTextures();
+				textures.setSkin(new URL(CompatibilityUtil.extractUrlFromBase64(texture)));
+				profile.setTextures(textures);
+
+				logDebug("Applying player head texture (modern API)", "");
+				logDebug("Texture: ", texture);
+				logDebug("Extracted URL: " + CompatibilityUtil.extractUrlFromBase64(texture), "");
+
+				skullMeta.setOwnerProfile(profile);
+
+			} else {
+				// Legacy method (1.8–1.20.6): set GameProfile manually
+				GameProfile profile = new GameProfile(uuid, "Player");
+				profile.getProperties().put("textures", new Property("textures", texture));
+
+				if (Main.getInstance().serverVersionAtLeast(1, 13)) {
+					// Try to use setProfile(GameProfile)
+					Method mtd = CompatibilityUtil.getMethod(skullMeta.getClass(), "setProfile", GameProfile.class);
+					if (mtd != null) {
+						CompatibilityUtil.invokeMethod(mtd, skullMeta, profile);
+					} else {
+						// Fallback: directly set the private profile field
+						CompatibilityUtil.setFieldValue(skullMeta, "profile", profile);
+					}
+				} else {
+					// 1.12 or lower (including 1.8): always set the private field directly
+					CompatibilityUtil.setFieldValue(skullMeta, "profile", profile);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		head.setItemMeta(skullMeta);
+		return head;
+	}
+
 	@SuppressWarnings("unchecked")
 	ItemStack applyCustomTags(ItemStack item, String recipe) {
 		try {
@@ -188,6 +257,9 @@ public class RecipeManager {
 					return item;
 
 				} else if (path.get(0).equalsIgnoreCase("Potion")) {
+					if (!Main.getInstance().serverVersionAtLeast(1, 9))
+						return item;
+					
 					ItemStack potion = item;
 					PotionMeta meta = (PotionMeta) potion.getItemMeta();
 
@@ -702,24 +774,35 @@ public class RecipeManager {
 			recipe.setKey(identifier);
 
 			// Checks for a custom item and attempts to set it
-			ItemStack i = recipeUtil.getResultFromKey(getConfig().getString(item + ".Item"));
+			String rawItem = getConfig().getString(item + ".Item") != null
+					? getConfig().getString(item + ".Item")
+					: null;
+			ItemStack i = recipeUtil.getResultFromKey(rawItem);
 			ItemMeta m = i != null ? i.getItemMeta() : null;
 
 			// handle item stack check
 			if (i == null && getConfig().getItemStack(item + ".Item") != null)
 				i = getConfig().getItemStack(item + ".Item");
 
+			// handle material checks
 			if (i == null) {
 
 				String damage = getConfig().getString(item + ".Item-Damage");
 				Optional<XMaterial> type = getConfig().isString(item + ".Item")
-						? XMaterial.matchXMaterial(getConfig().getString(item + ".Item").toUpperCase())
+						? XMaterial.matchXMaterial(rawItem.split(":")[0].toUpperCase())
 						: null;
 
+				// not a valid material
 				if (!(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type)))
 					continue;
 
+				// returns the original material
 				i = handleItemDamage(i, item, damage, type);
+				
+				// handle head textures
+				if (handleHeadTexture(getConfig().getString(item + ".Item")) != null)
+					i = handleHeadTexture(getConfig().getString(item + ".Item"));
+				
 				i = handleEnchants(i, item);
 				i = handleCustomEnchants(i, item);
 				i = applyCustomTags(i, item);
@@ -875,6 +958,10 @@ public class RecipeManager {
 		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes();
 
+		if (recipeList == null) {
+			logDebug("No recipes were found to load..", "");
+			return;
+		}
 		if (specificRecipe != null) {
 			if (recipeList.containsKey(specificRecipe.getName()))
 				recipeList.remove(specificRecipe.getName());

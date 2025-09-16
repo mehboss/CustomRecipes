@@ -280,7 +280,7 @@ public class RecipeUtil {
 	 * @return a set of strings
 	 */
 	public ArrayList<String> getRecipeNames() {
-		return recipes.isEmpty() ? null : new ArrayList<>(recipes.keySet());
+		return recipes.isEmpty() ? new ArrayList<>() : new ArrayList<>(recipes.keySet());
 	}
 
 	/**

@@ -50,9 +50,9 @@ crafting-limit:
 
 # Add craftable vanilla materials here if you plan on changing how you craft it. Completely removes the original recipe from the server.
 override-recipes:
-	Crafting: []
-	Smelting: []
-	Stonecutter: []
+  Crafting: []
+  Smelting: []
+  Stonecutter: []
 vanilla-recipes:
   'BEETROOT_SOUP': # item ID for soup
     permission: 'soup' # permission will then be crecipe.soup in order to craft this vanilla recipe. set to 'none' if not needed.

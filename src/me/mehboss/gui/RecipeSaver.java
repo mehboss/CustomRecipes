@@ -47,6 +47,22 @@ public class RecipeSaver {
 			recipesFolder.mkdirs();
 		}
 
+		if (recipeName == null || recipeName.isEmpty() || recipeName.equals("null") || recipeName.equals(" "))
+			return;
+
+		boolean matrixEmpty = true;
+		boolean slotEmpty = inv.getItem(SLOT_RESULT) == null || inv.getItem(SLOT_RESULT).getType() == Material.AIR;
+		for (int slot : CRAFT_SLOTS) {
+			if (inv.getItem(slot) != null && inv.getItem(slot).getType() != Material.AIR) {
+				matrixEmpty = false;
+				break;
+			}
+		}
+
+		if (matrixEmpty || slotEmpty) {
+			return;
+		}
+
 		File recipeFile = new File(recipesFolder, recipeName + ".yml");
 		FileConfiguration recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
 

@@ -177,8 +177,9 @@ public class RecipesGUI implements Listener {
 				item.setItemMeta(itemM);
 
 				String loc = items.get(index);
-				if (p != null && !p.hasPermission("crecipe.gui")
-						&& !p.hasPermission(Main.getInstance().getRecipeUtil().getRecipe(loc).getPerm()))
+				String perm = Main.getInstance().getRecipeUtil().getRecipe(loc).getPerm();
+
+				if (p != null && perm != null && !p.hasPermission(perm))
 					continue;
 
 				inv.setItem(slots[currentSlot], item);

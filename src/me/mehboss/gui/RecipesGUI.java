@@ -4,9 +4,12 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
+import me.mehboss.utils.RecipeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -159,10 +162,12 @@ public class RecipesGUI implements Listener {
 	private void items(Player p, Inventory inv, int page) {
 
 		int[] slots = { 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34 };
-		ArrayList<String> items = new ArrayList<>(Main.getInstance().recipeUtil.getRecipeNames());
-		Collections.sort(items);
+		List<String> items = Main.getInstance().recipeUtil.getRecipeNames().stream().filter(s -> {
+            RecipeUtil.Recipe recipe = Main.getInstance().recipeUtil.getRecipe(s);
+            return recipe.hasPerm() && p.hasPermission(recipe.getPerm());
+        }).sorted().collect(Collectors.toList());
 
-		int startSlot = page * slots.length;
+        int startSlot = page * slots.length;
 		int currentSlot = 0;
 		for (int slot = 0; slot < slots.length; slot++) {
 			int index = startSlot + slot;
@@ -173,15 +178,7 @@ public class RecipesGUI implements Listener {
 			try {
 				ItemStack item = new ItemStack(Main.getInstance().recipeUtil.getRecipe(items.get(index)).getResult());
 				ItemMeta itemM = item.getItemMeta();
-
 				item.setItemMeta(itemM);
-
-				String loc = items.get(index);
-				String perm = Main.getInstance().getRecipeUtil().getRecipe(loc).getPerm();
-
-				if (p != null && perm != null && !p.hasPermission(perm))
-					continue;
-
 				inv.setItem(slots[currentSlot], item);
 				currentSlot++;
 			} catch (Exception e) {

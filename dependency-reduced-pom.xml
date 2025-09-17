@@ -213,5 +213,26 @@
       <version>6.0.54</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>com.ssomar.score</groupId>
+      <artifactId>SCore</artifactId>
+      <version>5.25.3.30</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/libs/SCore-5.25.3.30.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>valorless.havenbags</groupId>
+      <artifactId>HavenBags</artifactId>
+      <version>1.37.2.2548</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/libs/HavenBags-1.37.2.2548.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>net.advancedplugins.ae.api</groupId>
+      <artifactId>AdvancedEnchantments</artifactId>
+      <version>8.7.4</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/libs/AdvancedEnchantments-8.7.4.jar</systemPath>
+    </dependency>
   </dependencies>
 </project>

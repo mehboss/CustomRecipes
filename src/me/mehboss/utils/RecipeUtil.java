@@ -891,6 +891,10 @@ public class RecipeUtil {
 			return permission;
 		}
 
+		public boolean hasPerm(){
+			return permission != null;
+		}
+
 		/**
 		 * Adds a world to the noCraft list
 		 * 

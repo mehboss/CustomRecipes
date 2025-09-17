@@ -2,3 +2,9 @@
 /bin
 /references/*.jar
 /target/
+/libs
+.idea/
+*.iml
+*.iws
+*.ipr
+dependency-reduced-pom.xml

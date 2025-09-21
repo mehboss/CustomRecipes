@@ -16,7 +16,9 @@ import me.mehboss.commands.CommandGUI;
 import me.mehboss.commands.CommandGive;
 import me.mehboss.commands.CommandHelp;
 import me.mehboss.commands.CommandList;
+import me.mehboss.commands.CommandRecipe;
 import me.mehboss.commands.CommandReload;
+import me.mehboss.commands.CommandShow;
 
 public class CommandListener implements CommandExecutor {
 
@@ -37,61 +39,59 @@ public class CommandListener implements CommandExecutor {
 		} else if (args.length >= 1) {
 			try {
 
-				if (!sender.hasPermission("crecipe." + args[0])) {
+				if (!sender.hasPermission("crecipe." + args[0].toLowerCase())) {
 					sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 							getConfig().getString("Messages.Invalid-Perms")));
 					return true;
 				}
 
-				if (args[0].equalsIgnoreCase("help") && sender.hasPermission("crecipe.help")) {
+				if (args[0].equalsIgnoreCase("help")) {
 					return CommandHelp.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("list") && sender.hasPermission("crecipe.list")) {
+				if (args[0].equalsIgnoreCase("list")) {
 					return CommandList.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("give") && sender.hasPermission("crecipe.give")) {
+				if (args[0].equalsIgnoreCase("give")) {
 					return CommandGive.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("book") && sender.hasPermission("crecipe.book")) {
-					if (sender instanceof Player) {
-						return CommandBook.Run(cmd);
-					} else {
-						sender.sendMessage("You must be a player in order to use this command!");
-						return true;
-					}
-				}
-
-				if (args[0].equalsIgnoreCase("gui") && sender.hasPermission("crecipe.gui")) {
-					if (sender instanceof Player) {
-						return CommandGUI.Run(cmd);
-					} else {
-						sender.sendMessage("You must be a player in order to use this command!");
-						return true;
-					}
-				}
-
-				if (args[0].equalsIgnoreCase("reload") && sender.hasPermission("crecipe.reload")) {
+				if (args[0].equalsIgnoreCase("reload")) {
 					return CommandReload.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("debug") && sender.hasPermission("crecipe.debug")) {
+				if (args[0].equalsIgnoreCase("debug")) {
 					return CommandDebug.Run(cmd);
 				}
-				
-				if (args[0].equalsIgnoreCase("crafterdebug") && sender.hasPermission("crecipe.debug")) {
+
+				if (args[0].equalsIgnoreCase("crafterdebug")) {
 					return CommandCrafterDebug.Run(cmd);
 				}
 
-				if (args[0].equalsIgnoreCase("edititem") && sender.hasPermission("crecipe.edititem")) {
-					if (sender instanceof Player) {
-						return CommandEditItem.Run(cmd);
-					} else {
-						sender.sendMessage("You must be a player in order to use this command!");
-						return true;
-					}
+				if (!(sender instanceof Player)) {
+					sender.sendMessage("You must be a player in order to use this command!");
+					return true;
+				}
+
+				if (args[0].equalsIgnoreCase("create")) {
+					return CommandRecipe.Run(cmd);
+				}
+
+				if (args[0].equalsIgnoreCase("show")) {
+					return CommandShow.Run(cmd);
+				}
+				
+				if (args[0].equalsIgnoreCase("edititem")) {
+					return CommandEditItem.Run(cmd);
+				}
+
+				if (args[0].equalsIgnoreCase("book")) {
+					return CommandBook.Run(cmd);
+				}
+
+				if (args[0].equalsIgnoreCase("gui")) {
+					return CommandGUI.Run(cmd);
 				}
 			} catch (Exception e) {
 				sender.sendMessage(ChatColor.RED + "Invalid command");

@@ -10,7 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
-import me.mehboss.gui.EditGUI;
+import me.mehboss.gui.RecipeGUI;
 import me.mehboss.recipe.Main;
 
 public class CommandEditItem {
@@ -161,8 +161,8 @@ public class CommandEditItem {
 		}
 
 		if (command.args.length == 2 && command.args[1].equalsIgnoreCase("lore")) {
-			EditGUI.getInstance().sendLoremsg(p);
-			EditGUI.getInstance().editmeta.put(p.getUniqueId(), "Lore");
+			RecipeGUI.getInstance().sendLoremsg(p);
+			RecipeGUI.getInstance().editmeta.put(p.getUniqueId(), "Lore");
 			return false;
 		}
 

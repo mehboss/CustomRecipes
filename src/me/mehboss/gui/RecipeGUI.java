@@ -3,6 +3,7 @@ package me.mehboss.gui;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -22,40 +23,42 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import com.cryptomorin.xseries.XMaterial;
+
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
+import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 
-public class EditGUI implements Listener {
+public class RecipeGUI implements Listener {
 
 	// *** this menu is the GUI for adding a new recipe
-	public HashMap<UUID, String> editmeta = new HashMap<UUID, String>();
-	HashMap<UUID, Inventory> inventoryinstance = new HashMap<UUID, Inventory>();
-	HashMap<UUID, String> getr = new HashMap<UUID, String>();
-	HashMap<UUID, String> getnewid = new HashMap<UUID, String>();
+	public HashMap<UUID, String> editmeta = new HashMap<>();
+	HashMap<UUID, Inventory> inventoryinstance = new HashMap<>();
+	HashMap<UUID, String> getr = new HashMap<>();
+	HashMap<UUID, String> getnewid = new HashMap<>();
 
 	List<String> lore = new ArrayList<>();
 
 	RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
-	private static EditGUI instance;
+	private static RecipeGUI instance;
 
 	Plugin config = Bukkit.getPluginManager().getPlugin("CustomRecipes");
 	RecipeSaver saveChanges;
 
-	public EditGUI(Plugin p, String item) {
+	public RecipeGUI(Plugin p, String item) {
 		instance = this;
 		saveChanges = new RecipeSaver();
 	}
 
-	public static EditGUI getInstance() {
+	public static RecipeGUI getInstance() {
 		return instance;
 	}
 
@@ -63,76 +66,119 @@ public class EditGUI implements Listener {
 		File dataFolder = Main.getInstance().getDataFolder();
 		File recipesFolder = new File(dataFolder, "recipes");
 		File recipeFile = new File(recipesFolder, recipeName + ".yml");
-
 		return YamlConfiguration.loadConfiguration(recipeFile);
 	}
 
-	public void setItems(Boolean creating, Boolean viewing, Inventory i, String invname, ItemStack item,
+	private static final class RecipeLayout {
+		final int[] ingredientSlots; // where ingredients go (order matters for SHAPED)
+		final Integer fuelSlot; // null when no fuel slot is used
+		final int resultSlot; // output slot
+
+		RecipeLayout(int[] ingredientSlots, Integer fuelSlot, int resultSlot) {
+			this.ingredientSlots = ingredientSlots;
+			this.fuelSlot = fuelSlot;
+			this.resultSlot = resultSlot;
+		}
+
+		boolean usesFuel() {
+			return fuelSlot != null;
+		}
+	}
+
+	private static final HashMap<RecipeType, RecipeLayout> LAYOUTS = new HashMap<>();
+	static {
+		int[] CRAFTING_GRID = { 11, 12, 13, 20, 21, 22, 29, 30, 31 };
+
+		// Crafting
+		LAYOUTS.put(RecipeType.SHAPED, new RecipeLayout(CRAFTING_GRID, null, 24));
+		LAYOUTS.put(RecipeType.SHAPELESS, new RecipeLayout(CRAFTING_GRID, null, 24));
+
+		// Single-input machines (no fuel)
+		LAYOUTS.put(RecipeType.STONECUTTER, new RecipeLayout(new int[] { 20 }, null, 24));
+		LAYOUTS.put(RecipeType.CAMPFIRE, new RecipeLayout(new int[] { 20 }, null, 24));
+
+		// Furnace-like (input at 11, fuel 29, result 24)
+		LAYOUTS.put(RecipeType.FURNACE, new RecipeLayout(new int[] { 11 }, 29, 24));
+		LAYOUTS.put(RecipeType.BLASTFURNACE, new RecipeLayout(new int[] { 11 }, 29, 24));
+		LAYOUTS.put(RecipeType.SMOKER, new RecipeLayout(new int[] { 11 }, 29, 24));
+
+		// Two-input utilities with a center gap (20 [gap 21] 22)
+		LAYOUTS.put(RecipeType.ANVIL, new RecipeLayout(new int[] { 20, 22 }, null, 24));
+		LAYOUTS.put(RecipeType.GRINDSTONE, new RecipeLayout(new int[] { 20, 22 }, null, 24));
+	}
+
+	public void setItems(Boolean creating, Boolean viewing, Inventory i, String invname, String perm, ItemStack item,
 			OfflinePlayer p) {
 
 		String configname = invname;
 
-		List<String> loreList = new ArrayList<String>();
+		// Get recipe and decide layout from its type
+		Recipe r = Main.getInstance().getRecipeUtil().getRecipe(configname);
+		RecipeType type = (r != null && r.getType() != null) ? r.getType() : RecipeType.SHAPED;
+		RecipeLayout layout = LAYOUTS.getOrDefault(type, LAYOUTS.get(RecipeType.SHAPED));
 
-		int[] paneslot = { 0, 1, 2, 3, 4, 5, 6, 9, 13, 14, 15, 18, 22, 24, 27, 31, 32, 33, 34, 36, 37, 38, 39, 41, 42,
-				43, 45, 46, 47, 51, 52 };
+		List<String> loreList = new ArrayList<>();
+
+		final int[] controlSlots = { 7, 8, 16, 17, 25, 26, 35, 40, 44, 45, 48, 49, 50, 53 };
+
+		boolean[] paneAt = new boolean[54];
+		for (int s = 0; s < 54; s++)
+			paneAt[s] = true;
+		paneAt[layout.resultSlot] = false;
+		for (int s : layout.ingredientSlots)
+			paneAt[s] = false;
+		if (layout.usesFuel())
+			paneAt[layout.fuelSlot] = false;
+
+		// gap between two-input utilities (center slot 21)
+		boolean isTwoInputUtility = (type == RecipeType.ANVIL || type == RecipeType.GRINDSTONE);
+		if (isTwoInputUtility)
+			paneAt[21] = true;
+
+		// In EDITING mode, keep control slots empty (they'll be populated by widgets);
+		// in VIEWING mode, we want them to be panes except the Back buttons.
+		if (!viewing) {
+			for (int s : controlSlots)
+				paneAt[s] = false;
+		}
+
 		ItemStack stained = XMaterial.BLACK_STAINED_GLASS_PANE.parseItem();
 		ItemMeta stainedm = stained.getItemMeta();
 		stainedm.setDisplayName(" ");
 		stained.setItemMeta(stainedm);
-
-		for (int slot : paneslot) {
-			i.setItem(slot, stained);
-		}
+		for (int s = 0; s < 54; s++)
+			if (paneAt[s])
+				i.setItem(s, stained);
 
 		// not creating new recipe, fill in slots
 		if (!creating) {
-			// set recipe items to the menu
-			int slot = 1;
-			for (Ingredient ingredient : Main.getInstance().getRecipeUtil().getRecipe(configname).getIngredients()) {
+			int ingIndex = 0;
+			Recipe recipe = Main.getInstance().getRecipeUtil().getRecipe(configname);
 
-				if (ingredient.isEmpty()
-						|| !XMaterial.matchXMaterial(ingredient.getMaterial().toString()).isPresent()) {
-					slot++;
-					continue;
+			for (Ingredient ingredient : recipe.getIngredients()) {
+				if (recipe.getType() != RecipeType.SHAPED && (ingredient == null || ingredient.isEmpty())) {
+					continue; // skip empties, don't advance ingIndex
 				}
 
-				boolean foundIdentifier = itemIngredients(ingredient, configname, slot, p) != null ? true : false;
-				ItemStack mat = foundIdentifier ? itemIngredients(ingredient, configname, slot, p)
+				if (ingIndex >= layout.ingredientSlots.length)
+					break;
+
+				boolean foundIdentifier = itemIngredients(ingredient, configname, ingIndex + 1, p) != null;
+				ItemStack mat = foundIdentifier ? itemIngredients(ingredient, configname, ingIndex + 1, p)
 						: XMaterial.matchXMaterial(ingredient.getMaterial().toString()).get().parseItem();
 
-				mat.setAmount(getAmounts(ingredient, slot));
+				mat.setAmount(getAmounts(ingredient, ingIndex + 1));
 
 				if (!foundIdentifier) {
 					ItemMeta matm = mat.getItemMeta();
-
-					if (getNames(ingredient, slot) != null)
-						matm.setDisplayName(getNames(ingredient, slot));
-
+					if (getNames(ingredient, ingIndex + 1) != null) {
+						matm.setDisplayName(getNames(ingredient, ingIndex + 1));
+					}
 					mat.setItemMeta(matm);
 				}
 
-				if (slot == 1)
-					i.setItem(10, mat);
-				if (slot == 2)
-					i.setItem(11, mat);
-				if (slot == 3)
-					i.setItem(12, mat);
-				if (slot == 4)
-					i.setItem(19, mat);
-				if (slot == 5)
-					i.setItem(20, mat);
-				if (slot == 6)
-					i.setItem(21, mat);
-				if (slot == 7)
-					i.setItem(28, mat);
-				if (slot == 8)
-					i.setItem(29, mat);
-				if (slot == 9)
-					i.setItem(30, mat);
-
-				slot++;
-
+				i.setItem(layout.ingredientSlots[ingIndex], mat);
+				ingIndex++;
 			}
 
 			ItemStack result = new ItemStack(Main.getInstance().recipeUtil.getRecipe(configname).getResult());
@@ -143,32 +189,41 @@ public class EditGUI implements Listener {
 				result.setItemMeta(resultM);
 			}
 
-			i.setItem(23, result);
-
+			i.setItem(layout.resultSlot, result);
 		}
-		// viewing so do not add creation items
-		if (viewing) {
-			int[] emptySlots = { 7, 8, 16, 17, 25, 26, 35, 40, 44, 53 };
 
+		// VIEWING mode: turn all control slots into panes, then add Back buttons
+		if (viewing) {
+			for (int s : controlSlots) {
+				if (s == 48 || s == 49 || s == 50)
+					continue; // back buttons set below
+				i.setItem(s, stained);
+			}
+
+			// Three "Back" buttons centered bottom
 			ItemStack back = XMaterial.RED_STAINED_GLASS_PANE.parseItem();
 			ItemMeta backm = back.getItemMeta();
 			backm.setDisplayName(ChatColor.DARK_RED + "Back");
 			back.setItemMeta(backm);
-
 			i.setItem(48, back);
 			i.setItem(49, back);
 			i.setItem(50, back);
 
-			for (int slots : emptySlots)
-				i.setItem(slots, stained);
-
 			return;
 		}
+
+		/* ====== below here are the editor widgets (only when not viewing) ====== */
 
 		ItemStack identifier = XMaterial.PAPER.parseItem();
 		ItemMeta identifierm = identifier.getItemMeta();
 		identifierm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fIdentifier:&7 "));
 		loreList.add(ChatColor.GRAY + getConfig(configname).getString(configname + ".Identifier"));
+
+		if (creating && !invname.isEmpty() && !invname.equals("")) {
+			loreList.clear();
+			loreList.add(ChatColor.GRAY + invname);
+		}
+
 		identifierm.setLore(loreList);
 		identifier.setItemMeta(identifierm);
 		loreList.clear();
@@ -179,11 +234,9 @@ public class EditGUI implements Listener {
 
 		if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
 			lorem.setLore(item.getItemMeta().getLore());
-
 			if (hasPlaceholder())
 				lorem.setLore(PlaceholderAPI.setPlaceholders(p, item.getItemMeta().getLore()));
 		}
-
 		lore.setItemMeta(lorem);
 
 		ItemStack effects = XMaterial.GHAST_TEAR.parseItem();
@@ -199,13 +252,12 @@ public class EditGUI implements Listener {
 		loreList.clear();
 
 		ItemStack converter = XMaterial.FURNACE.parseItem();
-		ItemMeta converterm = effects.getItemMeta();
+		ItemMeta converterm = effects.getItemMeta(); // keep original behavior
 		converterm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fConverter"));
 		if (getConfig(configname).isSet(configname + ".Converter")) {
 			loreList.add(ChatColor.GRAY + getConfig(configname).getString(configname + ".Converter"));
 			converterm.setLore(loreList);
 		}
-
 		converter.setItemMeta(converterm);
 		loreList.clear();
 
@@ -216,6 +268,10 @@ public class EditGUI implements Listener {
 		if (getConfig(configname).isSet(configname + ".Permission")
 				&& !getConfig(configname).getString(configname + ".Permission").equals("none"))
 			loreList.add(ChatColor.GRAY + getConfig(configname).getString(configname + ".Permission"));
+
+		if (perm != null)
+			loreList.add(ChatColor.GRAY + perm);
+
 		permissionm.setLore(loreList);
 		permission.setItemMeta(permissionm);
 		loreList.clear();
@@ -224,28 +280,26 @@ public class EditGUI implements Listener {
 		ItemMeta hideenchantsm = hideenchants.getItemMeta();
 		Boolean hc = getConfig(configname).getBoolean(configname + ".Placeable");
 		String ht = "&cfalse";
-
 		if (hc == true)
 			ht = "&atrue";
-
 		hideenchantsm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fPlaceable: &f" + ht));
 		hideenchants.setItemMeta(hideenchantsm);
 
-		ItemStack shapeless = XMaterial.CRAFTING_TABLE.parseItem();
-		ItemMeta shapelessm = shapeless.getItemMeta();
-		Boolean sc = getConfig(configname).getBoolean(configname + ".Shapeless");
-		String toggle = "&cfalse";
-
-		if (sc == true)
-			toggle = "&atrue";
-
-		shapelessm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fShapeless: &f" + toggle));
-		shapeless.setItemMeta(shapelessm);
+		// Shapeless toggle only for crafting types
+		boolean showShapeless = (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS);
+		ItemStack shapeless = null;
+		if (showShapeless) {
+			shapeless = XMaterial.CRAFTING_TABLE.parseItem();
+			ItemMeta shapelessm = shapeless.getItemMeta();
+			Boolean sc = getConfig(configname).getBoolean(configname + ".Shapeless");
+			String toggle = sc ? "&atrue" : "&cfalse";
+			shapelessm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fShapeless: &f" + toggle));
+			shapeless.setItemMeta(shapelessm);
+		}
 
 		ItemStack name = XMaterial.WRITABLE_BOOK.parseItem();
 		ItemMeta namem = name.getItemMeta();
 		namem.setDisplayName(ChatColor.WHITE + "Recipe Name: ");
-
 		if (getConfig(configname).isSet(configname + ".Name")
 				&& !getConfig(configname).getString(configname + ".Name").equals("none"))
 			loreList.add(
@@ -268,7 +322,13 @@ public class EditGUI implements Listener {
 		i.setItem(26, name);
 		i.setItem(35, amount);
 		i.setItem(44, lore);
-		i.setItem(53, shapeless);
+
+		// Slot 53 – shapeless only shown for crafting; otherwise fill with pane
+		if (showShapeless) {
+			i.setItem(53, shapeless);
+		} else {
+			i.setItem(53, stained);
+		}
 
 		ItemStack enabled = XMaterial.SLIME_BALL.parseItem();
 		ItemMeta enabledm = enabled.getItemMeta();
@@ -304,7 +364,6 @@ public class EditGUI implements Listener {
 		deletem.setDisplayName(ChatColor.DARK_RED + "Delete Recipe");
 		delete.setItemMeta(deletem);
 		i.setItem(45, delete);
-
 	}
 
 	public int getAmounts(Ingredient ingredient, int slot) {
@@ -316,15 +375,12 @@ public class EditGUI implements Listener {
 	String chatColor(String st) {
 		if (st == null)
 			return null;
-
 		if (st.equalsIgnoreCase("false"))
 			return st;
-
 		return ChatColor.translateAlternateColorCodes('&', st);
 	}
 
 	ItemStack itemIngredients(Ingredient ingredient, String recipename, int slot, OfflinePlayer p) {
-
 		if (ingredient.hasIdentifier()) {
 			Boolean isCustomItem = recipeUtil.getRecipeFromKey(ingredient.getIdentifier()) == null ? true : false;
 			ItemStack item = isCustomItem ? recipeUtil.getResultFromKey(ingredient.getIdentifier())
@@ -342,7 +398,6 @@ public class EditGUI implements Listener {
 				itemM.setLore(PlaceholderAPI.setPlaceholders(p, itemM.getLore()));
 				finalItem.setItemMeta(itemM);
 			}
-
 			return finalItem;
 		}
 		return null;
@@ -367,60 +422,58 @@ public class EditGUI implements Listener {
 		if (e.getInventory() != null && inventoryTitle != null && inventoryTitle.contains("VIEWING: ")) {
 			e.setCancelled(true);
 
-			if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR || e.getRawSlot() == 23)
+			if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR || e.getRawSlot() == 24)
 				return;
 
 			if (recipeUtil.getRecipeFromResult(e.getCurrentItem()) != null) {
-
 				String name = recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName();
-
 				Inventory edit = Bukkit.getServer().createInventory(null, 54,
 						ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + name));
-
-				setItems(false, true, edit, name, e.getCurrentItem(), p);
-
+				setItems(false, true, edit, name, null, e.getCurrentItem(), p);
 				Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
 				p.openInventory(edit);
 			}
 
 			if (e.getRawSlot() == 48 || e.getRawSlot() == 49 || e.getRawSlot() == 50) {
-
 				if (Main.getInstance().saveInventory.containsKey(p.getUniqueId())) {
 					p.openInventory(Main.getInstance().saveInventory.get(p.getUniqueId()));
 					Main.getInstance().saveInventory.remove(p.getUniqueId());
 				} else {
-					Main.getInstance().recipes.show(p);
+					Main.getInstance().typeGUI.open(p);
 				}
 			}
-
 			return;
 		}
 
 		if (e.getInventory() != null && inventoryTitle != null && inventoryTitle.contains("EDITING: ")) {
 
 			String[] split = inventoryTitle.split("EDITING: ");
-			String recipe = split[1];
+			String recipeName = split[1];
 
-			if (e.getRawSlot() != 10 && e.getRawSlot() != 11 && e.getRawSlot() != 12 && e.getRawSlot() != 19
-					&& e.getRawSlot() != 20 && e.getRawSlot() != 21 && e.getRawSlot() != 28 && e.getRawSlot() != 29
-					&& e.getRawSlot() != 30 && e.getRawSlot() != 23) {
+			// Type-aware click allowance
+			Recipe r = Main.getInstance().getRecipeUtil().getRecipe(recipeName);
+			RecipeType type = (r != null && r.getType() != null) ? r.getType() : RecipeType.SHAPED;
+			boolean showShapeless = (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS);
+			
+			// Control buttons (always handled below)
+			HashSet<Integer> controls = new HashSet<>();
+			int[] controlSlots = { 11, 12, 13, 20, 21, 22, 29, 30, 31, 24 };
+			for (int s : controlSlots)
+				controls.add(s);
 
+			if (!controls.contains(e.getRawSlot())) {
 				e.setCancelled(true);
 			}
 
 			if (e.getRawSlot() == 16)
-				return;
-			// effects button
-
+				return; // effects button
 			if (e.getRawSlot() == 17)
-				return;
-			// enchants button
+				return; // enchants button
 
-			if (recipe == null || recipe.isEmpty() || recipe.equals(" ") || recipe.equals("null")) {
+			if (recipeName == null || recipeName.isEmpty() || recipeName.equals(" ") || recipeName.equals("null")) {
 				String newTitle = e.getInventory().getItem(7).getItemMeta().getLore().get(0);
-				if (!recipe.equals(newTitle))
+				if (!recipeName.equals(newTitle))
 					e.getView().setTitle(ChatColor.GREEN + "EDITING: " + newTitle);
-
 				inventoryinstance.put(p.getUniqueId(), p.getOpenInventory().getTopInventory());
 			}
 			if (e.getRawSlot() == 35) {
@@ -429,49 +482,38 @@ public class EditGUI implements Listener {
 			}
 
 			ItemStack toggle = e.getCurrentItem();
-
 			if (toggle == null || toggle.getItemMeta() == null)
 				return;
-
 			ItemMeta togglem = toggle.getItemMeta();
 
 			if (e.getRawSlot() == 8) {
 				// placeable?
-
 				if (togglem.getDisplayName().contains("true")) {
 					togglem.setDisplayName("Placeable: " + ChatColor.RED + "false");
 					toggle.setItemMeta(togglem);
-
 					p.getOpenInventory().getTopInventory().setItem(8, toggle);
 					return;
 				}
-
 				if (togglem.getDisplayName().contains("false")) {
 					togglem.setDisplayName("Placeable: " + ChatColor.GREEN + "true");
 					toggle.setItemMeta(togglem);
-
 					p.getOpenInventory().getTopInventory().setItem(8, toggle);
 					return;
 				}
 			}
 
 			if (e.getRawSlot() == 40) {
-
 				// recipe toggle enable/disable
-
 				if (togglem.getDisplayName().contains("Enabled")) {
 					togglem.setDisplayName(ChatColor.RED + "Disabled");
 					toggle.setItemMeta(togglem);
-
 					p.getOpenInventory().getTopInventory().setItem(40, toggle);
 					e.getCurrentItem().setType(XMaterial.SNOWBALL.parseMaterial());
 					return;
 				}
-
 				if (togglem.getDisplayName().contains("Disabled")) {
 					togglem.setDisplayName(ChatColor.GREEN + "Enabled");
 					toggle.setItemMeta(togglem);
-
 					p.getOpenInventory().getTopInventory().setItem(40, toggle);
 					e.getCurrentItem().setType(XMaterial.SLIME_BALL.parseMaterial());
 					return;
@@ -481,83 +523,67 @@ public class EditGUI implements Listener {
 			if (e.getRawSlot() == 44) {
 				// item lore
 				ItemStack item = e.getInventory().getItem(44);
-
 				if (item.hasItemMeta() && item.getItemMeta().hasLore()) {
 					lore = item.getItemMeta().getLore();
 				}
-
 				inventoryinstance.put(p.getUniqueId(), p.getOpenInventory().getTopInventory());
 				editmeta.put(p.getUniqueId(), "Lore");
-
 				p.closeInventory();
 				sendLoremsg(p);
 			}
 
 			if (e.getRawSlot() == 48) {
 				// cancel button
-				p.sendMessage(
-						ChatColor.RED + "You have successfully cancelled any changes to the recipe '" + recipe + "'");
+				p.sendMessage(ChatColor.RED + "You have successfully cancelled any changes to the recipe '" + recipeName
+						+ "'");
 				p.closeInventory();
 			}
 
 			if (e.getRawSlot() == 49) {
 				// main menu button
-				Main.getInstance().recipes.show(p);
+				Main.getInstance().typeGUI.open(p);
 			}
 
 			if (e.getRawSlot() == 50) {
 				// update button
-				saveChanges.saveRecipe(e.getClickedInventory(), p, recipe);
+				saveChanges.saveRecipe(e.getClickedInventory(), p, recipeName);
 			}
 
-			if (e.getRawSlot() == 53) {
+			if (e.getRawSlot() == 53 && showShapeless) {
 				// shapeless?
-
 				if (togglem.getDisplayName().contains("true")) {
 					togglem.setDisplayName("Shapeless: " + ChatColor.RED + "false");
 					toggle.setItemMeta(togglem);
-
 					p.getOpenInventory().getTopInventory().setItem(53, toggle);
 					return;
 				}
-
 				if (togglem.getDisplayName().contains("false")) {
 					togglem.setDisplayName("Shapeless: " + ChatColor.GREEN + "true");
 					toggle.setItemMeta(togglem);
-
 					p.getOpenInventory().getTopInventory().setItem(53, toggle);
 					return;
 				}
 			}
 
-			if (e.getRawSlot() == 7) {
-				// change identifier
+			if (e.getRawSlot() == 7)
 				handleStringMessage(p, "Identifier", e);
-			}
-
-			if (e.getRawSlot() == 25) {
-				// change permission
+			if (e.getRawSlot() == 25)
 				handleStringMessage(p, "Permission", e);
-			}
-
-			if (e.getRawSlot() == 26) {
-				// change recipe name
+			if (e.getRawSlot() == 26)
 				handleStringMessage(p, "Name", e);
-			}
 
 			if (e.getRawSlot() == 45) {
-
-				if (recipe == null || recipe.isEmpty() || recipe.equals(" ") || recipe.equals("null"))
+				if (recipeName == null || recipeName.isEmpty() || recipeName.equals(" ") || recipeName.equals("null"))
 					return;
 
 				if (ChatColor.stripColor(e.getClickedInventory().getItem(45).getItemMeta().getDisplayName())
 						.equals("Confirm Recipe Deletion")) {
 
-					Main.getInstance().getConfig().set("Items." + recipe, null);
+					Main.getInstance().getConfig().set("Items." + recipeName, null);
 					Main.getInstance().saveConfig();
 					Main.getInstance().reload();
 
-					Main.getInstance().recipes.show(p);
+					Main.getInstance().typeGUI.open(p);
 					return;
 				}
 
@@ -604,7 +630,7 @@ public class EditGUI implements Listener {
 
 		Inventory inv = inventoryinstance.get(p.getUniqueId());
 		ItemStack item = inv.getItem(44);
-		ItemStack result = inv.getItem(23);
+		ItemStack result = inv.getItem(24); // result slot updated
 
 		if (!editmeta.containsKey(p.getUniqueId()))
 			return;
@@ -779,7 +805,6 @@ public class EditGUI implements Listener {
 		p.sendMessage("Type " + ChatColor.RED + "CANCEL " + ChatColor.WHITE + "to go back.");
 		p.sendMessage("Type " + ChatColor.GREEN + "DONE " + ChatColor.WHITE + "when finished.");
 		p.sendMessage(ChatColor.DARK_GRAY + "---------------------------------------------");
-
 	}
 
 	public boolean isInt(String text) {
@@ -813,42 +838,35 @@ public class EditGUI implements Listener {
 		if (getnewid.containsKey(p.getUniqueId()) && e.getMessage().equalsIgnoreCase("done")) {
 
 			String newidf = getnewid.get(p.getUniqueId());
-			List<String> loreList = new ArrayList<String>();
+			List<String> loreList = new ArrayList<>();
 
 			if (!string.equals("Amount")) {
 				loreList.add(ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', newidf));
 				idm.setLore(loreList);
 				id.setItemMeta(idm);
-
 				inv.setItem(slot, id);
 			}
 
 			if (string.equals("Name")) {
-				ItemStack item = inv.getItem(23);
+				ItemStack item = inv.getItem(24); // result slot updated
 				ItemMeta itemm = item.getItemMeta();
-
 				itemm.setDisplayName(ChatColor.translateAlternateColorCodes('&', newidf));
 				item.setItemMeta(itemm);
-				inv.setItem(23, item);
-				// slot 23
+				inv.setItem(24, item);
 			}
 
 			if (string.equals("Amount")) {
-
 				if (!isInt(newidf)) {
 					p.sendMessage(" ");
 					p.sendMessage(ChatColor.RED + "Value must be in number format! Please try again.");
 					return;
 				}
-
 				ItemStack item = inv.getItem(35);
 				ItemMeta itemm = item.getItemMeta();
-
 				itemm.setDisplayName(ChatColor.WHITE + "Amount: " + ChatColor.GRAY + newidf);
-				inv.getItem(23).setAmount(Integer.valueOf(newidf));
+				inv.getItem(24).setAmount(Integer.valueOf(newidf)); // result slot updated
 				item.setItemMeta(itemm);
 				inv.setItem(35, item);
-				// slot 35
 			}
 
 			Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("CustomRecipes"), () -> {
@@ -871,15 +889,15 @@ public class EditGUI implements Listener {
 			});
 
 			inventoryinstance.remove(p.getUniqueId());
-
 		}
 	}
 
+	// Legacy helper left as-is for compatibility with other code paths
 	public boolean hasSomething(Inventory i) {
-
-		if ((i.getItem(10) != null || i.getItem(11) != null || i.getItem(12) != null || i.getItem(19) != null
-				|| i.getItem(20) != null || i.getItem(21) != null || i.getItem(28) != null || i.getItem(29) != null
-				|| i.getItem(30) != null) && i.getItem(23) != null) {
+		// updated crafting grid + result slot
+		if ((i.getItem(11) != null || i.getItem(12) != null || i.getItem(13) != null || i.getItem(20) != null
+				|| i.getItem(21) != null || i.getItem(22) != null || i.getItem(29) != null || i.getItem(30) != null
+				|| i.getItem(31) != null) && i.getItem(24) != null) {
 			return true;
 		}
 		return false;
@@ -889,5 +907,4 @@ public class EditGUI implements Listener {
 		Logger.getLogger("Minecraft").log(Level.WARNING,
 				"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
 	}
-
 }

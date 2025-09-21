@@ -221,6 +221,65 @@ public class RecipeUtil {
 	}
 
 	/**
+	 * Getter for a key from the result ItemStack
+	 * 
+	 * @param item the ItemStack
+	 * @return the key that is found, can be null
+	 */
+	public String getKeyFromResult(ItemStack item) {
+		if (item == null)
+			return null;
+
+		// First, try to get a key from normal recipes
+		Recipe recipe = getRecipeFromResult(item);
+		if (recipe != null)
+			return recipe.getKey(); // assuming your Recipe class has getKey()
+
+		if (Main.getInstance().hasItemsAdderPlugin()) {
+			CustomStack ia = CustomStack.byItemStack(item);
+			if (ia != null) {
+				return "itemsadder:" + ia.getId();
+			}
+		}
+
+		if (Main.getInstance().hasMythicMobsPlugin()) {
+			String mythicId = MythicBukkit.inst().getItemManager().getMythicTypeFromItem(item);
+			if (mythicId != null) {
+				return "mythicmobs:" + mythicId;
+			}
+		}
+
+		if (Main.getInstance().hasExecutableItemsPlugin()) {
+			Optional<ExecutableItemInterface> ei = ExecutableItemsAPI.getExecutableItemsManager()
+					.getExecutableItem(item);
+			if (ei.isPresent())
+				return "executableitems:" + ei.get().getId();
+		}
+
+		if (Main.getInstance().hasOraxenPlugin()) {
+			if (OraxenItems.exists(item)) {
+				return "oraxen:" + OraxenItems.getIdByItem(item);
+			}
+		}
+
+		if (Main.getInstance().hasNexoPlugin()) {
+			if (NexoItems.idFromItem(item) != null) {
+				return "nexo:" + NexoItems.idFromItem(item);
+			}
+		}
+
+		if (Main.getInstance().hasMMOItemsPlugin()) {
+			String id = MMOItems.getID(item);
+			String type = MMOItems.getTypeName(item);
+			if (id != null && type != null) {
+				return "mmoitems:" + id + ":" + type;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Getter for a recipe from Namespacedkey
 	 * 
 	 * @param key the NamespacedKey
@@ -233,7 +292,7 @@ public class RecipeUtil {
 			if (key == null)
 				return null;
 
-			if (key.equals(recipeTag))
+			if (key.equalsIgnoreCase(recipeTag))
 				return recipe;
 		}
 		return null;
@@ -252,10 +311,32 @@ public class RecipeUtil {
 	/**
 	 * Getter for all recipes registered
 	 * 
-	 * @return a hashmap of recipes, including CR recipes
+	 * @return a hashmap of recipes, including CR recipes, can be null
 	 */
 	public HashMap<String, Recipe> getAllRecipes() {
 		return recipes.isEmpty() ? null : recipes;
+	}
+
+	/**
+	 * Getter for all recipes matching a type
+	 * 
+	 * @param type the recipe type
+	 * @return the hashmap of recipes found, can be null
+	 */
+	public HashMap<String, Recipe> getRecipesFromType(Recipe.RecipeType type) {
+		if (recipes.isEmpty())
+			return null;
+		
+		HashMap<String, Recipe> foundRecipes = new HashMap<String, Recipe>();
+		for (Recipe recipe : recipes.values()) {
+			if (recipe.getType() == type)
+				foundRecipes.put(recipe.getName(), recipe);
+		}
+		
+		if (foundRecipes.isEmpty())
+			return null;
+		
+		return foundRecipes;
 	}
 
 	/**
@@ -369,7 +450,7 @@ public class RecipeUtil {
 		private String group = "";
 
 		public enum RecipeType {
-			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE;
+			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE, BREWING_STAND;
 		}
 
 		private RecipeType recipeType = RecipeType.SHAPED;
@@ -891,7 +972,7 @@ public class RecipeUtil {
 			return permission;
 		}
 
-		public boolean hasPerm(){
+		public boolean hasPerm() {
 			return permission != null;
 		}
 

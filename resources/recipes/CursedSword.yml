@@ -6,8 +6,6 @@ CursedSword:
   Item-Damage: 'none'
   Amount: 1
   Placeable: true
-  Ignore-Data: false
-  Ignore-Model-Data: false
   Exact-Choice: false
   Custom-Tagged: true
   Identifier: 'CURSED_SWORD'
@@ -34,13 +32,24 @@ CursedSword:
     D:
       Material: DIAMOND
       Identifier: none
-      Amount: 1
-      Name: 'Diamond Shrine'
+	  Custom-Model-Data: none
+	  Name: 'Diamond Shrine'
+	  Lore: []
+	  Amount: 1
     B:
       Material: OAK_PLANKS
       Identifier: none
+	  Custom-Model-Data: none
+	  Name: 'Wooden Board'
+	  Lore: []
       Amount: 1
-      Name: 'Wooden Board'
+  ItemsLeftover:
+	- BOWL
+  Flags:
+    Ignore-Data: false
+    Ignore-Custom-Model-Data: false
+    Ignore-Lore: false
+    Ignore-Name: false
   Custom-Tags: []
   Item-Flags: []
   Attribute: []

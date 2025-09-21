@@ -42,9 +42,9 @@ import me.mehboss.crafting.AmountManager;
 import me.mehboss.crafting.CooldownManager;
 import me.mehboss.crafting.CraftManager;
 import me.mehboss.crafting.CrafterManager;
-import me.mehboss.gui.EditGUI;
-import me.mehboss.gui.InventoryManager;
-import me.mehboss.gui.RecipesGUI;
+import me.mehboss.gui.RecipeGUI;
+import me.mehboss.gui.RecipeTypeGUI;
+import me.mehboss.gui.BookGUI;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
 import me.mehboss.utils.MetaChecks;
@@ -59,13 +59,13 @@ public class Main extends JavaPlugin implements Listener {
 	public AmountManager amountManager;
 	public CraftManager craftManager;
 	public RecipeManager recipeManager;
-	public RecipesGUI recipes;
+	public BookGUI recipes;
+	public RecipeTypeGUI typeGUI;
 	public CooldownManager cooldownManager;
 	public RecipeUtil recipeUtil;
 	public ExactChoice exactChoice;
-	public InventoryManager guiUtil;
 
-	EditGUI editItem;
+	RecipeGUI editItem;
 
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
 	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
@@ -266,7 +266,6 @@ public class Main extends JavaPlugin implements Listener {
 		cooldownManager = new CooldownManager();
 		recipeUtil = new RecipeUtil();
 		recipeManager = new RecipeManager();
-		guiUtil = new InventoryManager();
 		metaChecks = new MetaChecks();
 		craftManager = new CraftManager();
 		amountManager = new AmountManager(craftManager);
@@ -344,11 +343,13 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}, 40L);
 
-		editItem = new EditGUI(this, null);
-		recipes = new RecipesGUI(this);
+		editItem = new RecipeGUI(this, null);
+		recipes = new BookGUI(this);
+		typeGUI = new RecipeTypeGUI();
 
 		Bukkit.getPluginManager().registerEvents(editItem, this);
 		Bukkit.getPluginManager().registerEvents(recipes, this);
+		Bukkit.getPluginManager().registerEvents(typeGUI, this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
 		Bukkit.getPluginManager().registerEvents(new CrafterManager(), this);
@@ -364,11 +365,73 @@ public class Main extends JavaPlugin implements Listener {
 		reloadConfig();
 		saveConfig();
 
-		recipeBook.clear();
-		saveInventory.clear();
-		disabledrecipe.clear();
+		// Reset debug flags from config
+		debug = getConfig().getBoolean("Debug");
+		crafterdebug = getConfig().getBoolean("Crafter-Debug");
+
+		// Clear internal state
+		if (recipeBook != null)
+			recipeBook.clear();
+		if (saveInventory != null)
+			saveInventory.clear();
+		if (disabledrecipe != null)
+			disabledrecipe.clear();
+
+		// Nullify GUI references
 		recipes = null;
+		typeGUI = null;
 		editItem = null;
+
+		// Reset managers
+		recipeUtil = null;
+		recipeManager = null;
+	}
+
+	public void reload() {
+
+		// Remove old recipes
+		removeCustomRecipes();
+		removeRecipes();
+		clear();
+
+		disableRecipes();
+
+		// Reload configs
+		reloadConfig();
+		customConfig = YamlConfiguration.loadConfiguration(customYml);
+		saveCustomYml(customConfig, customYml);
+		saveAllCustomYml();
+
+		// Reset managers
+		recipeUtil = new RecipeUtil();
+		recipeManager = new RecipeManager();
+		recipes = new BookGUI(this);
+		typeGUI = new RecipeTypeGUI();
+		editItem = new RecipeGUI(this, null);
+
+		// Re-add recipes immediately
+		recipeManager.addRecipes(null);
+		getLogger().log(Level.INFO, "Reloaded " + recipeUtil.getRecipeNames().size() + " recipes.");
+
+		// Re-discover recipes for all online players
+		for (Player p : Bukkit.getOnlinePlayers()) {
+			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
+				NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
+				if (key != null && Bukkit.getRecipe(key) != null) {
+					if (recipe.isDiscoverable()) {
+						if (recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) {
+							if (p.hasDiscoveredRecipe(key)) {
+								p.undiscoverRecipe(key);
+							}
+						} else {
+							if (!p.hasDiscoveredRecipe(key)) {
+								p.discoverRecipe(key);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	@Override
@@ -401,26 +464,6 @@ public class Main extends JavaPlugin implements Listener {
 		}
 
 		clear(); // Clear any additional data or cleanup
-	}
-
-	public void reload() {
-		clear();
-
-		customConfig = YamlConfiguration.loadConfiguration(customYml);
-		saveCustomYml(customConfig, customYml);
-		saveAllCustomYml();
-
-		debug = getConfig().getBoolean("Debug");
-		crafterdebug = getConfig().getBoolean("Crafter-Debug");
-
-		removeCustomRecipes();
-		removeRecipes();
-		recipeUtil = new RecipeUtil();
-		recipeManager.addRecipes(null);
-
-		recipes = new RecipesGUI(this);
-		editItem = new EditGUI(Main.getInstance(), null);
-		disableRecipes();
 	}
 
 	void addCooldowns() {

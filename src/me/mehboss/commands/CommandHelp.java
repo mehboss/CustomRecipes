@@ -5,13 +5,13 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 public class CommandHelp {
-	
+
 	public static boolean Run(CRCommand command) {
-		
+
 		CommandSender p = command.sender;
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
-		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-				"&aCUSTOM-RECIPES &fv" + Bukkit.getPluginManager().getPlugin("CustomRecipes").getDescription().getVersion()));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aCUSTOM-RECIPES &fv"
+				+ Bukkit.getPluginManager().getPlugin("CustomRecipes").getDescription().getVersion()));
 		p.sendMessage(" ");
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&c/crecipe &8-&f Displays this help page &e(crecipe.help)"));
@@ -28,9 +28,12 @@ public class CommandHelp {
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&c/crecipe debug &8-&f Enables debug mode for crafting &e(crecipe.debug)"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-				"&c/crecipe crafterdebug &8-&f Enables debug mode for the crafter &e(crecipe.debug)"));
-		p.sendMessage(
-				ChatColor.translateAlternateColorCodes('&', "&c/crecipe edititem &8-&f Convenient recipe & item handler"));
+				"&c/crecipe crafterdebug &8-&f Enables debug mode for the crafter &e(crecipe.crafterdebug)"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
+				"&c/crecipe edititem &8-&f Convenient recipe & item handler"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c/crecipe create <id> [optional permission]"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c/crecipe remove <id>"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c/crecipe show <id>"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
 		return true;
 	}

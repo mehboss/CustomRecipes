@@ -18,11 +18,11 @@ public class CommandGUI {
 					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Invalid-Perms")));
 			return false;
 		}
-
+		
 		if (Main.getInstance().recipeBook.contains(p.getUniqueId()))
 			Main.getInstance().recipeBook.remove(p.getUniqueId());
 
-		Main.getInstance().recipes.show(p);
+		Main.getInstance().typeGUI.open(p);
 		String OpenMessage = ChatColor.translateAlternateColorCodes('&', getConfig().getString("gui.Open-Message"));
 		p.sendMessage(OpenMessage);
 		p.playSound(p.getLocation(),

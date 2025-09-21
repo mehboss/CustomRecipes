@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -23,21 +24,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class RecipeSaver {
 
 	// GUI slot constants
 	private static final int SLOT_IDENTIFIER = 7;
 	private static final int SLOT_PLACEABLE_TOGGLE = 8;
-	private static final int SLOT_RESULT = 23;
+	private static final int SLOT_RESULT = 24;
 	private static final int SLOT_PERMISSION = 25;
 	private static final int SLOT_NAME = 23;
 	private static final int SLOT_ENABLED_TOGGLE = 40;
 	private static final int SLOT_SHAPELESS_TOGGLE = 53;
 
 	// Crafting grid slots (keep the same as before)
-	private static final int[] CRAFT_SLOTS = { 10, 11, 12, 19, 20, 21, 28, 29, 30 };
+	private static final int[] CRAFT_SLOTS = { 11, 12, 13, 20, 21, 22, 29, 30, 31 };
 
 	// Save the recipe map to the configuration file
 	public void saveRecipe(Inventory inv, Player p, String recipeName) {
@@ -87,8 +87,6 @@ public class RecipeSaver {
 
 		// ====== Result item ======
 		ItemStack resultItem = safeGet(inventory, SLOT_RESULT);
-		Material resultMat = (resultItem != null && resultItem.getType() != Material.AIR) ? resultItem.getType()
-				: Material.AIR;
 		int resultAmount = (resultItem != null && resultItem.getAmount() > 0) ? resultItem.getAmount() : 1;
 
 		// ====== Read GUI toggles and text ======
@@ -97,40 +95,31 @@ public class RecipeSaver {
 		boolean placeable = readBooleanToggle(inventory, SLOT_PLACEABLE_TOGGLE, "Placeable");
 		String identifier = readIdentifier(inventory, resultItem, recipeName);
 		String permission = readPermission(inventory, identifier);
-		String displayNameColored = readNameColored(inventory); // KEEP colors
+		String displayNameColored = readNameColored(inventory);
 
-		// ====== Name & Lore (keep colors only for these) ======
 		List<String> lore = getItemLoreList(resultItem);
 		if (lore == null)
 			lore = new ArrayList<>();
 
-		// ====== Enchantments on result -> ["NAME:LEVEL", ...] ======
 		List<String> enchantList = readEnchantList(resultItem);
 
-		// ====== Ingredient lettering (KEEP your previous approach) ======
-		// 1) Map ItemStack -> Letter with dedupe via isSimilar (same as before)
 		Map<ItemStack, String> letters = setItemLetters(inventory);
-		// 2) Build ItemCrafting rows from those letters (same as before)
+
 		List<String> itemCrafting = generateItemCrafting(letters, inventory);
-		// 3) Build Ingredients map (letter -> primitives) — NOT ItemStacks
+
 		LinkedHashMap<String, Object> ingredients = buildIngredientsFromLetters(inventory, letters);
 
-		// =======================
-		// Write fields IN ORDER
-		// =======================
 		cfg.put("Enabled", enabled);
 		cfg.put("Shapeless", shapeless);
 		cfg.put("Cooldown", 60);
 
-		cfg.put("Item", resultMat.name());
+		cfg.put("Item", getItemValue(resultItem));
 		cfg.put("Item-Damage", "none");
 		cfg.put("Amount", resultAmount);
 
 		cfg.put("Placeable", placeable);
 		cfg.put("Ignore-Data", false);
 		cfg.put("Ignore-Model-Data", false);
-
-		// Defaults matching your schema
 		cfg.put("Multi-Resulted", false);
 		cfg.put("Exact-Choice", false);
 		cfg.put("Custom-Tagged", false);
@@ -143,15 +132,14 @@ public class RecipeSaver {
 		cfg.put("Auto-Discover-Recipe", true);
 		cfg.put("Book-Category", "MISC");
 
-		// KEEP colors
 		if (displayNameColored != null && !displayNameColored.isEmpty()) {
 			cfg.put("Name", displayNameColored);
 		} else {
 			cfg.put("Name", "none");
 		}
-		cfg.put("Lore", lore); // KEEP colored lore from result (or [])
+		cfg.put("Lore", lore);
 
-		cfg.put("Effects", new ArrayList<>()); // hook your effects GUI if applicable
+		cfg.put("Effects", new ArrayList<>());
 		cfg.put("Hide-Enchants", true);
 		cfg.put("Enchantments", enchantList);
 
@@ -167,14 +155,22 @@ public class RecipeSaver {
 		return cfg;
 	}
 
-	// ====== Build Ingredients using your existing lettering map (A..Z, dedupe by
-	// isSimilar) ======
+	private String getItemValue(ItemStack item) {
+	    if (item == null || item.getType() == Material.AIR)
+	        return "AIR"; // fallback for empty slots
+
+	    // Try custom key from RecipeUtil (for plugin-based custom items)
+	    String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
+	    if (key != null && !key.isEmpty())
+	        return key;
+
+	    // Fallback to Material name
+	    return item.getType().name();
+	}
+	
 	private LinkedHashMap<String, Object> buildIngredientsFromLetters(Inventory inv, Map<ItemStack, String> letters) {
 		LinkedHashMap<String, Object> out = new LinkedHashMap<>();
-		// We want to maintain the same order as letters were assigned. Since the
-		// original
-		// map came from iterating slots in order, we’ll re-scan those slots and add new
-		// letters only once.
+
 		Set<String> seen = new HashSet<>();
 
 		for (int i = 0; i < CRAFT_SLOTS.length; i++) {
@@ -189,16 +185,15 @@ public class RecipeSaver {
 
 			LinkedHashMap<String, Object> ing = new LinkedHashMap<>();
 			ing.put("Material", stack.getType().name());
-			ing.put("Identifier", findIngredientIdentifier(stack)); // "none" if not a custom result
+			ing.put("Identifier", findIngredientIdentifier(stack));
 			ing.put("Amount", Math.max(1, stack.getAmount()));
-			ing.put("Name", getIngredientNamePlain(stack)); // plain (no colors), like your example
+			ing.put("Name", getIngredientNamePlain(stack));
 
 			out.put(letter, ing);
 		}
 		return out;
 	}
 
-	// ====== Your original lettering logic (kept) ======
 	private Map<ItemStack, String> setItemLetters(Inventory inventory) {
 		int[] ingredientSlots = CRAFT_SLOTS;
 		Map<ItemStack, String> itemToLetterMap = new HashMap<>();
@@ -208,7 +203,6 @@ public class RecipeSaver {
 			ItemStack current = inventory.getItem(ingredientSlots[i]);
 
 			if (current != null && current.getType() != Material.AIR) {
-				// Check if we've already seen an item similar to this one
 				ItemStack matchingItem = null;
 				for (ItemStack key : itemToLetterMap.keySet()) {
 					if (key.isSimilar(current)) {
@@ -218,10 +212,8 @@ public class RecipeSaver {
 				}
 
 				if (matchingItem != null) {
-					// Use the same letter
 					itemToLetterMap.put(current, itemToLetterMap.get(matchingItem));
 				} else {
-					// New letter
 					String letter = getUniqueLetter(usedLetters);
 					usedLetters.add(letter);
 					itemToLetterMap.put(current, letter);
@@ -238,12 +230,12 @@ public class RecipeSaver {
 				return letter;
 			}
 		}
-		return "X"; // fallback
+		return "X";
 	}
 
 	public List<String> generateItemCrafting(Map<ItemStack, String> ingredients, Inventory inv) {
 		List<String> itemCrafting = new ArrayList<>(Arrays.asList("XXX", "XXX", "XXX"));
-		int[] ingredientSlots = CRAFT_SLOTS; // mapping from inventory slots to crafting grid positions
+		int[] ingredientSlots = CRAFT_SLOTS;
 
 		// Update the crafting pattern with the ingredient letters
 		for (int i = 0; i < ingredientSlots.length; i++) {
@@ -266,8 +258,6 @@ public class RecipeSaver {
 
 		return itemCrafting;
 	}
-
-	// ====== Readers / helpers ======
 
 	private boolean readEnabledToggle(Inventory inv) {
 		ItemStack toggle = safeGet(inv, SLOT_ENABLED_TOGGLE);
@@ -302,18 +292,8 @@ public class RecipeSaver {
 		String id = readFirstLoreOrNameStripped(inv, SLOT_IDENTIFIER);
 		if (id != null && !id.isEmpty() && !"none".equalsIgnoreCase(id))
 			return id;
-
-		// Fallbacks: result NBT identifier, then result display name stripped, then
-		// recipe name
-		String nbt = getCustomIdentifier(result);
-		if (nbt != null && !"none".equalsIgnoreCase(nbt))
-			return nbt;
-
-		String dn = getItemName(result);
-		if (dn != null && !"none".equalsIgnoreCase(dn))
-			return ChatColor.stripColor(dn);
-
-		return ChatColor.stripColor(fallbackName);
+		
+		return UUID.randomUUID().toString();
 	}
 
 	private String readPermission(Inventory inv, String identifier) {
@@ -378,9 +358,10 @@ public class RecipeSaver {
 	private String findIngredientIdentifier(ItemStack item) {
 		if (item == null)
 			return "none";
-		Recipe r = Main.getInstance().getRecipeUtil().getRecipeFromResult(item);
-		if (r != null && r.getKey() != null && !r.getKey().isEmpty())
-			return r.getKey();
+
+		String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
+		if (key != null)
+			return key;
 
 		String nbt = getCustomIdentifier(item);
 		return (nbt != null && !"none".equalsIgnoreCase(nbt)) ? nbt : "none";

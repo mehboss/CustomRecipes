@@ -28,7 +28,6 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.InventoryUtils;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
@@ -37,9 +36,11 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 
 public class GrindstoneManager implements Listener {
 
-	private final RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 	private static final Map<UUID, Recipe> matchedByPlayer = new HashMap<>();
-
+	RecipeUtil getRecipeUtil() {
+	    return Main.getInstance().recipeUtil;
+	}
+	
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onCollectResult(InventoryClickEvent event) {
 		if (event.getClickedInventory() == null || event.getAction() == InventoryAction.NOTHING
@@ -50,28 +51,51 @@ public class GrindstoneManager implements Listener {
 		Player player = (Player) event.getWhoClicked();
 		Inventory clicked = event.getClickedInventory();
 
+		if (event.getSlot() == 0 || event.getSlot() == 1) {
+			// Let your helper handle left/right click semantics for inputs only
+			InventoryUtils.calculateClickedSlot(event);
+
+			// Recompute output on next tick (safer, avoids ghosting)
+			Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+				processGrindstone(event.getView().getTopInventory(), (Player) event.getWhoClicked(), event);
+				((Player) event.getWhoClicked()).updateInventory();
+			});
+			return;
+		}
+
 		// Result slot is 2 in a grindstone
 		if (event.getSlot() != 2)
 			return;
 
+		logDebug("Beginning checks..", "");
 		ItemStack result = event.getCurrentItem();
-		if (InventoryUtils.isAirOrNull(result))
+		if (InventoryUtils.isAirOrNull(result)) {
+			logDebug("Result is air or null...", "");
 			return;
+		}
 
 		// Only handle take actions
 		InventoryAction action = event.getAction();
 		boolean isTakeAction = action.toString().startsWith("PICKUP_") || action == InventoryAction.COLLECT_TO_CURSOR
 				|| action == InventoryAction.MOVE_TO_OTHER_INVENTORY;
 
-		if (!isTakeAction)
+		if (!isTakeAction) {
+			logDebug("No take action detected..", "");
 			return;
+		}
 
 		Recipe matched = matchedByPlayer.get(player.getUniqueId());
 		if (matched == null) {
+			logDebug("Vanilla recipe has been found, ignoring grind stone usage..", "");
+
+			if (event.isCancelled())
+				logDebug("Event has been cancelled.. check for plugin conflictions..", "");
+
 			// Vanilla grind behavior (not our custom recipe) — let it pass
 			return;
 		}
 
+		logDebug("Custom recipe found, handling grindstone usage..", matched.getName());
 		// Consume the click ourselves so we can place the item neatly
 		event.setCancelled(true);
 
@@ -110,29 +134,6 @@ public class GrindstoneManager implements Listener {
 		// Clear our matched recipe and recompute output for what remains
 		matchedByPlayer.remove(player.getUniqueId());
 		processGrindstone(event.getView().getTopInventory(), player, event);
-
-		player.updateInventory();
-	}
-
-	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-	public void onClick(InventoryClickEvent event) {
-		Inventory topInventory = CompatibilityUtil.getTopInventory(event);
-
-		if (event.getClickedInventory() == null || topInventory.getType() != InventoryType.GRINDSTONE) {
-			return;
-		}
-
-		Player player = (Player) event.getWhoClicked();
-		Inventory top = event.getView().getTopInventory();
-
-		// Allow any item to be placed in the grindstone input slots using your util
-		// (like your comment said)
-		if (event.getClickedInventory().getType() == InventoryType.GRINDSTONE && event.getSlot() != 2) {
-			InventoryUtils.calculateClickedSlot(event);
-		}
-
-		processGrindstone(top, player, event);
-		// mirror your anvil behavior: schedule an update to avoid visual glitches
 		Bukkit.getScheduler().runTask(Main.getInstance(), player::updateInventory);
 	}
 
@@ -156,30 +157,46 @@ public class GrindstoneManager implements Listener {
 		ItemStack top = g.getItem(0);
 		ItemStack bottom = g.getItem(1);
 
+		// detect if we previously had a custom match for this player
+		UUID pid = player.getUniqueId();
+		boolean hadCustomLastTick = matchedByPlayer.containsKey(pid);
+
 		Optional<Recipe> match = findMatch(top, bottom, player, event.getView());
 
 		if (match.isPresent()) {
 			Recipe r = match.get();
 
+			// Permission / active checks -> if not allowed, treat as "no custom" so vanilla
+			// can proceed
 			if (!r.isActive() || (r.getPerm() != null && !player.hasPermission(r.getPerm()))
 					|| r.getDisabledWorlds().contains(player.getWorld().getName())) {
 				sendNoPermsMessage(player, r.getName());
-				clearResultSlot(g);
-				matchedByPlayer.remove(player.getUniqueId());
+				// If we were showing a custom result last tick, clear it once; otherwise do not
+				// touch vanilla
+				matchedByPlayer.remove(pid);
+				if (hadCustomLastTick)
+					clearResultSlot(g); // use null here
 				return;
 			}
 
-			g.setItem(2, safeResultOf(r));
-			matchedByPlayer.put(player.getUniqueId(), r);
+			// ✅ Show custom result; null means "no output" for custom (not vanilla)
+			ItemStack out = safeResultOf(r); // return null for AIR
+			g.setItem(2, out);
+			matchedByPlayer.put(pid, r);
 			logDebug("Successfully passed checks..", r.getName());
-		} else {
+			return;
+		}
+
+		matchedByPlayer.remove(pid);
+		if (hadCustomLastTick) {
+			// We were showing a custom result previously; clear it once so vanilla can
+			// replace it
 			clearResultSlot(g);
-			matchedByPlayer.remove(player.getUniqueId());
 		}
 	}
 
 	private Optional<Recipe> findMatch(ItemStack top, ItemStack bottom, Player p, InventoryView view) {
-		if (recipeUtil.getAllRecipes() == null)
+		if (getRecipeUtil().getAllRecipes() == null)
 			return Optional.empty();
 
 		// only run if grindstone
@@ -193,7 +210,7 @@ public class GrindstoneManager implements Listener {
 		}
 
 		// We only care about GRINDSTONE type, order: slot 0 then slot 1
-		for (Recipe recipe : recipeUtil.getAllRecipes().values()) {
+		for (Recipe recipe : getRecipeUtil().getAllRecipes().values()) {
 			if (recipe.getType() != RecipeType.GRINDSTONE)
 				continue;
 

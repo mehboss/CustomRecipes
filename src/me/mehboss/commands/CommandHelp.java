@@ -9,7 +9,7 @@ public class CommandHelp {
 	public static boolean Run(CRCommand command) {
 
 		CommandSender p = command.sender;
-		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8&m-------------------------------------"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aCUSTOM-RECIPES &fv"
 				+ Bukkit.getPluginManager().getPlugin("CustomRecipes").getDescription().getVersion()));
 		p.sendMessage(" ");
@@ -31,10 +31,10 @@ public class CommandHelp {
 				"&c/crecipe crafterdebug &8-&f Enables debug mode for the crafter &e(crecipe.crafterdebug)"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&c/crecipe edititem &8-&f Convenient recipe & item handler"));
-		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c/crecipe create <id> [optional permission]"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c/crecipe create <type> <id> [optional perm]"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c/crecipe remove <id>"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&c/crecipe show <id>"));
-		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8&m-------------------------------------"));
 		return true;
 	}
 }

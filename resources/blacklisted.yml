@@ -32,7 +32,7 @@ recipe-disabled-message:
   close-inventory: true
   chat-message:
     enabled: true
-    message: '&cThat recipe has been disabled on this server!'
+    message: '&cThat recipe has been disabled in this world!'
   actionbar-message:
     enabled: false
     message: '&cYou cannot craft this recipe!'

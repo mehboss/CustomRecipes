@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 
 import org.bukkit.Bukkit;
@@ -128,34 +129,13 @@ public class BookGUI implements Listener {
 		ItemMeta m = header.getItemMeta();
 		if (m == null || !m.hasDisplayName())
 			return null;
-		String name = ChatColor.stripColor(m.getDisplayName()).toLowerCase();
 
-		if (name.contains("shaped"))
-			return RecipeType.SHAPED;
-		if (name.contains("shapeless"))
-			return RecipeType.SHAPELESS;
-		if (name.contains("blast"))
-			return RecipeType.BLASTFURNACE;
-		if (name.contains("furnace"))
-			return RecipeType.FURNACE;
-		if (name.contains("smoker"))
-			return RecipeType.SMOKER;
-		if (name.contains("campfire"))
-			return RecipeType.CAMPFIRE;
-		if (name.contains("brewing"))
-			return RecipeType.BREWING_STAND;
-		if (name.contains("stonecutter"))
-			return RecipeType.STONECUTTER;
-		if (name.contains("anvil"))
-			return RecipeType.ANVIL;
-		if (name.contains("grindstone"))
-			return RecipeType.GRINDSTONE;
-
-		return null; // treat as "all"
+		String name = ChatColor.stripColor(m.getDisplayName()).toUpperCase().split(" ")[0];
+		return RecipeType.valueOf(name);
 	}
 
 	public void showCreationMenu(Inventory inv, ItemStack item, Player p, String recipeName, String perm,
-			Boolean creating, Boolean viewing) {
+			Boolean creating, Boolean viewing, RecipeType type) {
 		Inventory cInv = null;
 
 		if (!(Main.getInstance().recipeBook.contains(p.getUniqueId()))) {
@@ -166,7 +146,7 @@ public class BookGUI implements Listener {
 					ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + recipeName));
 		}
 
-		RecipeGUI.getInstance().setItems(creating, viewing, cInv, recipeName, perm, item, p);
+		RecipeGUI.getInstance().setItems(creating, viewing, cInv, recipeName, perm, item, p, type);
 		p.openInventory(cInv);
 
 		if (inv != null)
@@ -191,13 +171,17 @@ public class BookGUI implements Listener {
 				Player p = (Player) e.getWhoClicked();
 				e.setCancelled(true);
 
+				// derive type & recipes from header (slot 4)
+				ItemStack headerInOld = e.getInventory().getItem(4);
+				RecipeType type = parseTypeFromHeader(headerInOld);
+
 				if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 					return;
 
 				// --- Create button
 				if (e.getCurrentItem().getType() != XMaterial.BLACK_STAINED_GLASS_PANE.parseMaterial()
 						&& (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
-					showCreationMenu(e.getInventory(), null, p, "", null, true, false);
+					showCreationMenu(e.getInventory(), null, p, "", null, true, false, type);
 					return;
 				}
 
@@ -219,9 +203,6 @@ public class BookGUI implements Listener {
 					int currentpage = Integer.valueOf(cp[1]);
 					int newpage = currentpage;
 
-					// derive type & recipes from header (slot 4)
-					ItemStack headerInOld = e.getInventory().getItem(4);
-					RecipeType type = parseTypeFromHeader(headerInOld);
 					List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
 
 					final int pageSize = 14;
@@ -251,9 +232,14 @@ public class BookGUI implements Listener {
 				if (e.getRawSlot() < 19 || e.getRawSlot() > 34 || e.getRawSlot() == 26 || e.getRawSlot() == 27)
 					return;
 
-				String recipeName = Main.getInstance().recipeUtil.getRecipeFromResult(e.getCurrentItem()) != null
-						? Main.getInstance().recipeUtil.getRecipeFromResult(e.getCurrentItem()).getName()
-						: null;
+				String recipeName = null;
+
+				for (Recipe recipe : Main.getInstance().recipeUtil.getRecipesFromType(type).values()) {
+					if (recipe.getResult().isSimilar(e.getCurrentItem())) {
+						recipeName = recipe.getName();
+						break;
+					}
+				}
 
 				logDebug("[RecipeBooklet][" + p.getName() + "] Triggered open recipe matrix.. " + recipeName);
 
@@ -263,7 +249,7 @@ public class BookGUI implements Listener {
 						viewing = true;
 
 					logDebug("[RecipeBooklet][" + p.getName() + "] Opening recipe matrix.. " + recipeName);
-					showCreationMenu(e.getInventory(), e.getCurrentItem(), p, recipeName, null, false, viewing);
+					showCreationMenu(e.getInventory(), e.getCurrentItem(), p, recipeName, null, false, viewing, null);
 				}
 			}
 			return;

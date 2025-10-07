@@ -1,6 +1,7 @@
 package me.mehboss.crafting;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,6 +16,7 @@ import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapelessRecipe;
 
 import com.cryptomorin.xseries.XMaterial;
 
@@ -27,8 +29,6 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 
 public class AmountManager implements Listener {
 
-	RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
-
 	private CraftManager craftManager;
 
 	public AmountManager(CraftManager craftManager) {
@@ -40,6 +40,10 @@ public class AmountManager implements Listener {
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
 	}
 
+	RecipeUtil getRecipeUtil() {
+	    return Main.getInstance().recipeUtil;
+	}
+	
 	private boolean hasAllIngredients(CraftingInventory inv, String recipes, List<Ingredient> recipeIngredients) {
 		return craftManager.hasAllIngredients(inv, recipes, recipeIngredients);
 	}
@@ -106,8 +110,8 @@ public class AmountManager implements Listener {
 	// Helper method for the handleShiftClick method
 	boolean matchesIngredient(ItemStack item, String recipeName, RecipeUtil.Ingredient ingredient, Material material,
 			String displayName, boolean hasIdentifier) {
-		Recipe exactMatch = recipeUtil.getRecipeFromKey(ingredient.getIdentifier());
-		ItemStack customItem = ingredient.hasIdentifier() ? recipeUtil.getResultFromKey(ingredient.getIdentifier())
+		Recipe exactMatch = getRecipeUtil().getRecipeFromKey(ingredient.getIdentifier());
+		ItemStack customItem = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
 				: null;
 
 		return ((ingredient.hasIdentifier() && NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
@@ -127,14 +131,14 @@ public class AmountManager implements Listener {
 		return true;
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
+	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 
 		if (inv.getResult() == null || inv.getResult().getType() == Material.AIR)
 			return;
-
-		if (recipeUtil.getRecipeFromResult(inv.getResult()) == null)
+		
+		if (getRecipeUtil().getRecipeFromResult(inv.getResult()) == null)
 			return;
 
 		logDebug("[handleShiftClicks] Passed containsValue boolean check.");
@@ -142,39 +146,35 @@ public class AmountManager implements Listener {
 		if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 			return;
 
-		String findName = recipeUtil.getRecipeFromResult(inv.getResult()) != null
-				? recipeUtil.getRecipeFromResult(inv.getResult()).getName()
+		String findName = getRecipeUtil().getRecipeFromResult(inv.getResult()) != null
+				? getRecipeUtil().getRecipeFromResult(inv.getResult()).getName()
 				: null;
 
 		final ItemStack result = inv.getResult();
+		boolean isShapeless = e.getRecipe() instanceof ShapelessRecipe ? true : false;
+		HashMap<String, Recipe> types = isShapeless ? getRecipeUtil().getRecipesFromType(RecipeType.SHAPELESS)
+				: getRecipeUtil().getRecipesFromType(RecipeType.SHAPED);
 
 		logDebug("[handleShiftClicks] Initial recipe found recipe '" + findName + "' to handle..");
-		for (String recipes : recipeUtil.getRecipeNames()) {
-			Recipe recipe = recipeUtil.getRecipe(recipes);
-			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
-
-			if (!isCraftingRecipe(recipe.getType()))
-				continue;
-
-			if (hasAllIngredients(inv, recipes, recipeIngredients)
-					&& recipeUtil.getRecipe(recipes).getType() == RecipeType.SHAPELESS) {
-				findName = recipes;
-				break;
-			}
-			if (hasAllIngredients(inv, recipes, recipeIngredients)
-					&& recipeUtil.getRecipe(recipes).getType() == RecipeType.SHAPED) {
-				findName = recipes;
-				break;
-			}
-		}
 
 		if (NBTEditor.contains(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
 			String foundID = NBTEditor.getString(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 
-			if (recipeUtil.getRecipeFromKey(foundID) != null) {
-				findName = recipeUtil.getRecipeFromKey(foundID).getName();
+			if (getRecipeUtil().getRecipeFromKey(foundID) != null) {
+				findName = getRecipeUtil().getRecipeFromKey(foundID).getName();
 			}
 		}
+
+		// safe guard check to prevent matches to other recipes types
+		if (types != null && !types.isEmpty())
+			for (Recipe recipe : types.values()) {
+				ItemStack item = recipe.getResult();
+				if (hasAllIngredients(inv, recipe.getName(), recipe.getIngredients())
+						&& (result.equals(item) || result.isSimilar(item))) {
+					findName = recipe.getName();
+					break;
+				}
+			}
 
 		logDebug("[handleShiftClicks] Actual found recipe '" + findName + "' to handle..");
 
@@ -191,7 +191,7 @@ public class AmountManager implements Listener {
 			return;
 		}
 
-		Recipe recipe = recipeUtil.getRecipe(recipeName);
+		Recipe recipe = getRecipeUtil().getRecipe(recipeName);
 		ArrayList<String> handledIngredients = new ArrayList<String>();
 
 		// =========================
@@ -236,9 +236,8 @@ public class AmountManager implements Listener {
 
 		// If nothing craftable, bail before removal logic
 		if (itemsToAdd <= 0 || itemsToAdd == Integer.MAX_VALUE) {
-			logDebug(
-					"[handleShiftClicks] An issue has been detected whilest calculating amount deductions. Please reach out for support to report this."
-							+ findName);
+			logDebug("[handleShiftClicks][" + findName
+					+ "] An issue has been detected whilest calculating amount deductions. Please reach out for support to report this.");
 			e.setCancelled(true);
 			return;
 		}

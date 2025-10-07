@@ -32,7 +32,7 @@ public class CommandShow {
 		Player p = (Player) sender;
 		sender.sendMessage(ChatColor.RED + "[CustomRecipes] Showing recipe with ID '" + id + "'..");
 		Main.getInstance().recipes.showCreationMenu(null, existing.getResult(), p, existing.getName(), null, false,
-				false);
+				false, null);
 		return true;
 	}
 }

@@ -28,13 +28,13 @@ import me.mehboss.recipe.Main;
 public class RecipeSaver {
 
 	// GUI slot constants
-	private static final int SLOT_IDENTIFIER = 7;
+	private static final int SLOT_IDENTIFIER = 9;
 	private static final int SLOT_PLACEABLE_TOGGLE = 8;
 	private static final int SLOT_RESULT = 24;
-	private static final int SLOT_PERMISSION = 25;
-	private static final int SLOT_NAME = 23;
-	private static final int SLOT_ENABLED_TOGGLE = 40;
+	private static final int SLOT_PERMISSION = 26;
+	private static final int SLOT_ENABLED_TOGGLE = 52;
 	private static final int SLOT_SHAPELESS_TOGGLE = 53;
+	private static final int SLOT_EXACTCHOICE_TOGGLE = 18;
 
 	// Crafting grid slots (keep the same as before)
 	private static final int[] CRAFT_SLOTS = { 11, 12, 13, 20, 21, 22, 29, 30, 31 };
@@ -91,8 +91,9 @@ public class RecipeSaver {
 
 		// ====== Read GUI toggles and text ======
 		boolean enabled = readEnabledToggle(inventory);
-		boolean shapeless = readBooleanToggle(inventory, SLOT_SHAPELESS_TOGGLE, "Shapeless");
-		boolean placeable = readBooleanToggle(inventory, SLOT_PLACEABLE_TOGGLE, "Placeable");
+		boolean shapeless = readBooleanToggle(inventory, SLOT_SHAPELESS_TOGGLE);
+		boolean exactchoice = readBooleanToggle(inventory, SLOT_EXACTCHOICE_TOGGLE);
+		boolean placeable = readBooleanToggle(inventory, SLOT_PLACEABLE_TOGGLE);
 		String identifier = readIdentifier(inventory, resultItem, recipeName);
 		String permission = readPermission(inventory, identifier);
 		String displayNameColored = readNameColored(inventory);
@@ -113,7 +114,7 @@ public class RecipeSaver {
 		cfg.put("Shapeless", shapeless);
 		cfg.put("Cooldown", 60);
 
-		cfg.put("Item", getItemValue(resultItem));
+		cfg.put("Item", getItemValue(resultItem, identifier));
 		cfg.put("Item-Damage", "none");
 		cfg.put("Amount", resultAmount);
 
@@ -121,9 +122,9 @@ public class RecipeSaver {
 		cfg.put("Ignore-Data", false);
 		cfg.put("Ignore-Model-Data", false);
 		cfg.put("Multi-Resulted", false);
-		cfg.put("Exact-Choice", false);
+		cfg.put("Exact-Choice", exactchoice);
 		cfg.put("Custom-Tagged", false);
-		cfg.put("Durability", "100");
+		cfg.put("Durability", resultItem.getDurability());
 
 		cfg.put("Identifier", identifier);
 		cfg.put("Converter", "none");
@@ -155,19 +156,19 @@ public class RecipeSaver {
 		return cfg;
 	}
 
-	private String getItemValue(ItemStack item) {
-	    if (item == null || item.getType() == Material.AIR)
-	        return "AIR"; // fallback for empty slots
+	private String getItemValue(ItemStack item, String id) {
+		if (item == null || item.getType() == Material.AIR)
+			return "AIR"; // fallback for empty slots
 
-	    // Try custom key from RecipeUtil (for plugin-based custom items)
-	    String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
-	    if (key != null && !key.isEmpty())
-	        return key;
+		// Try custom key from RecipeUtil (for plugin-based custom items)
+		String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
+		if (key != null && !key.isEmpty() && !key.equals(id))
+			return key;
 
-	    // Fallback to Material name
-	    return item.getType().name();
+		// Fallback to Material name
+		return item.getType().toString();
 	}
-	
+
 	private LinkedHashMap<String, Object> buildIngredientsFromLetters(Inventory inv, Map<ItemStack, String> letters) {
 		LinkedHashMap<String, Object> out = new LinkedHashMap<>();
 
@@ -268,7 +269,7 @@ public class RecipeSaver {
 		return name != null && name.toLowerCase().contains("enabled") && !name.toLowerCase().contains("disabled");
 	}
 
-	private boolean readBooleanToggle(Inventory inv, int slot, String labelPrefix) {
+	private boolean readBooleanToggle(Inventory inv, int slot) {
 		ItemStack toggle = safeGet(inv, slot);
 		if (toggle == null || toggle.getType() == Material.AIR || toggle.getItemMeta() == null) {
 			return false;
@@ -276,9 +277,6 @@ public class RecipeSaver {
 		String name = ChatColor.stripColor(toggle.getItemMeta().getDisplayName());
 		if (name != null) {
 			String lc = name.toLowerCase();
-			if (lc.startsWith(labelPrefix.toLowerCase())) {
-				return lc.contains("true");
-			}
 			if (lc.contains("true"))
 				return true;
 			if (lc.contains("false"))
@@ -292,7 +290,7 @@ public class RecipeSaver {
 		String id = readFirstLoreOrNameStripped(inv, SLOT_IDENTIFIER);
 		if (id != null && !id.isEmpty() && !"none".equalsIgnoreCase(id))
 			return id;
-		
+
 		return UUID.randomUUID().toString();
 	}
 
@@ -306,7 +304,7 @@ public class RecipeSaver {
 
 	// KEEP colors for Name
 	private String readNameColored(Inventory inv) {
-		ItemStack item = safeGet(inv, SLOT_NAME);
+		ItemStack item = safeGet(inv, SLOT_RESULT);
 		if (item == null || item.getType() == Material.AIR || item.getItemMeta() == null)
 			return null;
 		ItemMeta im = item.getItemMeta();

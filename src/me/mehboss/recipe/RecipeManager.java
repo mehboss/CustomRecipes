@@ -77,8 +77,11 @@ public class RecipeManager {
 
 	List<String> delayedRecipes = new ArrayList<>();
 	boolean allFinished = false;
-	RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 	FileConfiguration recipeConfig = null;
+
+	RecipeUtil getRecipeUtil() {
+		return Main.getInstance().recipeUtil;
+	}
 
 	boolean hasHavenBag() {
 		if (Main.getInstance().hasHavenBags)
@@ -92,6 +95,13 @@ public class RecipeManager {
 			return true;
 
 		return false;
+	}
+
+	void handleDisabledWorlds(String item, Recipe recipe) {
+		if (getConfig().isSet(item + ".Disabled-Worlds")) {
+			for (String world : getConfig().getStringList(item + ".Disabled-Worlds"))
+				recipe.addDisabledWorld(world);
+		}
 	}
 
 	void handleBucketConsume(Material material, String item, Recipe recipe) {
@@ -255,7 +265,7 @@ public class RecipeManager {
 				} else if (path.get(0).equalsIgnoreCase("Potion")) {
 					if (!Main.getInstance().serverVersionAtLeast(1, 9))
 						return item;
-					
+
 					ItemStack potion = item;
 					PotionMeta meta = (PotionMeta) potion.getItemMeta();
 
@@ -524,10 +534,15 @@ public class RecipeManager {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
 		if (getConfig().isSet(item + ".Name")) {
-			logDebug("Applying displayname..", item);
-			logDebug("Displayname: " + getConfig().getString(item + ".Name"), item);
+			String name = getConfig().getString(item + ".Name");
 
-			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', getConfig().getString(item + ".Name")));
+			if (name.equalsIgnoreCase("none"))
+				return itemMeta;
+
+			logDebug("Applying displayname..", item);
+			logDebug("Displayname: " + name, item);
+
+			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
 		}
 		return itemMeta;
 	}
@@ -651,7 +666,6 @@ public class RecipeManager {
 			}
 		}
 
-		recipeUtil = Main.getInstance().recipeUtil;
 		recipeLoop: for (File recipeFile : recipeFiles) {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
 			String item = recipeFile.getName().replace(".yml", "");
@@ -770,10 +784,9 @@ public class RecipeManager {
 			recipe.setKey(identifier);
 
 			// Checks for a custom item and attempts to set it
-			String rawItem = getConfig().getString(item + ".Item") != null
-					? getConfig().getString(item + ".Item")
+			String rawItem = getConfig().getString(item + ".Item") != null ? getConfig().getString(item + ".Item")
 					: null;
-			ItemStack i = recipeUtil.getResultFromKey(rawItem);
+			ItemStack i = getRecipeUtil().getResultFromKey(rawItem);
 			ItemMeta m = i != null ? i.getItemMeta() : null;
 
 			// handle item stack check
@@ -794,11 +807,11 @@ public class RecipeManager {
 
 				// returns the original material
 				i = handleItemDamage(i, item, damage, type);
-				
+
 				// handle head textures
 				if (handleHeadTexture(getConfig().getString(item + ".Item")) != null)
 					i = handleHeadTexture(getConfig().getString(item + ".Item"));
-				
+
 				i = handleEnchants(i, item);
 				i = handleCustomEnchants(i, item);
 				i = applyCustomTags(i, item);
@@ -826,6 +839,7 @@ public class RecipeManager {
 			handlePlaceable(item, recipe);
 			handleCommand(item, recipe);
 			handleBucketConsume(i.getType(), item, recipe);
+			handleDisabledWorlds(item, recipe);
 
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
 				recipe.setTagged(true);
@@ -906,8 +920,6 @@ public class RecipeManager {
 				logDebug("Ingredient Type: " + ingredientMaterial, recipe.getName());
 				logDebug("Ingredient Amount: " + ingredientAmount, recipe.getName());
 
-				handleECOverride(ingredientIdentifier, recipe);
-
 				recipeIngredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
 				recipeIngredient.setDisplayName(ingredientName);
 				recipeIngredient.setCustomModelData(ingredientCMD);
@@ -929,8 +941,7 @@ public class RecipeManager {
 			if (getConfig().isString(item + ".Permission"))
 				recipe.setPerm(getConfig().getString(item + ".Permission"));
 
-			handleECOverride(getConfig().getString(item + ".Item"), recipe);
-			recipeUtil.createRecipe(recipe);
+			getRecipeUtil().createRecipe(recipe);
 		}
 
 		if (name == null && !delayedRecipes.isEmpty()) {
@@ -941,13 +952,7 @@ public class RecipeManager {
 		}
 
 		if (delayedRecipes.isEmpty())
-			recipeUtil.reloadRecipes();
-	}
-
-	void handleECOverride(String append, Recipe recipe) {
-		String id = append.split(":")[0];
-		if (id != null && (id.equalsIgnoreCase("itemsadder") || id.equalsIgnoreCase("mythicmobs")))
-			recipe.setExactChoice(false);
+			getRecipeUtil().reloadRecipes();
 	}
 
 	public void addRecipesFromAPI(Recipe specificRecipe) {

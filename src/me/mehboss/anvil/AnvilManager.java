@@ -20,7 +20,6 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 
 public class AnvilManager implements Listener {
 
-	RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
 	public HashMap<UUID, Integer> runTimes = new HashMap<UUID, Integer>();
 
 	@EventHandler
@@ -29,10 +28,10 @@ public class AnvilManager implements Listener {
 		Recipe matchedRecipe = null;
 		Player p = (Player) e.getView().getPlayer();
 
-		if (recipeUtil.getAllRecipes() == null)
+		if (getRecipeUtil().getAllRecipes() == null)
 			return;
 
-		for (Recipe recipe : recipeUtil.getAllRecipes().values()) {
+		for (Recipe recipe : getRecipeUtil().getAllRecipes().values()) {
 			Boolean matchedToRecipe = true;
 
 			if (recipe.getType() != RecipeType.ANVIL) {
@@ -91,6 +90,10 @@ public class AnvilManager implements Listener {
 		return true;
 	}
 
+	RecipeUtil getRecipeUtil() {
+	    return Main.getInstance().recipeUtil;
+	}
+	
 	boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
 	}

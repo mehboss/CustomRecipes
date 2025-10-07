@@ -25,7 +25,10 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class ExactChoice {
 	RecipeManager recipeManager = Main.getInstance().recipeManager;
-	RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+
+	RecipeUtil getRecipeUtil() {
+	    return Main.getInstance().recipeUtil;
+	}
 
 	RecipeChoice.ExactChoice findExactChoice(Recipe recipe, Ingredient ingredient) {
 
@@ -44,11 +47,11 @@ public class ExactChoice {
 			}
 		}
 
-		if (item.hasIdentifier() && recipeUtil.getRecipeFromKey(item.getIdentifier()) != null) {
-			return new RecipeChoice.ExactChoice(recipeUtil.getRecipeFromKey(item.getIdentifier()).getResult());
+		if (item.hasIdentifier() && getRecipeUtil().getRecipeFromKey(item.getIdentifier()) != null) {
+			return new RecipeChoice.ExactChoice(getRecipeUtil().getRecipeFromKey(item.getIdentifier()).getResult());
 
-		} else if (item.hasIdentifier() && recipeUtil.getResultFromKey(item.getIdentifier()) != null) {
-			return new RecipeChoice.ExactChoice(recipeUtil.getResultFromKey(item.getIdentifier()));
+		} else if (item.hasIdentifier() && getRecipeUtil().getResultFromKey(item.getIdentifier()) != null) {
+			return new RecipeChoice.ExactChoice(getRecipeUtil().getResultFromKey(item.getIdentifier()));
 
 		} else {
 			ItemStack exactItem = new ItemStack(item.getMaterial());

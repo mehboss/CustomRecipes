@@ -94,7 +94,7 @@ CursedPick:
   Commands:
     Give-Item: true
     Run-Commands:
-     - 'give %crafter% diamond 1'
+     - 'give %crafter% minecraft:diamond 1'
 
   # Crafting table layout (X stands for air)
   ItemCrafting:

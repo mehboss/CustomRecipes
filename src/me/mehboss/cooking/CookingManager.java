@@ -37,13 +37,13 @@ public class CookingManager implements Listener {
 		if (item == null || e.isCancelled())
 			return;
 
-		if (recipeUtil().getRecipeFromResult(item) == null)
+		if (getRecipeUtil().getRecipeFromResult(item) == null)
 			return;
 
 		if (Main.getInstance().serverVersionLessThan(1, 16))
 			return;
 
-		Recipe recipe = recipeUtil().getRecipeFromResult(item);
+		Recipe recipe = getRecipeUtil().getRecipeFromResult(item);
 
 		for (FurnaceInventory furnace : cooking.keySet()) {
 			if (furnace == inv) {
@@ -86,8 +86,8 @@ public class CookingManager implements Listener {
 			cooking.remove(e.getInventory());
 	}
 
-	RecipeUtil recipeUtil() {
-		return Main.getInstance().recipeUtil;
+	RecipeUtil getRecipeUtil() {
+	    return Main.getInstance().recipeUtil;
 	}
 
 	void logDebug(String st) {

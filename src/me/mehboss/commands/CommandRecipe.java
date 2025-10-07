@@ -62,8 +62,8 @@ public class CommandRecipe {
 		sender.sendMessage(
 				ChatColor.translateAlternateColorCodes('&', "&c[CustomRecipes] &fPreparing to create recipe:&r "));
 		sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-				"&fType= &a" + type.name() + " &fID= &a" + id + " &fPermission= &a" + permission));
-		Main.getInstance().recipes.showCreationMenu(null, null, (Player) sender, id, permission, true, false);
+				"&fType= &a" + type.toString() + " &fID= &a" + id + " &fPermission= &a" + permission));
+		Main.getInstance().recipes.showCreationMenu(null, null, (Player) sender, id, permission, true, false, type);
 		return true;
 	}
 }

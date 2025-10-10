@@ -789,6 +789,11 @@ public class RecipeManager {
 			ItemStack i = getRecipeUtil().getResultFromKey(rawItem);
 			ItemMeta m = i != null ? i.getItemMeta() : null;
 
+			
+			// handle custom item stacks
+			if (i != null)
+				recipe.setCustomItem(rawItem);
+			
 			// handle item stack check
 			if (i == null && getConfig().getItemStack(item + ".Item") != null)
 				i = getConfig().getItemStack(item + ".Item");

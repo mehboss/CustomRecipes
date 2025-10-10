@@ -69,9 +69,9 @@ public class CraftManager implements Listener {
 	}
 
 	RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
-	
+
 	boolean isInt(String s) {
 		try {
 			Integer.parseInt(s);
@@ -397,8 +397,8 @@ public class CraftManager implements Listener {
 			if (!ingredient.isEmpty()) {
 
 				if (getRecipeUtil().getRecipeFromKey(ingredient.getIdentifier()) != null) {
-					ingMaterials.add(
-							getRecipeUtil().getRecipeFromKey(ingredient.getIdentifier()).getResult().getType().toString());
+					ingMaterials.add(getRecipeUtil().getRecipeFromKey(ingredient.getIdentifier()).getResult().getType()
+							.toString());
 				} else if (getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) != null) {
 					ingMaterials.add(getRecipeUtil().getResultFromKey(ingredient.getIdentifier()).getType().toString());
 				} else {
@@ -501,7 +501,7 @@ public class CraftManager implements Listener {
 				if (invID.equals(iaID))
 					return true;
 			}
-			
+
 			if (customItem.toLowerCase().equals("executableitems")) {
 				Optional<ExecutableItemInterface> ei = ExecutableItemsAPI.getExecutableItemsManager()
 						.getExecutableItem(inventoryItem);
@@ -513,7 +513,7 @@ public class CraftManager implements Listener {
 
 				String iaID = identifier.split(":")[1].toLowerCase();
 				String invID = ei.get().getId().toLowerCase();
-				
+
 				if (invID.equals(iaID))
 					return true;
 			}
@@ -536,7 +536,7 @@ public class CraftManager implements Listener {
 //		}
 
 		logDebug("[handleShapeless] Handling shapeless checks..!", recipe.getName());
-		
+
 		ArrayList<String> slotNames = new ArrayList<>();
 		ArrayList<String> recipeNames = new ArrayList<>();
 
@@ -549,10 +549,10 @@ public class CraftManager implements Listener {
 		// Add 4 empties to the 4x4 slot to makeup for the missing slots
 		if (inv.getType() == InventoryType.CRAFTING) {
 			inventoryCount.put(Material.AIR, 5);
-		    Collections.addAll(slotNames, "null", "null", "null", "null", "null");
-			
+			Collections.addAll(slotNames, "null", "null", "null", "null", "null");
+
 		}
-		
+
 		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
 			if (ingredient.isEmpty()) {
 				recipeCount.put(Material.AIR, recipeCount.getOrDefault(Material.AIR, 0) + 1);
@@ -618,7 +618,8 @@ public class CraftManager implements Listener {
 				continue;
 			}
 
-			if (getRecipeUtil().getRecipeFromResult(it) != null && getRecipeUtil().getRecipeFromResult(it).isCustomTagged()
+			if (getRecipeUtil().getRecipeFromResult(it) != null
+					&& getRecipeUtil().getRecipeFromResult(it).isCustomTagged()
 					&& !NBTEditor.contains(it, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
 				continue;
 			}
@@ -706,7 +707,8 @@ public class CraftManager implements Listener {
 			if (inv.getItem(i) != null && inv.getItem(i).getType() != Material.AIR) {
 				ItemMeta meta = inv.getItem(i).getItemMeta();
 
-				if (ingredient.hasIdentifier() && getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) != null) {
+				if (ingredient.hasIdentifier()
+						&& getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) != null) {
 
 					ItemStack ingredientItem = getRecipeUtil().getResultFromKey(ingredient.getIdentifier());
 
@@ -805,7 +807,7 @@ public class CraftManager implements Listener {
 		return true;
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
+	@EventHandler(priority = EventPriority.LOWEST)
 	void handleCrafting(PrepareItemCraftEvent e) {
 
 		CraftingInventory inv = e.getInventory();
@@ -858,8 +860,8 @@ public class CraftManager implements Listener {
 				continue;
 			}
 
-			logDebug("[handleCrafting] Inventory contained all of the ingredients. Continuing checks.. RecipeType: " + recipe.getType(),
-					recipe.getName());
+			logDebug("[handleCrafting] Inventory contained all of the ingredients. Continuing checks.. RecipeType: "
+					+ recipe.getType(), recipe.getName());
 
 			passedCheck = true;
 			found = true;
@@ -970,19 +972,23 @@ public class CraftManager implements Listener {
 		if (passedCheck && found) {
 			ItemStack item = new ItemStack(finalRecipe.getResult());
 
-			List<String> withPlaceholders = null;
+			// only parse placeholders for items that are NOT IA, MM, ETC.
+			if (!finalRecipe.isCustomItem()) {
+				List<String> withPlaceholders = null;
 
-			if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
-				withPlaceholders = item.hasItemMeta() && item.getItemMeta().hasLore()
-						? PlaceholderAPI.setPlaceholders(p, item.getItemMeta().getLore())
-						: null;
+				if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
+					withPlaceholders = item.hasItemMeta() && item.getItemMeta().hasLore()
+							? PlaceholderAPI.setPlaceholders(p, item.getItemMeta().getLore())
+							: null;
 
-			ItemMeta itemMeta = item.getItemMeta();
+				ItemMeta itemMeta = item.getItemMeta();
 
-			if (withPlaceholders != null) {
-				itemMeta.setLore(withPlaceholders);
-				item.setItemMeta(itemMeta);
+				if (withPlaceholders != null) {
+					itemMeta.setLore(withPlaceholders);
+					item.setItemMeta(itemMeta);
+				}
 			}
+			
 			if (!inInventory.contains(p))
 				inInventory.add(p);
 

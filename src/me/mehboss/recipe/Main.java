@@ -288,7 +288,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (Bukkit.getPluginManager().getPlugin("HavenBags") != null) {
 			hasHavenBags = true;
 		}
-
+		
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
 		getLogger().log(Level.INFO, "Loading Recipes..");
@@ -342,7 +342,7 @@ public class Main extends JavaPlugin implements Listener {
 				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipes.");
 			}
 		}, 40L);
-
+		
 		editItem = new RecipeGUI(this, null);
 		recipes = new BookGUI(this);
 		typeGUI = new RecipeTypeGUI();

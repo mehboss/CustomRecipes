@@ -131,10 +131,12 @@ public class AmountManager implements Listener {
 		return true;
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 
+		logDebug("[handleShiftClicks] Fired amount checking mechanics..");
+		
 		if (inv.getResult() == null || inv.getResult().getType() == Material.AIR)
 			return;
 		

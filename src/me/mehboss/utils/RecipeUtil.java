@@ -326,16 +326,16 @@ public class RecipeUtil {
 	public HashMap<String, Recipe> getRecipesFromType(Recipe.RecipeType type) {
 		if (recipes.isEmpty())
 			return null;
-		
+
 		HashMap<String, Recipe> foundRecipes = new HashMap<String, Recipe>();
 		for (Recipe recipe : recipes.values()) {
 			if (recipe.getType() == type)
 				foundRecipes.put(recipe.getName(), recipe);
 		}
-		
+
 		if (foundRecipes.isEmpty())
 			return null;
-		
+
 		return foundRecipes;
 	}
 
@@ -422,6 +422,7 @@ public class RecipeUtil {
 		private ArrayList<String> disabledWorlds = new ArrayList<>();
 		private ArrayList<Ingredient> ingredients;
 
+		private String customItem;
 		private String name;
 		private String key;
 		private String permission;
@@ -508,6 +509,33 @@ public class RecipeUtil {
 		 */
 		public void setDiscoverable(Boolean discoverable) {
 			this.discoverable = discoverable;
+		}
+
+		/**
+		 * Getter for whether or not a recipe result is of a custom item
+		 * 
+		 * @return true if the recipe output is custom, false otherwise.
+		 */
+		public boolean isCustomItem() {
+			return customItem != null;
+		}
+
+		/**
+		 * Sets an ID for custom item results
+		 * 
+		 * @param customItem the ID of the custom item
+		 */
+		public void setCustomItem(String customItem) {
+			this.customItem = customItem;
+		}
+
+		/**
+		 * Getter for the custom ID output
+		 * 
+		 * @return the customItem ID
+		 */
+		public String getCustomItemID() {
+			return customItem;
 		}
 
 		/**

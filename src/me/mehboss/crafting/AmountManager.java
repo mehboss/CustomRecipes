@@ -3,6 +3,7 @@ package me.mehboss.crafting;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,11 +42,12 @@ public class AmountManager implements Listener {
 	}
 
 	RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
-	
-	private boolean hasAllIngredients(CraftingInventory inv, String recipes, List<Ingredient> recipeIngredients) {
-		return craftManager.hasAllIngredients(inv, recipes, recipeIngredients);
+
+	private boolean hasAllIngredients(CraftingInventory inv, String recipes, List<Ingredient> recipeIngredients,
+			UUID id) {
+		return craftManager.hasAllIngredients(inv, recipes, recipeIngredients, id);
 	}
 
 	private boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
@@ -63,46 +65,39 @@ public class AmountManager implements Listener {
 		if (matchesIngredient(item, recipeName, ingredient, ingredient.getMaterial(), ingredient.getDisplayName(),
 				ingredient.hasIdentifier())) {
 
-			if (item.getAmount() < requiredAmount)
-				return;
-
 			itemsToRemove = itemsToAdd * requiredAmount;
 
 			int availableItems = item.getAmount();
 
-			logDebug("[handleShiftClicks] Handling recipe " + recipeName);
 			logDebug("[handleShiftClicks] ItemsToRemove: " + itemsToRemove + " - ItemsToAdd: " + itemsToAdd);
-			logDebug("[handleShiftClicks] ItemAmount: " + availableItems);
-			logDebug("[handleShiftClicks] RequiredAmount: " + requiredAmount);
-			logDebug("[handleShiftClicks] Identifier: " + ingredient.getIdentifier() + " - HasIdentifier: "
+			logDebug("[handleShiftClicks] ItemAmount: " + availableItems + "|| RequiredAmount: " + requiredAmount);
+			logDebug("[handleShiftClicks] Identifier: " + ingredient.getIdentifier() + " - ID? "
 					+ ingredient.hasIdentifier());
 			logDebug("[handleShiftClicks] Material: " + ingredient.getMaterial().toString());
 			logDebug("[handleShiftClicks] Displayname: " + ingredient.getDisplayName());
 
-			int itemAmount = item.getAmount();
-			if (itemAmount < requiredAmount)
+			if (availableItems < requiredAmount)
 				return;
 
-			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-				if (item.getType().toString().contains("_BUCKET") && !(recipe.isConsume())) {
+			String id = ingredient.hasIdentifier() ? ingredient.getIdentifier() : item.getType().toString();
+			if (recipe.isLeftover(id)) {
+				if (item.getType().toString().contains("_BUCKET"))
 					item.setType(XMaterial.BUCKET.parseMaterial());
-				} else {
-					if ((item.getAmount() + 1) - requiredAmount == 0)
-						inv.setItem(slot, null);
-					else
-						item.setAmount((item.getAmount() + 1) - requiredAmount);
-				}
-			} else {
-				if (item.getType().toString().contains("_BUCKET") && !(recipe.isConsume())) {
-					item.setType(XMaterial.BUCKET.parseMaterial());
-				} else {
-					if ((item.getAmount() - itemsToRemove) <= 0) {
-						inv.setItem(slot, null);
-						return;
-					}
+				return;
+			}
 
-					item.setAmount(item.getAmount() - itemsToRemove);
+			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+				if ((item.getAmount() + 1) - requiredAmount == 0)
+					inv.setItem(slot, null);
+				else
+					item.setAmount((item.getAmount() + 1) - requiredAmount);
+			} else {
+				if ((item.getAmount() - itemsToRemove) <= 0) {
+					inv.setItem(slot, null);
+					return;
 				}
+
+				item.setAmount(item.getAmount() - itemsToRemove);
 			}
 		}
 	}
@@ -136,10 +131,10 @@ public class AmountManager implements Listener {
 		CraftingInventory inv = e.getInventory();
 
 		logDebug("[handleShiftClicks] Fired amount checking mechanics..");
-		
+
 		if (inv.getResult() == null || inv.getResult().getType() == Material.AIR)
 			return;
-		
+
 		if (getRecipeUtil().getRecipeFromResult(inv.getResult()) == null)
 			return;
 
@@ -152,6 +147,7 @@ public class AmountManager implements Listener {
 				? getRecipeUtil().getRecipeFromResult(inv.getResult()).getName()
 				: null;
 
+		UUID id = e.getWhoClicked().getUniqueId();
 		final ItemStack result = inv.getResult();
 		boolean isShapeless = e.getRecipe() instanceof ShapelessRecipe ? true : false;
 		HashMap<String, Recipe> types = isShapeless ? getRecipeUtil().getRecipesFromType(RecipeType.SHAPELESS)
@@ -171,7 +167,7 @@ public class AmountManager implements Listener {
 		if (types != null && !types.isEmpty())
 			for (Recipe recipe : types.values()) {
 				ItemStack item = recipe.getResult();
-				if (hasAllIngredients(inv, recipe.getName(), recipe.getIngredients())
+				if (hasAllIngredients(inv, recipe.getName(), recipe.getIngredients(), id)
 						&& (result.equals(item) || result.isSimilar(item))) {
 					findName = recipe.getName();
 					break;
@@ -322,6 +318,11 @@ public class AmountManager implements Listener {
 				return;
 			}
 		}
+		// delayed task to prevent debug spam
+		Main.getInstance().inInventory.add(id);
+		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+			Main.getInstance().inInventory.remove(id);
+		}, 2L);
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 			logDebug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");

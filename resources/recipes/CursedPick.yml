@@ -126,6 +126,12 @@ CursedPick:
       Identifier: none
       Amount: 1
       Name: 'Iron Essence'
+
+  # Add leftover ingredients
+  # Can be a material or an ingredient identifier if you define one
+  # Use [] if not needed
+  ItemsLeftover:
+   - EMERALD
   # Add specific NBT tags if needed
   # Use [] if not needed
   Custom-Tags: []  

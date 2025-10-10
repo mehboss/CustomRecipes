@@ -48,7 +48,7 @@ public class CrafterManager implements Listener {
 			if (recipe.getType() != RecipeType.SHAPELESS && recipe.getType() != RecipeType.SHAPED)
 				continue;
 
-			if (!CraftManager().hasAllIngredients(inv, recipe.getName(), recipeIngredients)) {
+			if (!CraftManager().hasAllIngredients(inv, recipe.getName(), recipeIngredients, null)) {
 				logDebug("[handleCrafting] Skipping to the next recipe! Ingredients did not match..", recipe.getName());
 				passedCheck = false;
 				continue;
@@ -239,7 +239,8 @@ public class CrafterManager implements Listener {
 				continue;
 			}
 
-			if (getRecipeUtil().getRecipeFromResult(it) != null && getRecipeUtil().getRecipeFromResult(it).isCustomTagged()
+			if (getRecipeUtil().getRecipeFromResult(it) != null
+					&& getRecipeUtil().getRecipeFromResult(it).isCustomTagged()
 					&& !NBTEditor.contains(it, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
 				continue;
 			}
@@ -327,7 +328,8 @@ public class CrafterManager implements Listener {
 			if (inv.getItem(i) != null && inv.getItem(i).getType() != Material.AIR) {
 				ItemMeta meta = inv.getItem(i).getItemMeta();
 
-				if (ingredient.hasIdentifier() && getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) != null) {
+				if (ingredient.hasIdentifier()
+						&& getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) != null) {
 
 					ItemStack ingredientItem = getRecipeUtil().getResultFromKey(ingredient.getIdentifier());
 
@@ -485,9 +487,6 @@ public class CrafterManager implements Listener {
 		if (AmountManager().matchesIngredient(item, recipeName, ingredient, ingredient.getMaterial(),
 				ingredient.getDisplayName(), ingredient.hasIdentifier())) {
 
-			if (item.getAmount() < requiredAmount)
-				return;
-
 			itemsToRemove = (itemsToAdd * requiredAmount) - 1;
 
 			int availableItems = item.getAmount();
@@ -501,27 +500,29 @@ public class CrafterManager implements Listener {
 			logDebug("[handleShiftClicks] Material: " + ingredient.getMaterial().toString(), "");
 			logDebug("[handleShiftClicks] Displayname: " + ingredient.getDisplayName(), "");
 
-			int itemAmount = item.getAmount();
-			if (itemAmount < requiredAmount)
+			if (availableItems < requiredAmount)
 				return;
 
-			if (item.getType().toString().contains("_BUCKET") && !(recipe.isConsume())) {
-				item.setType(XMaterial.BUCKET.parseMaterial());
-			} else {
-				if ((item.getAmount() - itemsToRemove) <= 0) {
-					inv.setItem(slot, null);
-					return;
-				}
-
-				item.setAmount(item.getAmount() - itemsToRemove);
+			String id = ingredient.hasIdentifier() ? ingredient.getIdentifier() : item.getType().toString();
+			if (recipe.isLeftover(id)) {
+				if (item.getType().toString().contains("_BUCKET"))
+					item.setType(XMaterial.BUCKET.parseMaterial());
+				return;
 			}
+
+			if ((item.getAmount() - itemsToRemove) <= 0) {
+				inv.setItem(slot, null);
+				return;
+			}
+
+			item.setAmount(item.getAmount() - itemsToRemove);
 		}
 	}
 
 	RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
-	
+
 	CraftManager CraftManager() {
 		return Main.getInstance().craftManager;
 	}

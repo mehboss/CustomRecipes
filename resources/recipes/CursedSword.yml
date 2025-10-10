@@ -44,7 +44,7 @@ CursedSword:
 	  Lore: []
       Amount: 1
   ItemsLeftover:
-	- BOWL
+   - BOWL
   Flags:
     Ignore-Data: false
     Ignore-Custom-Model-Data: false

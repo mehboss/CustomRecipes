@@ -104,9 +104,13 @@ public class RecipeManager {
 		}
 	}
 
-	void handleBucketConsume(Material material, String item, Recipe recipe) {
-		if (getConfig().isBoolean(item + ".Consume-Bucket"))
-			recipe.setConsume(getConfig().getBoolean(item + ".Consume-Bucket"));
+	void handleLeftovers(Material material, String item, Recipe recipe) {
+		if (getConfig().isString(item + ".ItemsLeftover"))
+			for (String leftOver : getConfig().getStringList(item + ".ItemsLeftover")) {
+				if (leftOver.equalsIgnoreCase("none"))
+					return;
+				recipe.addLeftoverItem(leftOver);
+			}
 	}
 
 	void handlePlaceable(String item, Recipe recipe) {
@@ -789,11 +793,10 @@ public class RecipeManager {
 			ItemStack i = getRecipeUtil().getResultFromKey(rawItem);
 			ItemMeta m = i != null ? i.getItemMeta() : null;
 
-			
 			// handle custom item stacks
 			if (i != null)
 				recipe.setCustomItem(rawItem);
-			
+
 			// handle item stack check
 			if (i == null && getConfig().getItemStack(item + ".Item") != null)
 				i = getConfig().getItemStack(item + ".Item");
@@ -843,7 +846,7 @@ public class RecipeManager {
 			handleCooldown(item, recipe);
 			handlePlaceable(item, recipe);
 			handleCommand(item, recipe);
-			handleBucketConsume(i.getType(), item, recipe);
+			handleLeftovers(i.getType(), item, recipe);
 			handleDisabledWorlds(item, recipe);
 
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)

@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.recipe.CookingBookCategory;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
 
+import com.cryptomorin.xseries.XMaterial;
 import com.nexomc.nexo.api.NexoItems;
 import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
 import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
@@ -420,6 +421,7 @@ public class RecipeUtil {
 		private ItemStack result;
 
 		private ArrayList<String> disabledWorlds = new ArrayList<>();
+		private ArrayList<String> leftoverItems = new ArrayList<>();
 		private ArrayList<Ingredient> ingredients;
 
 		private String customItem;
@@ -430,7 +432,6 @@ public class RecipeUtil {
 
 		private boolean exactChoice = false;
 		private boolean placeable = true;
-		private boolean bucketConsume = true;
 		private boolean active = true;
 		private boolean ignoreData = false;
 		private boolean ignoreModelData = false;
@@ -1023,22 +1024,30 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Setter for whether a bucket is consumed or emptied
+		 * Setter for adding an ingredient as a leftover
 		 * 
-		 * @param consume true if the bucket is set to consume, false if the bucket will
-		 *                empty
+		 * @param id the id of the ingredient to be leftover.
 		 */
-		public void setConsume(Boolean consume) {
-			this.bucketConsume = consume;
+		public void addLeftoverItem(String id) {
+			leftoverItems.add(id);
 		}
 
 		/**
-		 * Getter for whether a bucket is consumed or emptied
+		 * Getter for ingredients that are leftover for the recipe
 		 * 
-		 * @returns true if the bucket is set to consume, false if the bucket will empty
+		 * @returns an arraylist of ids
 		 */
-		public Boolean isConsume() {
-			return bucketConsume;
+		public Boolean isLeftover(String id) {
+			if (leftoverItems.isEmpty())
+				return false;
+
+			if (XMaterial.matchXMaterial(id).isPresent())
+				id = XMaterial.matchXMaterial(id).get().parseMaterial().toString();
+
+			if (leftoverItems.contains(id))
+				return true;
+
+			return false;
 		}
 	}
 

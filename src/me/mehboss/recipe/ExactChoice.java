@@ -144,6 +144,7 @@ public class ExactChoice {
 					recipe.getSlot(1).getMaterial(), recipe.getExperience(), recipe.getCookTime());
 		}
 
+		recipeManager.setFurnaceSource(recipe);
 		return furnaceRecipe;
 	}
 

@@ -67,6 +67,7 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
 import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import net.advancedplugins.ae.api.AEAPI;
@@ -1123,6 +1124,7 @@ public class RecipeManager {
 			furnaceRecipe = new FurnaceRecipe(recipe.getResult(), recipe.getSlot(1).getMaterial());
 		}
 
+		setFurnaceSource(recipe);
 		return furnaceRecipe;
 	}
 
@@ -1141,6 +1143,27 @@ public class RecipeManager {
 		return true;
 	}
 
+	void setFurnaceSource(Recipe recipe) {
+		Ingredient sourceItem = recipe.getSlot(1);
+		ItemStack source = null;
+		
+		if (sourceItem.hasIdentifier()) {
+			source = getRecipeUtil().getResultFromKey(sourceItem.getIdentifier());
+		}
+		
+		if (source == null) {
+			source = new ItemStack(sourceItem.getMaterial());
+			
+			if (sourceItem.hasDisplayName())
+				source.getItemMeta().setDisplayName(sourceItem.getDisplayName());
+			if (sourceItem.hasCustomModelData())
+				source.getItemMeta().setCustomModelData(sourceItem.getCustomModelData());
+		}
+		
+		recipe.setFurnaceSource(source);
+	}
+
+	
 	String isCustomItem(String identifier, String recipe) {
 		String[] key = identifier.split(":");
 		if (key.length < 2)

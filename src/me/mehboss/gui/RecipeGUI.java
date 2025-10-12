@@ -61,9 +61,9 @@ public class RecipeGUI implements Listener {
 	}
 
 	RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
-	
+
 	FileConfiguration getConfig(String recipeName) {
 		File dataFolder = Main.getInstance().getDataFolder();
 		File recipesFolder = new File(dataFolder, "recipes");
@@ -291,7 +291,8 @@ public class RecipeGUI implements Listener {
 		if (showShapeless) {
 			shapeless = XMaterial.CRAFTING_TABLE.parseItem();
 			ItemMeta shapelessm = shapeless.getItemMeta();
-			Boolean sc = getConfig(configname).getBoolean(configname + ".Shapeless");
+			Boolean isShapeless = rType.equals(RecipeType.SHAPELESS);
+			Boolean sc = creating ? isShapeless : getConfig(configname).getBoolean(configname + ".Shapeless");
 			String toggle = sc ? "&atrue" : "&cfalse";
 			shapelessm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fShapeless: &f" + toggle));
 			shapeless.setItemMeta(shapelessm);

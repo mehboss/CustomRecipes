@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.FurnaceSmeltEvent;
+import org.bukkit.event.inventory.FurnaceStartSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -37,32 +38,42 @@ public class CookingManager implements Listener {
 		if (item == null || e.isCancelled())
 			return;
 
-		if (getRecipeUtil().getRecipeFromResult(item) == null)
-			return;
-
 		if (Main.getInstance().serverVersionLessThan(1, 16))
 			return;
 
-		Recipe recipe = getRecipeUtil().getRecipeFromResult(item);
+		if (getRecipeUtil().getRecipeFromResult(e.getResult()) == null)
+			return;
 
+		Recipe recipe = getRecipeUtil().getRecipeFromResult(e.getResult());
 		for (FurnaceInventory furnace : cooking.keySet()) {
 			if (furnace == inv) {
 
 				Player p = Bukkit.getPlayer(cooking.get(furnace));
-				if (!recipe.isActive() || (recipe.getPerm() != null && !p.hasPermission(recipe.getPerm()))
-						|| (recipe.getDisabledWorlds().contains(p.getWorld().getName()))) {
+				if (!recipe.isActive() || (p != null && ((recipe.getPerm() != null && !p.hasPermission(recipe.getPerm()))
+						|| (recipe.getDisabledWorlds().contains(p.getWorld().getName()))))) {
 					sendNoPermsMessage(p, recipe.getName());
 					e.setCancelled(true);
+					return;
 				}
 			}
 		}
+
+		logDebug("[FurnaceSmelt] Attempt to smelt " + recipe.getName() + " has been detected, handling override..");
+	}
+
+	@EventHandler
+	public void onStart(FurnaceStartSmeltEvent e) {
+		if (Main.getInstance().serverVersionLessThan(1, 16))
+			return;
+
+		if (getRecipeUtil().getRecipeFromFurnaceSource(e.getSource()) == null)
+			return;
+
+		FurnaceCache.clear(e.getBlock());
 	}
 
 	@EventHandler
 	public void onFurnaceClick(InventoryClickEvent e) {
-		if (Main.getInstance().serverVersionLessThan(1, 16))
-			return;
-
 		if (e.getInventory().getType() == null)
 			return;
 
@@ -71,23 +82,21 @@ public class CookingManager implements Listener {
 
 		if (type == InventoryType.FURNACE || type == InventoryType.BLAST_FURNACE || type == InventoryType.SMOKER) {
 			FurnaceInventory inv = (FurnaceInventory) e.getInventory();
-
-			if (!cooking.containsKey(inv))
+			if (!cooking.containsKey(inv)) {
 				cooking.put(inv, id);
+
+			}
 		}
 	}
 
 	@EventHandler
 	public void onFurnaceClose(InventoryCloseEvent e) {
-		if (Main.getInstance().serverVersionLessThan(1, 16))
-			return;
-
 		if (cooking.containsKey(e.getInventory()))
 			cooking.remove(e.getInventory());
 	}
 
 	RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
 
 	void logDebug(String st) {

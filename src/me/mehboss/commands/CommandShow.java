@@ -10,7 +10,9 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class CommandShow {
 
-	static RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+	static RecipeUtil getRecipeUtil() {
+	    return Main.getInstance().recipeUtil;
+	}
 
 	public static boolean Run(CRCommand command) {
 		CommandSender sender = command.sender;
@@ -23,7 +25,7 @@ public class CommandShow {
 		
 		String id = args[1].toLowerCase();
 		// Check if recipe already exists
-		Recipe existing = recipeUtil.getRecipeFromKey(id);
+		Recipe existing = getRecipeUtil().getRecipeFromKey(id);
 		if (existing == null) {
 			sender.sendMessage(ChatColor.RED + "[CustomRecipes] A recipe with the ID '" + id + "' could not be found.");
 			return true;

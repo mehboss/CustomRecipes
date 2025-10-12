@@ -355,6 +355,22 @@ public class RecipeUtil {
 		}
 		return results;
 	}
+	
+	/**
+	 * Getter for a furnace recipe by the source
+	 * 
+	 * @return recipe the recipe that matches
+	 */
+	public Recipe getRecipeFromFurnaceSource(ItemStack item) {
+		HashMap<String, Recipe> furnaceRecipes = getRecipesFromType(Recipe.RecipeType.FURNACE);
+		for (Recipe recipes : furnaceRecipes.values()) {
+			ItemStack sourceItem = recipes.getFurnaceSource();
+			
+			if (sourceItem != null && (item.equals(sourceItem) || item.isSimilar(sourceItem)))
+				return recipes;
+		}
+		return null;
+	}
 
 	/**
 	 * Getter for all recipe names
@@ -440,6 +456,8 @@ public class RecipeUtil {
 		private boolean hasCommands = false;
 		private boolean isGrantItem = true;
 
+		private ItemStack furnaceSource;
+		
 		private String row1;
 		private String row2;
 		private String row3;
@@ -1048,6 +1066,24 @@ public class RecipeUtil {
 				return true;
 
 			return false;
+		}
+		
+		/**
+		 * Getter for the source of a furnace recipe
+		 * 
+		 * @return a itemstack which represents the furnaces source
+		 */
+		public ItemStack getFurnaceSource() {
+			return furnaceSource;
+		}
+		
+		/**
+		 * Setter for the source of a furnace recipe
+		 * 
+		 * @param item the furnace source itemstack
+		 */
+		public void setFurnaceSource(ItemStack item) {
+			furnaceSource = item;
 		}
 	}
 

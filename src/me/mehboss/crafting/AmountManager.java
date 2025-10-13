@@ -129,16 +129,19 @@ public class AmountManager implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
-
-		logDebug("[handleShiftClicks] Fired amount checking mechanics..");
+		UUID id = e.getWhoClicked().getUniqueId();
 
 		if (inv.getResult() == null || inv.getResult().getType() == Material.AIR)
 			return;
 
+		// added debounce mechanism, which will automatically remove after 75ms to
+		// greatly improve server performance on large amounts of crafts (such as
+		// concrete power)
+		Main.getInstance().debounceMap.put(id, System.currentTimeMillis());
 		if (getRecipeUtil().getRecipeFromResult(inv.getResult()) == null)
 			return;
 
-		logDebug("[handleShiftClicks] Passed containsValue boolean check.");
+		logDebug("[handleShiftClicks] Fired amount checking mechanics..");
 
 		if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 			return;
@@ -147,7 +150,6 @@ public class AmountManager implements Listener {
 				? getRecipeUtil().getRecipeFromResult(inv.getResult()).getName()
 				: null;
 
-		UUID id = e.getWhoClicked().getUniqueId();
 		final ItemStack result = inv.getResult();
 		boolean isShapeless = e.getRecipe() instanceof ShapelessRecipe ? true : false;
 		HashMap<String, Recipe> types = isShapeless ? getRecipeUtil().getRecipesFromType(RecipeType.SHAPELESS)

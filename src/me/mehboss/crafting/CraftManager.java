@@ -39,8 +39,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.Nullable;
-
 import com.cryptomorin.xseries.XMaterial;
 import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
 import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
@@ -808,7 +806,7 @@ public class CraftManager implements Listener {
 		}
 		return true;
 	}
-
+	
 	@EventHandler(priority = EventPriority.LOWEST)
 	void handleCrafting(PrepareItemCraftEvent e) {
 
@@ -817,13 +815,24 @@ public class CraftManager implements Listener {
 		Object view = CompatibilityUtil.getInventoryView(e);
 		Player p = CompatibilityUtil.getPlayerFromView(view);
 
-		logDebug("[handleCrafting] Fired craft event!", "", p.getUniqueId());
 		if (!(p instanceof Player) || p == null)
 			return;
 
+		logDebug("[handleCrafting] Fired craft event!", "", p.getUniqueId());
 		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
 				|| !(matchedRecipe(inv, p.getUniqueId())))
 			return;
+
+		long now = System.currentTimeMillis();
+		UUID id = p.getUniqueId();
+
+		// avoids redundant checks to increase server performance
+		if (Main.getInstance().debounceMap.containsKey(id)) {
+			if (now - Main.getInstance().debounceMap.get(id) < 75) {
+				return;
+			}
+			Main.getInstance().debounceMap.remove(id);
+		}
 
 		if (isBlacklisted(inv.getResult(), p)) {
 			inv.setResult(new ItemStack(Material.AIR));
@@ -858,7 +867,8 @@ public class CraftManager implements Listener {
 				continue;
 
 			if (!hasAllIngredients(inv, recipe.getName(), recipeIngredients, id)) {
-				logDebug("[handleCrafting] Skipping to the next recipe! Ingredients did not match..", recipe.getName(), id);
+				logDebug("[handleCrafting] Skipping to the next recipe! Ingredients did not match..", recipe.getName(),
+						id);
 				passedCheck = false;
 				continue;
 			}

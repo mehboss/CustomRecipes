@@ -441,10 +441,11 @@ public class RecipeManager {
 
 	@SuppressWarnings("deprecation")
 	ItemStack handleDurability(ItemStack i, String item) {
-		if (getConfig().isSet(item + ".Durability"))
-			if (!getConfig().getString(item + ".Durability").equals("100"))
+		if (getConfig().isSet(item + ".Durability")) {
+			String durability = getConfig().getString(item + ".Durability");
+			if (!durability.equals("100") && !durability.equals("0"))
 				i.setDurability(Short.valueOf(getConfig().getString(item + ".Durability")));
-
+		}
 		return i;
 	}
 
@@ -1146,24 +1147,23 @@ public class RecipeManager {
 	void setFurnaceSource(Recipe recipe) {
 		Ingredient sourceItem = recipe.getSlot(1);
 		ItemStack source = null;
-		
+
 		if (sourceItem.hasIdentifier()) {
 			source = getRecipeUtil().getResultFromKey(sourceItem.getIdentifier());
 		}
-		
+
 		if (source == null) {
 			source = new ItemStack(sourceItem.getMaterial());
-			
+
 			if (sourceItem.hasDisplayName())
 				source.getItemMeta().setDisplayName(sourceItem.getDisplayName());
 			if (sourceItem.hasCustomModelData())
 				source.getItemMeta().setCustomModelData(sourceItem.getCustomModelData());
 		}
-		
+
 		recipe.setFurnaceSource(source);
 	}
 
-	
 	String isCustomItem(String identifier, String recipe) {
 		String[] key = identifier.split(":");
 		if (key.length < 2)

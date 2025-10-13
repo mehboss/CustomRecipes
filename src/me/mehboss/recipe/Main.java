@@ -67,6 +67,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	RecipeGUI editItem;
 
+    public Map<UUID, Long> debounceMap = new HashMap<>();
 	public ArrayList<UUID> inInventory = new ArrayList<UUID>();
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
 	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();

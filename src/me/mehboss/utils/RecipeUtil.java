@@ -233,8 +233,8 @@ public class RecipeUtil {
 
 		// First, try to get a key from normal recipes
 		Recipe recipe = getRecipeFromResult(item);
-		if (recipe != null)
-			return recipe.getKey(); // assuming your Recipe class has getKey()
+		if (recipe != null && !recipe.isCustomItem())
+			return recipe.getKey();
 
 		if (Main.getInstance().hasItemsAdderPlugin()) {
 			CustomStack ia = CustomStack.byItemStack(item);
@@ -536,7 +536,7 @@ public class RecipeUtil {
 		 * @return true if the recipe output is custom, false otherwise.
 		 */
 		public boolean isCustomItem() {
-			return customItem != null;
+			return customItem != null && customItem.split(":").length > 1;
 		}
 
 		/**

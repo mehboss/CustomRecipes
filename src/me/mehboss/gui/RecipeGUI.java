@@ -291,7 +291,7 @@ public class RecipeGUI implements Listener {
 		if (showShapeless) {
 			shapeless = XMaterial.CRAFTING_TABLE.parseItem();
 			ItemMeta shapelessm = shapeless.getItemMeta();
-			Boolean isShapeless = rType.equals(RecipeType.SHAPELESS);
+			Boolean isShapeless = creating ? rType.equals(RecipeType.SHAPELESS) : true;
 			Boolean sc = creating ? isShapeless : getConfig(configname).getBoolean(configname + ".Shapeless");
 			String toggle = sc ? "&atrue" : "&cfalse";
 			shapelessm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fShapeless: &f" + toggle));
@@ -301,7 +301,7 @@ public class RecipeGUI implements Listener {
 		// Exact choice
 		ItemStack ec = XMaterial.LEVER.parseItem();
 		ItemMeta ecm = ec.getItemMeta();
-		Boolean exact = getConfig(configname).getBoolean(configname + ".Exact-Choice");
+		Boolean exact = getConfig(configname).getBoolean(configname + ".Exact-Choice", true);
 		String toggle = exact ? "&atrue" : "&cfalse";
 		ecm.setDisplayName(ChatColor.translateAlternateColorCodes('&', "&fExact-Choice: &f" + toggle));
 		ec.setItemMeta(ecm);

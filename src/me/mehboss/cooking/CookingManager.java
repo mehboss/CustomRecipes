@@ -18,6 +18,8 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.ItemStack;
 
+import com.cryptomorin.xseries.XMaterial;
+
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -49,8 +51,9 @@ public class CookingManager implements Listener {
 			if (furnace == inv) {
 
 				Player p = Bukkit.getPlayer(cooking.get(furnace));
-				if (!recipe.isActive() || (p != null && ((recipe.getPerm() != null && !p.hasPermission(recipe.getPerm()))
-						|| (recipe.getDisabledWorlds().contains(p.getWorld().getName()))))) {
+				if (!recipe.isActive()
+						|| (p != null && ((recipe.getPerm() != null && !p.hasPermission(recipe.getPerm()))
+								|| (recipe.getDisabledWorlds().contains(p.getWorld().getName()))))) {
 					sendNoPermsMessage(p, recipe.getName());
 					e.setCancelled(true);
 					return;
@@ -69,7 +72,23 @@ public class CookingManager implements Listener {
 		if (getRecipeUtil().getRecipeFromFurnaceSource(e.getSource()) == null)
 			return;
 
-		FurnaceCache.clear(e.getBlock());
+		// prevent a loop, checking to see if the smelt is already smelting the correct
+		// recipe.
+		ItemStack customItem = getRecipeUtil().getRecipeFromFurnaceSource(e.getSource()).getResult();
+		if (customItem.isSimilar(e.getRecipe().getResult()))
+			return;
+
+		Furnace f = (Furnace) e.getBlock().getState();
+		FurnaceInventory inv = f.getInventory();
+
+		// Put dummy item in input to force recipe re-check
+		inv.setSmelting(new ItemStack(XMaterial.STONE.parseMaterial()));
+		// Restore custom input
+		inv.setSmelting(e.getSource());
+
+		Furnace furnace = (Furnace) inv.getHolder();
+		if (furnace != null)
+			furnace.update(true, true);
 	}
 
 	@EventHandler
@@ -84,7 +103,6 @@ public class CookingManager implements Listener {
 			FurnaceInventory inv = (FurnaceInventory) e.getInventory();
 			if (!cooking.containsKey(inv)) {
 				cooking.put(inv, id);
-
 			}
 		}
 	}

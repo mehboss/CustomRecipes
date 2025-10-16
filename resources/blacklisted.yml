@@ -48,6 +48,11 @@ crafting-limit:
     enabled: false
     message: '&cYou cannot craft this recipe!'
 
+# Messages to be sent if the recipe conditions fail
+# Configuration for messages coming soon
+conditions-failed:
+  close-inventory: true
+
 # Add craftable vanilla materials here if you plan on changing how you craft it. Completely removes the original recipe from the server.
 override-recipes:
   Crafting: []

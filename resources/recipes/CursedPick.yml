@@ -26,12 +26,6 @@ CursedPick:
   # Can this item be placed as a block?
   Placeable: true  
 
-  # Should metadata be considered in crafting?
-  Ignore-Data: false  
-
-  # Should model data be considered even if ignore-data is true?
-  Ignore-Model-Data: false  
-
   # Should this recipe use precise ItemStacks and show up in the vanilla recipe book?
   # Does not work on versions < 1.14
   Exact-Choice: true
@@ -48,7 +42,7 @@ CursedPick:
   # Also known as the NamespacedKey
   Identifier: 'CURSED_PICKAXE'  
 
-  # Defaults to SHAPED. Other converters: (SHAPED, FURNACE, BLASTFURNACE, SMOKER, CAMPFIRE, STONECUTTER, ANVIL, & MORE)
+  # Defaults to SHAPED. Other converters: (SHAPED, SHAPELESS, FURNACE, BLASTFURNACE, SMOKER, CAMPFIRE, STONECUTTER, ANVIL, & MORE)
   Converter: none  
 
   # Required permission for crafting this item. 
@@ -121,17 +115,42 @@ CursedPick:
       #
       # Name with support for color codes
       Name: 'Emerald Essence'  
+	  #
+	  # Custom model data requirements
+      Custom-Model-Data: none
     I:
       Material: IRON_INGOT
       Identifier: none
       Amount: 1
       Name: 'Iron Essence'
+      Custom-Model-Data: none
 
   # Add leftover ingredients
   # Can be a material or an ingredient identifier if you define one
   # Use [] if not needed
   ItemsLeftover:
    - EMERALD
+
+  # Add flags such as ignoring name, lore, cmd, or itemmeta in general
+  Flags:
+    Ignore-Data: false
+    Ignore-Custom-Model-Data: false
+    Ignore-Lore: false
+    Ignore-Name: false
+
+  # Add recipe conditions
+  Conditions_All: # or Conditions_Any for any one to be true rather than requiring all conditions
+    world: ["world", "world_nether"]         # only allow in these worlds
+    world_deny: ["world_the_end"]            # disallow in End
+    biome: ["plains", "forest"]              # only these biomes
+    biome_deny: ["desert"]                   # deny these biomes
+    time: ["13000-23000", "0-2000"]          # support multiple ranges
+    weather: ["clear", "rain"]               # valid: clear, rain, thunder
+    advancement:                             # player must have at least one
+     - 'story/mine_stone'                    # vanilla format (minecraft:story/mine_stone is also ok)
+     - 'minecraft:adventure/adventuring_time'
+    moon_phase: [0, 4]                       # 0 = full moon, 4 = new moon [0-7]
+
   # Add specific NBT tags if needed
   # Use [] if not needed
   Custom-Tags: []  

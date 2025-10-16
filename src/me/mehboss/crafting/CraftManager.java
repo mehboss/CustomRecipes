@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
@@ -48,9 +47,12 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
+import me.mehboss.utils.RecipeConditions;
+import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import net.md_5.bungee.api.ChatColor;
 
 public class CraftManager implements Listener {
 
@@ -439,12 +441,16 @@ public class CraftManager implements Listener {
 
 	public boolean hasVanillaIngredients(Inventory inv, ItemStack result) {
 
-		if (result == null)
-			return false;
+		if (result != null) {
+			if (result.hasItemMeta() && (result.getItemMeta().hasDisplayName() || result.getItemMeta().hasLore()
+					|| NBTEditor.contains(result, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
+				return false;
 
-		if (result.hasItemMeta() && (result.getItemMeta().hasDisplayName() || result.getItemMeta().hasLore()
-				|| NBTEditor.contains(result, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
-			return false;
+			// vanilla ingredients, but matched to a custom recipe result, so still check
+			// amount requirements.
+			if (getRecipeUtil().getRecipeFromResult(result) != null)
+				return false;
+		}
 
 		boolean isCraftingInventory = inv.getType() == InventoryType.WORKBENCH
 				|| inv.getType() == InventoryType.CRAFTING;
@@ -459,9 +465,6 @@ public class CraftManager implements Listener {
 			if (item == null || item.getType() == Material.AIR)
 				continue;
 			if (item.hasItemMeta() && (item.getItemMeta().hasDisplayName() || item.getItemMeta().hasLore()))
-				return false;
-
-			if (getRecipeUtil().getRecipeFromResult(result) != null)
 				return false;
 		}
 		return true;
@@ -729,8 +732,7 @@ public class CraftManager implements Listener {
 						return false;
 					}
 
-					logDebug("[handleShaped] Passed all required checks for the recipe ingredient in slot " + i,
-							recipe.getName());
+					logDebug("[handleShaped] Passed all checks for the ingredient in slot " + i, recipe.getName());
 					continue;
 
 				}
@@ -806,7 +808,7 @@ public class CraftManager implements Listener {
 		}
 		return true;
 	}
-	
+
 	@EventHandler(priority = EventPriority.LOWEST)
 	void handleCrafting(PrepareItemCraftEvent e) {
 
@@ -818,7 +820,6 @@ public class CraftManager implements Listener {
 		if (!(p instanceof Player) || p == null)
 			return;
 
-		logDebug("[handleCrafting] Fired craft event!", "", p.getUniqueId());
 		if ((inv.getType() != InventoryType.WORKBENCH && inv.getType() != InventoryType.CRAFTING)
 				|| !(matchedRecipe(inv, p.getUniqueId())))
 			return;
@@ -839,6 +840,9 @@ public class CraftManager implements Listener {
 			return;
 		}
 
+		if (hasVanillaIngredients(inv, inv.getResult()))
+			return;
+
 		if (inv.getType() == InventoryType.CRAFTING) {
 			if (!(inv.getRecipe() instanceof ShapelessRecipe)) {
 				if (getRecipeUtil().getRecipeFromResult(inv.getResult()) != null)
@@ -847,6 +851,7 @@ public class CraftManager implements Listener {
 			}
 		}
 
+		logDebug("[handleCrafting] Fired craft event, beginning checks..", "", p.getUniqueId());
 		handleCraftingChecks(inv, p);
 	}
 
@@ -856,9 +861,8 @@ public class CraftManager implements Listener {
 		Boolean found = false;
 
 		UUID id = p.getUniqueId();
-		for (String recipes : getRecipeUtil().getRecipeNames()) {
 
-			Recipe recipe = getRecipeUtil().getRecipe(recipes);
+		for (Recipe recipe : getRecipeUtil().getAllRecipesSortedByResult(inv.getResult())) {
 			finalRecipe = recipe;
 
 			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
@@ -922,7 +926,7 @@ public class CraftManager implements Listener {
 		logDebug("[handleCrafting] Final crafting results: (passedChecks: " + passedCheck + ")(foundRecipe: " + found
 				+ ")", finalRecipe.getName(), id);
 
-		if (hasVanillaIngredients(inv, inv.getResult()) || !found)
+		if (!found)
 			return;
 
 		if ((!passedCheck) || (passedCheck && !found)) {
@@ -963,6 +967,27 @@ public class CraftManager implements Listener {
 			sendMessages(p, "crafting-limit", timeLeft);
 			inv.setResult(new ItemStack(Material.AIR));
 			return;
+		}
+
+		// checks recipe conditions
+		ConditionSet cs = finalRecipe.getConditionSet();
+		if (cs != null && !cs.isEmpty()) {
+			List<String> reasons = new ArrayList<String>();
+			if (!cs.test(p.getLocation(), p, reasons)) {
+				if (!reasons.isEmpty()) {
+					p.sendMessage(ChatColor.RED + "You cannot craft this recipe until conditions are met: "
+							+ ChatColor.GRAY + String.join(", ", reasons));
+				}
+
+				Boolean closeInventory = Main.getInstance().customConfig.getBoolean("conditions-failed.close-inventory",
+						true);
+				if (closeInventory)
+					p.closeInventory();
+
+				logDebug(" Preventing craft due to failing required recipe conditions!", finalRecipe.getName());
+				inv.setResult(new ItemStack(Material.AIR));
+				return;
+			}
 		}
 
 		if (passedCheck && found) {

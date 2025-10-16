@@ -21,8 +21,10 @@ import com.cryptomorin.xseries.XMaterial;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import net.md_5.bungee.api.ChatColor;
 
 public class CrafterManager implements Listener {
 
@@ -38,9 +40,11 @@ public class CrafterManager implements Listener {
 		Boolean passedCheck = true;
 		Boolean found = false;
 
-		for (String recipes : getRecipeUtil().getRecipeNames()) {
+		if (CraftManager().hasVanillaIngredients(inv, result))
+			return result;
 
-			Recipe recipe = getRecipeUtil().getRecipe(recipes);
+		for (Recipe recipe : getRecipeUtil().getAllRecipesSortedByResult(result)) {
+
 			finalRecipe = recipe;
 
 			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
@@ -103,7 +107,7 @@ public class CrafterManager implements Listener {
 		logDebug("[handleCrafting] Final crafting results: (passedChecks: " + passedCheck + ")(foundRecipe: " + found
 				+ ")", finalRecipe.getName());
 
-		if (CraftManager().hasVanillaIngredients(inv, result) || !found)
+		if (!found)
 			return result;
 
 		if ((!passedCheck) || (passedCheck && !found)) {
@@ -114,6 +118,15 @@ public class CrafterManager implements Listener {
 				|| Main.getInstance().disabledrecipe.contains(finalRecipe.getKey())) {
 			logDebug(" Attempt to craft recipe was detected, but recipe is disabled!", finalRecipe.getName());
 			return new ItemStack(Material.AIR);
+		}
+
+		// checks recipe conditions
+		ConditionSet cs = finalRecipe.getConditionSet();
+		if (cs != null && !cs.isEmpty()) {
+			if (!cs.test(e.getBlock().getLocation(), null, null)) {
+				logDebug("Preventing craft of due to failing required recipe conditions!", finalRecipe.getName());
+				return new ItemStack(Material.AIR);
+			}
 		}
 
 		if (passedCheck && found) {
@@ -350,8 +363,7 @@ public class CrafterManager implements Listener {
 						return false;
 					}
 
-					logDebug("[handleShaped] Passed all required checks for the recipe ingredient in slot " + i,
-							recipe.getName());
+					logDebug("[handleShaped] Passed all checks for the ingredient in slot " + i, recipe.getName());
 					continue;
 
 				}

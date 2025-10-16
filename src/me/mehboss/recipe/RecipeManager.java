@@ -33,6 +33,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.CreatureSpawner;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
@@ -66,6 +67,7 @@ import com.mojang.authlib.properties.Property;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
 import me.mehboss.utils.CompatibilityUtil;
+import me.mehboss.utils.RecipeConditions;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -167,6 +169,11 @@ public class RecipeManager {
 		if (getConfig().isSet(configPath + ".Group")
 				&& !getConfig().getString(configPath + ".Group").equalsIgnoreCase("none"))
 			recipe.setGroup(getConfig().getString(configPath + ".Group"));
+	}
+
+	void handleConditions(Recipe recipe, String configPath) {
+		ConfigurationSection rSec = getConfig().getConfigurationSection(configPath);
+		recipe.setConditionSet(RecipeConditions.parseConditionSet(rSec));
 	}
 
 	ItemStack handleHeadTexture(String material) {
@@ -850,6 +857,7 @@ public class RecipeManager {
 			handleCommand(item, recipe);
 			handleLeftovers(i.getType(), item, recipe);
 			handleDisabledWorlds(item, recipe);
+			handleConditions(recipe, item);
 
 			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
 				recipe.setTagged(true);

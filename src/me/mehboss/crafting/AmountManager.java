@@ -69,12 +69,12 @@ public class AmountManager implements Listener {
 
 			int availableItems = item.getAmount();
 
-			logDebug("[handleShiftClicks] ItemsToRemove: " + itemsToRemove + " - ItemsToAdd: " + itemsToAdd);
-			logDebug("[handleShiftClicks] ItemAmount: " + availableItems + "|| RequiredAmount: " + requiredAmount);
-			logDebug("[handleShiftClicks] Identifier: " + ingredient.getIdentifier() + " - ID? "
+			logDebug("[handleShiftClicks] ItemsToRemove: " + itemsToRemove + " || ItemsToAdd: " + itemsToAdd);
+			logDebug("[handleShiftClicks] ItemAmount: " + availableItems + " || RequiredAmount: " + requiredAmount);
+			logDebug("[handleShiftClicks] Identifier: " + ingredient.getIdentifier() + " || hasID: "
 					+ ingredient.hasIdentifier());
-			logDebug("[handleShiftClicks] Material: " + ingredient.getMaterial().toString());
-			logDebug("[handleShiftClicks] Displayname: " + ingredient.getDisplayName());
+			logDebug("[handleShiftClicks] Material: " + ingredient.getMaterial().toString() + " || Displayname: "
+					+ ingredient.getDisplayName());
 
 			if (availableItems < requiredAmount)
 				return;
@@ -237,7 +237,8 @@ public class AmountManager implements Listener {
 		// If nothing craftable, bail before removal logic
 		if (itemsToAdd <= 0 || itemsToAdd == Integer.MAX_VALUE) {
 			logDebug("[handleShiftClicks][" + findName
-					+ "] An issue has been detected whilest calculating amount deductions. Please reach out for support to report this.");
+					+ "] An issue has been detected whilest calculating amount deductions..");
+			logDebug("Please reach out for support to report this.. this shouldn't happen.");
 			e.setCancelled(true);
 			return;
 		}

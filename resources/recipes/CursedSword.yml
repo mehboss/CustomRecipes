@@ -32,16 +32,16 @@ CursedSword:
     D:
       Material: DIAMOND
       Identifier: none
-	  Custom-Model-Data: none
-	  Name: 'Diamond Shrine'
-	  Lore: []
-	  Amount: 1
+      Name: 'Diamond Shrine'
+      Custom-Model-Data: none
+      Lore: []
+      Amount: 1
     B:
       Material: OAK_PLANKS
       Identifier: none
-	  Custom-Model-Data: none
-	  Name: 'Wooden Board'
-	  Lore: []
+      Name: 'Wooden Board'
+      Custom-Model-Data: none
+      Lore: []
       Amount: 1
   ItemsLeftover:
    - BOWL
@@ -50,6 +50,11 @@ CursedSword:
     Ignore-Custom-Model-Data: false
     Ignore-Lore: false
     Ignore-Name: false
+  Conditions_All:
+    world: ["world", "world_nether"]
+    biome: ["plains", "forest"]
+    weather: ["clear", "rain"]
+    time: ["13000-23000", "0-2000"]
   Custom-Tags: []
   Item-Flags: []
   Attribute: []

@@ -1,11 +1,13 @@
 package me.mehboss.utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -25,6 +27,7 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.th0rgal.oraxen.api.OraxenItems;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeConditions.ConditionSet;
 import net.Indyuce.mmoitems.MMOItems;
 
 public class RecipeUtil {
@@ -319,6 +322,37 @@ public class RecipeUtil {
 	}
 
 	/**
+	 * Get all recipes, ordered so that any recipes whose result is similar to the
+	 * given result item are first.
+	 *
+	 * @param shown the result item in the crafting inventory (can be null or AIR)
+	 * @return ordered list of recipes
+	 */
+	public List<Recipe> getAllRecipesSortedByResult(ItemStack shown) {
+		if (recipes == null || recipes.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		boolean hasShown = shown != null && shown.getType() != Material.AIR;
+
+		return recipes.values().stream().sorted((a, b) -> {
+			if (!hasShown)
+				return 0; // no prioritization if slot empty
+			boolean aMatch = isSimilarSafe(shown, a.getResult());
+			boolean bMatch = isSimilarSafe(shown, b.getResult());
+			return Boolean.compare(bMatch, aMatch); // true before false
+		}).collect(Collectors.toList());
+	}
+
+	private boolean isSimilarSafe(ItemStack a, ItemStack b) {
+		if (a == null || b == null)
+			return false;
+		if (a.getType() == Material.AIR || b.getType() == Material.AIR)
+			return false;
+		return a.isSimilar(b);
+	}
+
+	/**
 	 * Getter for all recipes matching a type
 	 * 
 	 * @param type the recipe type
@@ -355,7 +389,7 @@ public class RecipeUtil {
 		}
 		return results;
 	}
-	
+
 	/**
 	 * Getter for a furnace recipe by the source
 	 * 
@@ -365,7 +399,7 @@ public class RecipeUtil {
 		HashMap<String, Recipe> furnaceRecipes = getRecipesFromType(Recipe.RecipeType.FURNACE);
 		for (Recipe recipes : furnaceRecipes.values()) {
 			ItemStack sourceItem = recipes.getFurnaceSource();
-			
+
 			if (sourceItem != null && (item.equals(sourceItem) || item.isSimilar(sourceItem)))
 				return recipes;
 		}
@@ -457,7 +491,7 @@ public class RecipeUtil {
 		private boolean isGrantItem = true;
 
 		private ItemStack furnaceSource;
-		
+
 		private String row1;
 		private String row2;
 		private String row3;
@@ -468,6 +502,8 @@ public class RecipeUtil {
 		private float furnaceExperience = 1.0f;
 
 		private String group = "";
+
+		private ConditionSet conditionSet = new ConditionSet();
 
 		public enum RecipeType {
 			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE, BREWING_STAND;
@@ -486,6 +522,27 @@ public class RecipeUtil {
 			this.name = name;
 			this.ingredients = new ArrayList<>();
 		}
+
+	    /**
+	     * Gets the ConditionSet attached to this recipe.
+	     * Conditions define extra requirements for crafting
+	     * (e.g. world, time, weather).
+	     *
+	     * @return the ConditionSet for this recipe, never null
+	     */
+	    public ConditionSet getConditionSet() {
+	        return conditionSet;
+	    }
+
+	    /**
+	     * Sets the ConditionSet for this recipe.
+	     * If {@code cs} is null, an empty ConditionSet is applied instead.
+	     *
+	     * @param cs the new ConditionSet for this recipe, can be null
+	     */
+	    public void setConditionSet(ConditionSet cs) {
+	        this.conditionSet = (cs == null) ? new ConditionSet() : cs;
+	    }
 
 		/**
 		 * Getter for setBookCategory
@@ -1067,7 +1124,7 @@ public class RecipeUtil {
 
 			return false;
 		}
-		
+
 		/**
 		 * Getter for the source of a furnace recipe
 		 * 
@@ -1076,7 +1133,7 @@ public class RecipeUtil {
 		public ItemStack getFurnaceSource() {
 			return furnaceSource;
 		}
-		
+
 		/**
 		 * Setter for the source of a furnace recipe
 		 * 

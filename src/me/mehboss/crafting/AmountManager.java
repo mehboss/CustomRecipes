@@ -81,8 +81,11 @@ public class AmountManager implements Listener {
 
 			String id = ingredient.hasIdentifier() ? ingredient.getIdentifier() : item.getType().toString();
 			if (recipe.isLeftover(id)) {
+				logDebug("[isLeftover] Leaving item in the work bench because it has been listed to be leftover!");
 				if (item.getType().toString().contains("_BUCKET"))
 					item.setType(XMaterial.BUCKET.parseMaterial());
+				
+				item.setAmount(item.getAmount() + 1);
 				return;
 			}
 

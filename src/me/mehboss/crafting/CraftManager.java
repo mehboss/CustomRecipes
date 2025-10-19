@@ -47,7 +47,6 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
-import me.mehboss.utils.RecipeConditions;
 import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;

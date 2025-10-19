@@ -1,0 +1,21 @@
+LuckyPickaxe:
+  Item: 'DIAMOND_PICKAXE'
+  Amount: 1
+  Identifier: 'LUCKY_PICKAXE'
+  Name: '&b&lLucky Pickaxe'
+  Lore:
+    - '&7A pickaxe blessed by the gods'
+    - '&7Might bring you great fortune... or not.'
+  Hide-Enchants: true
+  Enchantments:
+    - 'DIG_SPEED:5'
+    - 'DURABILITY:3'
+    - 'FORTUNE:2'
+  Item-Flags:
+    - 'HIDE_UNBREAKABLE'
+    - 'HIDE_ENCHANTS'
+  Attribute:
+    - 'GENERIC_ATTACK_DAMAGE:5:HAND'
+    - 'GENERIC_ATTACK_SPEED:1.2:HAND'
+  Custom-Model-Data: none
+  Custom-Tagged: true

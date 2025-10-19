@@ -65,6 +65,10 @@ public class RecipeTypeGUI implements Listener {
 
 	private void setIfSupported(int slot, XMaterial mat, String name, int major, int minor, RecipeType type) {
 		if (Main.getInstance().serverVersionAtLeast(major, minor) && mat != null) {
+			if (type == RecipeType.FURNACE && !Main.getInstance().serverVersionAtLeast(1, 14)) {
+				inv.setItem(22, createItem(mat, name));
+				return;
+			}
 			inv.setItem(slot, createItem(mat, name));
 		} else {
 			inv.setItem(slot, createItem(XMaterial.BLACK_STAINED_GLASS_PANE, " "));

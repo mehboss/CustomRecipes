@@ -128,9 +128,10 @@ public class RecipeUtil {
 
 		if (key == null)
 			return null;
-		if (getRecipeFromKey(key) != null) {
+		if (getRecipeFromKey(key) != null)
 			return getRecipeFromKey(key).getResult();
-		}
+		if (ItemBuilder.get(key) != null)
+			return ItemBuilder.get(key);
 
 		// If not found, treat it as a custom item key
 		String[] split = key.split(":");
@@ -238,6 +239,11 @@ public class RecipeUtil {
 		Recipe recipe = getRecipeFromResult(item);
 		if (recipe != null && !recipe.isCustomItem())
 			return recipe.getKey();
+
+		// Then, try for a custom item
+		String customID = ItemBuilder.get(item);
+		if (customID != null && !recipe.isCustomItem())
+			return customID;
 
 		if (Main.getInstance().hasItemsAdderPlugin()) {
 			CustomStack ia = CustomStack.byItemStack(item);
@@ -523,26 +529,25 @@ public class RecipeUtil {
 			this.ingredients = new ArrayList<>();
 		}
 
-	    /**
-	     * Gets the ConditionSet attached to this recipe.
-	     * Conditions define extra requirements for crafting
-	     * (e.g. world, time, weather).
-	     *
-	     * @return the ConditionSet for this recipe, never null
-	     */
-	    public ConditionSet getConditionSet() {
-	        return conditionSet;
-	    }
+		/**
+		 * Gets the ConditionSet attached to this recipe. Conditions define extra
+		 * requirements for crafting (e.g. world, time, weather).
+		 *
+		 * @return the ConditionSet for this recipe, never null
+		 */
+		public ConditionSet getConditionSet() {
+			return conditionSet;
+		}
 
-	    /**
-	     * Sets the ConditionSet for this recipe.
-	     * If {@code cs} is null, an empty ConditionSet is applied instead.
-	     *
-	     * @param cs the new ConditionSet for this recipe, can be null
-	     */
-	    public void setConditionSet(ConditionSet cs) {
-	        this.conditionSet = (cs == null) ? new ConditionSet() : cs;
-	    }
+		/**
+		 * Sets the ConditionSet for this recipe. If {@code cs} is null, an empty
+		 * ConditionSet is applied instead.
+		 *
+		 * @param cs the new ConditionSet for this recipe, can be null
+		 */
+		public void setConditionSet(ConditionSet cs) {
+			this.conditionSet = (cs == null) ? new ConditionSet() : cs;
+		}
 
 		/**
 		 * Getter for setBookCategory

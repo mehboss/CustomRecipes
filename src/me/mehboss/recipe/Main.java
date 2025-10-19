@@ -47,6 +47,7 @@ import me.mehboss.gui.RecipeTypeGUI;
 import me.mehboss.gui.BookGUI;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
+import me.mehboss.utils.ItemBuilder;
 import me.mehboss.utils.MetaChecks;
 import me.mehboss.utils.Metrics;
 import me.mehboss.utils.Placeholders;
@@ -67,7 +68,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	RecipeGUI editItem;
 
-    public Map<UUID, Long> debounceMap = new HashMap<>();
+	public Map<UUID, Long> debounceMap = new HashMap<>();
 	public ArrayList<UUID> inInventory = new ArrayList<UUID>();
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
 	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
@@ -83,6 +84,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	File cursedYml = new File(getDataFolder() + "/recipes/CursedPick.yml");
 	File swordYml = new File(getDataFolder() + "/recipes/CursedSword.yml");
+	File luckyYml = new File(getDataFolder() + "/items/LuckyPickaxe.yml");
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
 	File sandYml = new File(getDataFolder() + "/recipes/WheatSand.yml");
 
@@ -220,6 +222,10 @@ public class Main extends JavaPlugin implements Listener {
 			saveResource("recipes/WheatSand.yml", false);
 		}
 
+		if (isFirstLoad && !luckyYml.exists()) {
+			saveResource("items/LuckyPickaxe.yml", false);
+		}
+
 		if (ymlFile.exists() && ymlConfig != null) {
 			try {
 				ymlConfig.save(ymlFile);
@@ -290,7 +296,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (Bukkit.getPluginManager().getPlugin("HavenBags") != null) {
 			hasHavenBags = true;
 		}
-		
+
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
 		getLogger().log(Level.INFO, "Loading Recipes..");
@@ -320,16 +326,11 @@ public class Main extends JavaPlugin implements Listener {
 		if (isFirstLoad && getConfig().isSet("firstLoad"))
 			getConfig().set("firstLoad", false);
 
-		if (!getConfig().isSet("Messages.No-Perm-Place"))
-			getConfig().set("Messages.No-Perm-Place", "&cYou cannot place an unplaceable block!");
-
 		debug = getConfig().getBoolean("Debug");
 		crafterdebug = getConfig().getBoolean("Crafter-Debug");
 
 		saveAllCustomYml();
 		saveConfig();
-		registerUpdateChecker();
-		registerBstats();
 		removeRecipes();
 		addCooldowns();
 
@@ -339,12 +340,13 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getScheduler().runTaskLater(this, new Runnable() {
 			@Override
 			public void run() {
+				ItemBuilder.loadAll();
 				recipeManager.addRecipes(null);
 				registerCommands();
-				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipes.");
+				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 			}
 		}, 40L);
-		
+
 		editItem = new RecipeGUI(this, null);
 		recipes = new BookGUI(this);
 		typeGUI = new RecipeTypeGUI();
@@ -361,6 +363,9 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
+		
+		registerUpdateChecker();
+		registerBstats();
 	}
 
 	public void clear() {
@@ -412,28 +417,11 @@ public class Main extends JavaPlugin implements Listener {
 		editItem = new RecipeGUI(this, null);
 
 		// Re-add recipes immediately
+		ItemBuilder.reload();
 		recipeManager.addRecipes(null);
-		getLogger().log(Level.INFO, "Reloaded " + recipeUtil.getRecipeNames().size() + " recipes.");
+		getLogger().log(Level.INFO, "Reloaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 
-		// Re-discover recipes for all online players
-		for (Player p : Bukkit.getOnlinePlayers()) {
-			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
-				NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
-				if (key != null && Bukkit.getRecipe(key) != null) {
-					if (recipe.isDiscoverable()) {
-						if (recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) {
-							if (p.hasDiscoveredRecipe(key)) {
-								p.undiscoverRecipe(key);
-							}
-						} else {
-							if (!p.hasDiscoveredRecipe(key)) {
-								p.discoverRecipe(key);
-							}
-						}
-					}
-				}
-			}
-		}
+		handleAutoDiscover();
 	}
 
 	@Override
@@ -466,6 +454,31 @@ public class Main extends JavaPlugin implements Listener {
 		}
 
 		clear(); // Clear any additional data or cleanup
+	}
+
+	void handleAutoDiscover() {
+		if (!serverVersionAtLeast(1, 12))
+			return;
+		
+		// Re-discover recipes for all online players
+		for (Player p : Bukkit.getOnlinePlayers()) {
+			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
+				NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
+
+				if (!recipe.isDiscoverable() || key == null || Bukkit.getRecipe(key) == null)
+					continue;
+
+				if (recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) {
+					if (p.hasDiscoveredRecipe(key)) {
+						p.undiscoverRecipe(key);
+					}
+				} else {
+					if (!p.hasDiscoveredRecipe(key)) {
+						p.discoverRecipe(key);
+					}
+				}
+			}
+		}
 	}
 
 	void addCooldowns() {

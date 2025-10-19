@@ -108,7 +108,7 @@ public class RecipeManager {
 	}
 
 	void handleLeftovers(Material material, String item, Recipe recipe) {
-		if (getConfig().isString(item + ".ItemsLeftover"))
+		if (getConfig().isSet(item + ".ItemsLeftover"))
 			for (String leftOver : getConfig().getStringList(item + ".ItemsLeftover")) {
 				if (leftOver.equalsIgnoreCase("none"))
 					return;
@@ -414,22 +414,7 @@ public class RecipeManager {
 		return bag;
 	}
 
-	@SuppressWarnings("deprecation")
-	ItemStack handleItemDamage(ItemStack i, String item, String damage, Optional<XMaterial> type) {
-		if (!getConfig().isSet(item + ".Item-Damage") || damage.equalsIgnoreCase("none")) {
-			return new ItemStack(type.get().parseMaterial(), 1);
-		} else {
-			try {
-				return new ItemStack(type.get().parseMaterial(), 1, Short.valueOf(damage));
-			} catch (Exception e) {
-				Main.getInstance().getLogger().log(Level.WARNING, "Couldn't apply item damage to the recipe " + item
-						+ ". Please double check that it is a valid item-damage. Skipping for now.");
-				return new ItemStack(type.get().parseMaterial(), 1);
-			}
-		}
-	}
-
-	ItemStack handleIdentifier(ItemStack i, String item, Recipe recipe) {
+	ItemStack handleIdentifier(ItemStack i, String item) {
 		if (!getConfig().isSet(item + ".Identifier"))
 			return i;
 
@@ -447,7 +432,7 @@ public class RecipeManager {
 	}
 
 	@SuppressWarnings("deprecation")
-	ItemStack handleDurability(ItemStack i, String item) {
+	public ItemStack handleDurability(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Durability")) {
 			String durability = getConfig().getString(item + ".Durability");
 			if (!durability.equals("100") && !durability.equals("0"))
@@ -793,6 +778,7 @@ public class RecipeManager {
 				}
 			}
 
+			int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
 			String identifier = getConfig().getString(item + ".Identifier");
 			recipe.setKey(identifier);
 
@@ -800,55 +786,30 @@ public class RecipeManager {
 			String rawItem = getConfig().getString(item + ".Item") != null ? getConfig().getString(item + ".Item")
 					: null;
 			ItemStack i = getRecipeUtil().getResultFromKey(rawItem);
-			ItemMeta m = i != null ? i.getItemMeta() : null;
 
 			// handle custom item stacks
 			if (i != null)
 				recipe.setCustomItem(rawItem);
 
-			// handle item stack check
-			if (i == null && getConfig().getItemStack(item + ".Item") != null)
-				i = getConfig().getItemStack(item + ".Item");
-
-			// handle material checks
 			if (i == null) {
+				if (getConfig().getItemStack(item + ".Item") != null) {
+					// handle itemstack checks
+					i = getConfig().getItemStack(item + ".Item");
+				} else {
+					// handle material checks
+					Optional<ItemStack> built = buildItem(item, getConfig());
+					if (!built.isPresent())
+						continue;
 
-				String damage = getConfig().getString(item + ".Item-Damage");
-				Optional<XMaterial> type = getConfig().isString(item + ".Item")
-						? XMaterial.matchXMaterial(rawItem.split(":")[0].toUpperCase())
-						: null;
-
-				// not a valid material
-				if (!(validMaterial(recipe.getName(), getConfig().getString(item + ".Item"), type)))
-					continue;
-
-				// returns the original material
-				i = handleItemDamage(i, item, damage, type);
-
-				// handle head textures
-				if (handleHeadTexture(getConfig().getString(item + ".Item")) != null)
-					i = handleHeadTexture(getConfig().getString(item + ".Item"));
-
-				i = handleEnchants(i, item);
-				i = handleCustomEnchants(i, item);
-				i = applyCustomTags(i, item);
-				m = handleDisplayname(item, i);
-				m = handleHideEnchants(item, m);
-				m = handleCustomModelData(item, m);
-				m = handleAttributes(item, m);
-				m = handleFlags(item, m);
-				m = handleLore(item, m);
-				i.setItemMeta(m);
+					i = built.get();
+				}
 			}
 
 			i = handleDurability(i, item);
-			i = handleIdentifier(i, item, recipe);
+			i.setAmount(amount);
 
 			if (isHavenBag(item))
 				i = handleBagCreation(i.getType(), item);
-
-			int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
-			i.setAmount(amount);
 
 			recipe.setResult(i);
 			handleIgnoreFlags(item, recipe);
@@ -971,6 +932,40 @@ public class RecipeManager {
 
 		if (delayedRecipes.isEmpty())
 			getRecipeUtil().reloadRecipes();
+	}
+
+	public Optional<ItemStack> buildItem(String item, FileConfiguration path) {
+		Optional<XMaterial> type = path.isString(item + ".Item")
+				? XMaterial.matchXMaterial(path.getString(item + ".Item").split(":")[0].toUpperCase())
+				: null;
+
+		recipeConfig = path;
+
+		// not a valid material
+		if (!(validMaterial(item, path.getString(item + ".Item"), type)))
+			return Optional.empty();
+
+		ItemStack i = new ItemStack(type.get().parseMaterial(), 1);
+		ItemMeta m = i.getItemMeta();
+
+		// handle head textures
+		if (handleHeadTexture(path.getString(item + ".Item")) != null)
+			i = handleHeadTexture(path.getString(item + ".Item"));
+
+		i = handleEnchants(i, item);
+		i = handleCustomEnchants(i, item);
+		i = applyCustomTags(i, item);
+		m = handleDisplayname(item, i);
+		m = handleHideEnchants(item, m);
+		m = handleCustomModelData(item, m);
+		m = handleAttributes(item, m);
+		m = handleFlags(item, m);
+		m = handleLore(item, m);
+		i.setItemMeta(m);
+
+		i = handleIdentifier(i, item);
+
+		return Optional.of(i);
 	}
 
 	public void addRecipesFromAPI(Recipe specificRecipe) {

@@ -43,18 +43,13 @@ CursedSword:
       Custom-Model-Data: none
       Lore: []
       Amount: 1
-  ItemsLeftover:
-   - BOWL
+  ItemsLeftover: []
   Flags:
     Ignore-Data: false
     Ignore-Custom-Model-Data: false
     Ignore-Lore: false
     Ignore-Name: false
-  Conditions_All:
-    world: ["world", "world_nether"]
-    biome: ["plains", "forest"]
-    weather: ["clear", "rain"]
-    time: ["13000-23000", "0-2000"]
+  Conditions_All: []
   Custom-Tags: []
   Item-Flags: []
   Attribute: []

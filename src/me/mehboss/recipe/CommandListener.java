@@ -15,6 +15,7 @@ import me.mehboss.commands.CommandEditItem;
 import me.mehboss.commands.CommandGUI;
 import me.mehboss.commands.CommandGive;
 import me.mehboss.commands.CommandHelp;
+import me.mehboss.commands.CommandItems;
 import me.mehboss.commands.CommandList;
 import me.mehboss.commands.CommandRecipe;
 import me.mehboss.commands.CommandReload;
@@ -53,6 +54,10 @@ public class CommandListener implements CommandExecutor {
 					return CommandList.Run(cmd);
 				}
 
+				if (args[0].equalsIgnoreCase("items")) {
+					return CommandItems.Run(cmd);
+				}
+				
 				if (args[0].equalsIgnoreCase("give")) {
 					return CommandGive.Run(cmd);
 				}

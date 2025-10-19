@@ -115,8 +115,8 @@ CursedPick:
       #
       # Name with support for color codes
       Name: 'Emerald Essence'  
-	  #
-	  # Custom model data requirements
+      #
+      # Custom model data requirements
       Custom-Model-Data: none
     I:
       Material: IRON_INGOT

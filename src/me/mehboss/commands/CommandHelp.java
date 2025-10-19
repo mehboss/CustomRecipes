@@ -16,9 +16,11 @@ public class CommandHelp {
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&c/crecipe &8-&f Displays this help page &e(crecipe.help)"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-				"&c/crecipe list &8-&f Gives a list of all current recipes &e(crecipe.list)"));
+				"&c/crecipe list &8-&f Returns a list of all current recipes &e(crecipe.list)"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-				"&c/crecipe give <player> <recipename> &8-&f Gives a player a custom recipe item &e(crecipe.give)"));
+				"&c/crecipe items &8-&f Returns a list of all current custom items &e(crecipe.items)"));
+		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
+				"&c/crecipe give <player> <recipename/itemkey> &8-&f Gives a player a custom recipe item &e(crecipe.give)"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&c/crecipe gui &8-&f Opens the user-friendly menu for adding/editing &e(crecipe.gui)"));
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&',

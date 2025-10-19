@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.ItemBuilder;
+import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class CommandGive {
 
@@ -17,6 +19,7 @@ public class CommandGive {
 
 	public static boolean Run(CRCommand command) {
 
+		Recipe recipe = Main.getInstance().getRecipeUtil().getRecipe(command.args[2]);
 		CommandSender p = command.sender;
 		int amount = 1;
 
@@ -33,7 +36,7 @@ public class CommandGive {
 			return true;
 		}
 
-		if (Main.getInstance().getRecipeUtil().getRecipe(command.args[2]) == null) {
+		if (recipe == null && ItemBuilder.get(command.args[2]) == null) {
 			p.sendMessage(
 					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Recipe-Not-Found")));
 			return true;
@@ -49,7 +52,15 @@ public class CommandGive {
 			amount = Integer.parseInt(command.args[3]);
 		}
 
-		ItemStack item = new ItemStack(Main.getInstance().getRecipeUtil().getRecipe(command.args[2]).getResult());
+		ItemStack item = null;
+
+		// recipe id
+		if (recipe != null)
+			item = new ItemStack(Main.getInstance().getRecipeUtil().getRecipe(command.args[2]).getResult());
+		// custom item id
+		else
+			item = new ItemStack(ItemBuilder.get(command.args[2]));
+
 		item.setAmount(amount);
 
 		target.getInventory().addItem(item);

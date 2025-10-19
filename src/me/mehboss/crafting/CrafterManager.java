@@ -24,7 +24,6 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
-import net.md_5.bungee.api.ChatColor;
 
 public class CrafterManager implements Listener {
 

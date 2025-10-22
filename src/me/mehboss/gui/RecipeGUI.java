@@ -168,13 +168,17 @@ public class RecipeGUI implements Listener {
 				boolean foundIdentifier = itemIngredients(ingredient, configname, ingIndex + 1, p) != null;
 				ItemStack mat = foundIdentifier ? itemIngredients(ingredient, configname, ingIndex + 1, p)
 						: XMaterial.matchXMaterial(ingredient.getMaterial().toString()).get().parseItem();
-
-				mat.setAmount(getAmounts(ingredient, ingIndex + 1));
+				
+				// for legacy versions for short values
+				if (!foundIdentifier && ingredient.hasMaterialData())
+					mat = ingredient.getMaterialData().toItemStack();
+				
+				mat.setAmount(ingredient.getAmount());
 
 				if (!foundIdentifier) {
 					ItemMeta matm = mat.getItemMeta();
-					if (getNames(ingredient, ingIndex + 1) != null) {
-						matm.setDisplayName(getNames(ingredient, ingIndex + 1));
+					if (ingredient.hasDisplayName()) {
+						matm.setDisplayName(ingredient.getDisplayName());
 					}
 					mat.setItemMeta(matm);
 				}
@@ -384,12 +388,6 @@ public class RecipeGUI implements Listener {
 		i.setItem(45, delete);
 	}
 
-	public int getAmounts(Ingredient ingredient, int slot) {
-		if (!ingredient.isEmpty())
-			return ingredient.getAmount();
-		return 0;
-	}
-
 	String chatColor(String st) {
 		if (st == null)
 			return null;
@@ -418,12 +416,6 @@ public class RecipeGUI implements Listener {
 			}
 			return finalItem;
 		}
-		return null;
-	}
-
-	public String getNames(Ingredient ingredient, int slot) {
-		if (!ingredient.isEmpty() && ingredient.hasDisplayName())
-			return ingredient.getDisplayName();
 		return null;
 	}
 

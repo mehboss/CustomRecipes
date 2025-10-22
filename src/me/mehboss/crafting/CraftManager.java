@@ -922,12 +922,13 @@ public class CraftManager implements Listener {
 			}
 		}
 
-		logDebug("[handleCrafting] Final crafting results: (passedChecks: " + passedCheck + ")(foundRecipe: " + found
-				+ ")", finalRecipe.getName(), id);
-
+		
 		if (!found)
 			return;
 
+		logDebug("[handleCrafting] Final crafting results: (passedChecks: " + passedCheck + ")(foundRecipe: " + found
+				+ ")", finalRecipe.getName(), id);
+		
 		if ((!passedCheck) || (passedCheck && !found)) {
 			inv.setResult(new ItemStack(Material.AIR));
 			return;

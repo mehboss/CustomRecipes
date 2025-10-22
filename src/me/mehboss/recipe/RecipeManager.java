@@ -53,6 +53,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.material.MaterialData;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
@@ -420,7 +421,7 @@ public class RecipeManager {
 
 		String identifier = getConfig().getString(item + ".Identifier");
 
-		if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
+		if (getConfig().getBoolean(item + ".Custom-Tagged"))
 			i = NBTEditor.set(i, identifier, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 
 		if (identifier.equalsIgnoreCase("LifeStealHeart")) {
@@ -552,7 +553,7 @@ public class RecipeManager {
 		if (!getConfig().isSet(item + ".Lore"))
 			return m;
 
-		if (m.hasLore() && getConfig().getBoolean(item + ".Hide-Enchants") == false) {
+		if (m.hasLore() && !getConfig().getBoolean(item + ".Hide-Enchants")) {
 			loreList = (ArrayList<String>) m.getLore();
 		}
 
@@ -738,7 +739,7 @@ public class RecipeManager {
 				break;
 
 			default:
-				if (getConfig().isBoolean(item + ".Shapeless") && getConfig().getBoolean(item + ".Shapeless") == true) {
+				if (getConfig().isBoolean(item + ".Shapeless") && getConfig().getBoolean(item + ".Shapeless")) {
 					recipe.setType(RecipeType.SHAPELESS);
 					break;
 				} else {
@@ -820,7 +821,7 @@ public class RecipeManager {
 			handleDisabledWorlds(item, recipe);
 			handleConditions(recipe, item);
 
-			if (getConfig().getBoolean(item + ".Custom-Tagged") == true)
+			if (getConfig().getBoolean(item + ".Custom-Tagged"))
 				recipe.setTagged(true);
 
 			ArrayList<String> slotsAbbreviations = new ArrayList<String>();
@@ -866,7 +867,6 @@ public class RecipeManager {
 				String configPath = item + ".Ingredients." + abbreviation;
 				String material = getConfig().getString(configPath + ".Material");
 				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
-
 				if (!validMaterial(recipe.getName(), material, rawMaterial)) {
 					continue recipeLoop;
 				}
@@ -905,6 +905,13 @@ public class RecipeManager {
 				recipeIngredient.setIdentifier(ingredientIdentifier);
 				recipeIngredient.setAmount(ingredientAmount);
 				recipeIngredient.setSlot(slot);
+
+				if (rawMaterial.get().getData() != 0) {
+					logDebug("[LegacyID] Found legacy ID - " + ingredientMaterial + ", with a short value of "
+							+ rawMaterial.get().getData(), recipe.getName());
+					recipeIngredient.setMaterialData(new MaterialData(ingredientMaterial, rawMaterial.get().getData()));
+				}
+
 				recipe.addIngredient(recipeIngredient);
 
 				if (count == amountRequirement)
@@ -934,6 +941,31 @@ public class RecipeManager {
 			getRecipeUtil().reloadRecipes();
 	}
 
+	boolean hasItemDamage(String item, Optional<XMaterial> type) {
+		// no need for data values in item IDs anymore. These have been given their own
+		// IDs since 1.13
+		if (Main.getInstance().serverVersionAtLeast(1, 13))
+			return false;
+
+		if (!getConfig().isSet(item + ".Item-Damage")
+				|| getConfig().getString(item + ".Item-Damage").equalsIgnoreCase("none"))
+			return false;
+
+		return true;
+	}
+
+	@SuppressWarnings("deprecation")
+	ItemStack handleItemDamage(String item, Optional<XMaterial> type) {
+		try {
+			Short damage = Short.valueOf(getConfig().getString(item + ".Item-Damage"));
+			return new ItemStack(type.get().parseMaterial(), 1, damage);
+		} catch (Exception e) {
+			Main.getInstance().getLogger().log(Level.WARNING, "Couldn't apply item damage to the recipe " + item
+					+ ". Please double check that it is a valid item-damage. Skipping for now.");
+			return new ItemStack(type.get().parseMaterial(), 1);
+		}
+	}
+
 	public Optional<ItemStack> buildItem(String item, FileConfiguration path) {
 		Optional<XMaterial> type = path.isString(item + ".Item")
 				? XMaterial.matchXMaterial(path.getString(item + ".Item").split(":")[0].toUpperCase())
@@ -945,7 +977,8 @@ public class RecipeManager {
 		if (!(validMaterial(item, path.getString(item + ".Item"), type)))
 			return Optional.empty();
 
-		ItemStack i = new ItemStack(type.get().parseMaterial(), 1);
+		ItemStack i = hasItemDamage(item, type) ? handleItemDamage(item, type)
+				: new ItemStack(type.get().parseMaterial(), 1);
 		ItemMeta m = i.getItemMeta();
 
 		// handle head textures
@@ -1085,7 +1118,12 @@ public class RecipeManager {
 			if (ingredient.isEmpty())
 				continue;
 
-			shapelessRecipe.addIngredient(ingredient.getMaterial());
+			// Added material data for legacy minecraft versions
+			if (ingredient.hasMaterialData()) {
+				shapelessRecipe.addIngredient(ingredient.getMaterialData());
+			} else {
+				shapelessRecipe.addIngredient(ingredient.getMaterial());
+			}
 		}
 
 		return shapelessRecipe;
@@ -1110,7 +1148,13 @@ public class RecipeManager {
 				continue;
 
 			ingredients.add(ingredient.getAbbreviation());
-			shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterial());
+
+			// Added material data for legacy minecraft versions
+			if (ingredient.hasMaterialData()) {
+				shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterialData());
+			} else {
+				shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterial());
+			}
 		}
 
 		return shapedRecipe;

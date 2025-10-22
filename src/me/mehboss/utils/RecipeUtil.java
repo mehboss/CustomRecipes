@@ -16,6 +16,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.recipe.CookingBookCategory;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
+import org.bukkit.material.MaterialData;
 
 import com.cryptomorin.xseries.XMaterial;
 import com.nexomc.nexo.api.NexoItems;
@@ -1152,6 +1153,7 @@ public class RecipeUtil {
 	public static class Ingredient {
 		private ItemStack item;
 		private Material material;
+		private MaterialData materialData;
 
 		private String displayName = "false";
 		private String abbreviation;
@@ -1301,7 +1303,8 @@ public class RecipeUtil {
 		 */
 		public boolean hasDisplayName() {
 			return displayName != null && !displayName.equalsIgnoreCase("false")
-					&& !displayName.equalsIgnoreCase("none") && !displayName.equalsIgnoreCase("null");
+					&& !displayName.equalsIgnoreCase("none") && !displayName.equalsIgnoreCase("null")
+					&& !displayName.isEmpty();
 		}
 
 		/**
@@ -1311,6 +1314,63 @@ public class RecipeUtil {
 		 */
 		public Material getMaterial() {
 			return material == null ? Material.AIR : material;
+		}
+
+		/**
+		 * Gets the legacy {@link MaterialData} of this ingredient.
+		 *
+		 * <p>
+		 * Only valid on Minecraft versions prior to 1.13. On newer versions this will
+		 * always return {@code null}.
+		 * </p>
+		 *
+		 * @return the legacy {@link MaterialData}, or {@code null} if not set
+		 * @deprecated Use modern {@link org.bukkit.inventory.RecipeChoice} or
+		 *             {@link org.bukkit.Material} APIs instead. MaterialData was
+		 *             removed after Minecraft 1.13.
+		 */
+		@Deprecated
+		public MaterialData getMaterialData() {
+			return materialData;
+		}
+
+		/**
+		 * Sets the legacy {@link MaterialData} for this ingredient.
+		 *
+		 * <p>
+		 * Only valid on Minecraft versions prior to 1.13. On newer versions this call
+		 * has no effect.
+		 * </p>
+		 *
+		 * @param data the legacy {@link MaterialData}
+		 * @deprecated Use modern {@link org.bukkit.inventory.RecipeChoice} or
+		 *             {@link org.bukkit.Material} APIs instead. MaterialData was
+		 *             removed after Minecraft 1.13.
+		 */
+		@Deprecated
+		public void setMaterialData(MaterialData data) {
+			materialData = data;
+		}
+
+		/**
+		 * Checks whether this ingredient has legacy {@link MaterialData}.
+		 *
+		 * <p>
+		 * Always returns {@code false} on Minecraft versions 1.13 and newer.
+		 * </p>
+		 *
+		 * @return {@code true} if legacy {@link MaterialData} is set and running on a
+		 *         legacy server, otherwise {@code false}
+		 * @deprecated Use modern {@link org.bukkit.inventory.RecipeChoice} or
+		 *             {@link org.bukkit.Material} APIs instead. MaterialData was
+		 *             removed after Minecraft 1.13.
+		 */
+		@Deprecated
+		public boolean hasMaterialData() {
+			if (materialData == null || Main.getInstance().serverVersionAtLeast(1, 13))
+				return false;
+
+			return true;
 		}
 
 		/**

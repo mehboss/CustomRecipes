@@ -3,6 +3,7 @@ package me.mehboss.utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -450,7 +451,6 @@ public class RecipeUtil {
 	 */
 	private void clearDuplicates(Recipe recipe) {
 		if (Main.getInstance().serverVersionAtLeast(1, 16)) {
-
 			NamespacedKey customKey = null;
 			if (recipe != null) {
 				String key = recipe.getKey().toLowerCase();
@@ -469,6 +469,19 @@ public class RecipeUtil {
 
 				if (customKey != null && Bukkit.getRecipe(customKey) != null)
 					Bukkit.removeRecipe(customKey);
+			}
+		} else {
+			if (recipe != null) {
+				for (Iterator<org.bukkit.inventory.Recipe> it = Bukkit.recipeIterator(); it.hasNext();) {
+					org.bukkit.inventory.Recipe r = it.next();
+					if (r == null)
+						continue;
+					ItemStack result = r.getResult();
+					if (result != null && result.isSimilar(recipe.getResult())) {
+						it.remove();
+					}
+				}
+				return;
 			}
 		}
 	}
@@ -1213,7 +1226,7 @@ public class RecipeUtil {
 		 * @param identifier the identifier/tag the ingredient is required to have
 		 */
 		public void setIdentifier(String identifier) {
-			if (!(identifier.equalsIgnoreCase("none")))
+			if (identifier != null && !(identifier.equalsIgnoreCase("none")) && !identifier.isEmpty())
 				this.identifier = identifier;
 		}
 

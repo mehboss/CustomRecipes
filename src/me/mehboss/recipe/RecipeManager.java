@@ -359,27 +359,22 @@ public class RecipeManager {
 	}
 
 	ItemStack applyNBT(ItemStack item, Object value, String... path) {
-		if (path == null || path.length == 0)
-			throw new IllegalArgumentException("NBT path cannot be null or empty");
+	    if (path == null || path.length == 0)
+	        throw new IllegalArgumentException("NBT path cannot be null or empty");
 
-		// Handle common numeric conversions (e.g., byte for flags like Invisible,
-		// Glowing)
-		if (value instanceof Number) {
-			Number num = (Number) value;
+	    // Optional: normalize numeric 0/1 -> byte
+	    if (value instanceof Number) {
+	        Number num = (Number) value;
+	        if (num.intValue() == 0 || num.intValue() == 1) value = num.byteValue();
+	    }
 
-			// If value is 0 or 1, treat it as a byte (for compatibility with boolean-like
-			// NBT tags)
-			if (num.intValue() == 0 || num.intValue() == 1) {
-				value = num.byteValue();
-			}
-		}
-
-		try {
-			return NBTEditor.set(item, value, (Object[]) path);
-		} catch (Exception ex) {
-			throw new RuntimeException(
-					"Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
-		}
+	    try {
+	        // If you just need tag "creeperEggId", call with path = new String[]{"creeperEggId"}
+	        return NBTEditor.set(item, value, (Object[]) path);   // NOTE: no CUSTOM_DATA
+	    } catch (Exception ex) {
+	        throw new RuntimeException(
+	            "Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
+	    }
 	}
 
 	@SuppressWarnings("unchecked")
@@ -641,6 +636,22 @@ public class RecipeManager {
 		List<String> commands = getConfig().getStringList(path);
 		recipe.setCommands(commands);
 		logDebug("Successfully set commands: " + commands, item);
+	}
+
+	private void checkIdentifiers() {
+		for (Recipe recipe : getRecipeUtil().getAllRecipes().values()) {
+			for (Ingredient ingredient : recipe.getIngredients()) {
+				if (ingredient.hasIdentifier()
+						&& getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) == null) {
+					logError("Error loading recipe.. an invalid ingredient identifier has been detected.",
+							recipe.getName());
+					logError("Please double check the ID of the ingredient matches that of a custom item or recipe.",
+							recipe.getName());
+					getRecipeUtil().removeRecipe(recipe.getName());
+					break;
+				}
+			}
+		}
 	}
 
 	public void addRecipes(String name) {
@@ -1102,6 +1113,8 @@ public class RecipeManager {
 				Main.getInstance().getLogger().log(Level.SEVERE, "Error loading recipe: " + e.getMessage(), e);
 			}
 		}
+
+		checkIdentifiers();
 	}
 
 	@SuppressWarnings("deprecation")

@@ -28,13 +28,6 @@
 				<artifactId>maven-shade-plugin</artifactId>
 				<version>3.6.0</version>
 				<configuration>
-					<relocations>
-						<relocation>
-							<pattern>com.cryptomorin.xseries</pattern>
-							<!-- Be sure to change the package below -->
-							<shadedPattern>my.plugin.utils</shadedPattern>
-						</relocation>
-					</relocations>
 					<!-- Here you can remove the classes you don't use. -->
 					<!-- These are some examples. -->
 					<!-- The "unused" package and SkullCacheListener are
@@ -241,9 +234,9 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20230227</version>
+			<groupId>com.eclipsesource.minimal-json</groupId>
+			<artifactId>minimal-json</artifactId>
+			<version>0.9.5</version>
 		</dependency>
 	</dependencies>
 </project>

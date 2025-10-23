@@ -84,7 +84,7 @@ public class AmountManager implements Listener {
 				logDebug("[isLeftover] Leaving item in the work bench because it has been listed to be leftover!");
 				if (item.getType().toString().contains("_BUCKET"))
 					item.setType(XMaterial.BUCKET.parseMaterial());
-				
+
 				item.setAmount(item.getAmount() + 1);
 				return;
 			}
@@ -247,8 +247,7 @@ public class AmountManager implements Listener {
 		}
 
 		// =========================
-		// PASS 2: your existing removal logic (UNCHANGED)
-		// Keep itemsToRemove and handlesItemRemoval calls as you have them.
+		// PASS 2:
 		// =========================
 		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
 			if (ingredient.isEmpty())
@@ -259,7 +258,6 @@ public class AmountManager implements Listener {
 			final int requiredAmount = Math.max(1, ingredient.getAmount());
 			final boolean hasIdentifier = ingredient.hasIdentifier();
 
-			// === Your existing per-type logic ===
 			if (recipe.getType() == RecipeType.SHAPELESS) {
 				logDebug("[handleShiftClicks] Found shapeless recipe to handle..");
 
@@ -273,8 +271,6 @@ public class AmountManager implements Listener {
 					if (!matchesIngredient(item, recipeName, ingredient, material, displayName, hasIdentifier))
 						continue;
 
-					// If your original removal didn’t require an explicit matchesIngredient()
-					// here, leave it as-is. (You earlier said only Pass 1 needs matching.)
 					if (!handledIngredients.contains(ingredient.getAbbreviation())) {
 						handlesItemRemoval(e, inv, recipe, item, ingredient, slot, itemsToRemove, itemsToAdd,
 								requiredAmount);
@@ -293,22 +289,32 @@ public class AmountManager implements Listener {
 				if (item == null || item.getType() == Material.AIR)
 					continue;
 
-				// Same note: keep your original behavior.
 				handlesItemRemoval(e, inv, recipe, item, ingredient, slot, itemsToRemove, itemsToAdd, requiredAmount);
 			}
 		}
 
-		// Add the result items to the player's inventory
 		Player player = (Player) e.getWhoClicked();
 		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(),
 				System.currentTimeMillis());
 
+		// Delayed task to prevent debug spam
+		Main.getInstance().inInventory.add(id);
+		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+			Main.getInstance().inInventory.remove(id);
+		}, 2L);
+
+		// Handles the commands portion
 		if (recipe.hasCommands()) {
 			logDebug("[ExecuteCMD] Found commands to run for recipe " + recipeName);
 
-			for (String command : recipe.getCommand()) {
-				String parsedCommand = command.replace("%crafter%", player.getName());
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand);
+			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY)
+				itemsToAdd = 1;
+
+			for (int n = 0; n < itemsToAdd; n++) {
+				for (String command : recipe.getCommand()) {
+					String parsed = command.replace("%crafter%", player.getName());
+					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
+				}
 			}
 
 			if (!recipe.isGrantItem()) {
@@ -324,12 +330,8 @@ public class AmountManager implements Listener {
 				return;
 			}
 		}
-		// delayed task to prevent debug spam
-		Main.getInstance().inInventory.add(id);
-		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-			Main.getInstance().inInventory.remove(id);
-		}, 2L);
-
+		
+		// Add the result items to the player's inventory
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 			logDebug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");
 

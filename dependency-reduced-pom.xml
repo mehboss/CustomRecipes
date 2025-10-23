@@ -34,12 +34,6 @@
           </execution>
         </executions>
         <configuration>
-          <relocations>
-            <relocation>
-              <pattern>com.cryptomorin.xseries</pattern>
-              <shadedPattern>my.plugin.utils</shadedPattern>
-            </relocation>
-          </relocations>
           <filters>
             <filter>
               <artifact>*:*</artifact>

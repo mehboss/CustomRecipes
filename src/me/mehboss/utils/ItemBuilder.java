@@ -25,7 +25,7 @@ public class ItemBuilder {
 		return new File(Main.getInstance().getDataFolder(), "items");
 	}
 
-	/** Load all items from plugins/<plugin>/items/ (flat folder of .yml files). */
+	/** Load all items from items folder  */
 	public static void loadAll() {
 		BY_IDENTIFIER.clear();
 

@@ -110,44 +110,20 @@ public class Main extends JavaPlugin implements Listener {
 	private static Main instance;
 	public MetaChecks metaChecks;
 
-	public boolean hasItemsAdderPlugin() {
-		if (Bukkit.getPluginManager().getPlugin("ItemsAdder") != null) {
-			return true;
-		}
-		return false;
-	}
-
-	public boolean hasMythicMobsPlugin() {
-		if (Bukkit.getPluginManager().getPlugin("MythicMobs") != null) {
-			return true;
-		}
-		return false;
-	}
-
-	public boolean hasExecutableItemsPlugin() {
-		if (Bukkit.getPluginManager().getPlugin("ExecutableItems") != null) {
-			return true;
-		}
-		return false;
-	}
-
-	public boolean hasNexoPlugin() {
-		if (Bukkit.getPluginManager().getPlugin("Nexo") != null) {
-			return true;
-		}
-		return false;
-	}
-
-	public boolean hasOraxenPlugin() {
-		if (Bukkit.getPluginManager().getPlugin("Oraxen") != null) {
-			return true;
-		}
-		return false;
-	}
-
-	public boolean hasMMOItemsPlugin() {
-		if (Bukkit.getPluginManager().getPlugin("MMOItems") != null) {
-			return true;
+	public boolean hasCustomPlugin(String plugin) {
+		switch (plugin) {
+		case "itemsadder":
+			return Bukkit.getPluginManager().getPlugin("ItemsAdder") != null;
+		case "mythicmobs":
+			return Bukkit.getPluginManager().getPlugin("MythicMobs") != null;
+		case "executableitems":
+			return Bukkit.getPluginManager().getPlugin("ExecutableItems") != null;
+		case "nexo":
+			return Bukkit.getPluginManager().getPlugin("Nexo") != null;
+		case "oraxen":
+			return Bukkit.getPluginManager().getPlugin("Oraxen") != null;
+		case "mmoitems":
+			return Bukkit.getPluginManager().getPlugin("MMOItems") != null;
 		}
 		return false;
 	}
@@ -363,7 +339,7 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
-		
+
 		registerUpdateChecker();
 		registerBstats();
 	}
@@ -459,7 +435,7 @@ public class Main extends JavaPlugin implements Listener {
 	void handleAutoDiscover() {
 		if (!serverVersionAtLeast(1, 12))
 			return;
-		
+
 		// Re-discover recipes for all online players
 		for (Player p : Bukkit.getOnlinePlayers()) {
 			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {

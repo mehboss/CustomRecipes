@@ -35,6 +35,8 @@ import net.Indyuce.mmoitems.MMOItems;
 public class RecipeUtil {
 	private HashMap<String, Recipe> recipes = new HashMap<>();
 	private ArrayList<String> keyList = new ArrayList<>();
+	public List<String> SUPPORTED_PLUGINS = List.of("itemsadder", "mythicmobs", "executableitems", "oraxen", "nexo",
+			"mmoitems");
 
 	/**
 	 * Adds a finished Recipe object to the API
@@ -126,33 +128,38 @@ public class RecipeUtil {
 	 * @return the ItemStack if found, can be null
 	 */
 	public ItemStack getResultFromKey(String key) {
-		// First, try to get the result from a regular recipe
 
 		if (key == null)
 			return null;
-		if (getRecipeFromKey(key) != null)
-			return getRecipeFromKey(key).getResult();
-		if (ItemBuilder.get(key) != null)
-			return ItemBuilder.get(key);
+
+		// First, try to get the result from a regular recipe
+		String[] split = key.split(":");
+		String rawkey = split[0];
+
+		if (getRecipeFromKey(rawkey) != null)
+			return getRecipeFromKey(rawkey).getResult();
+		if (ItemBuilder.get(rawkey) != null)
+			return ItemBuilder.get(rawkey);
 
 		// If not found, treat it as a custom item key
-		String[] split = key.split(":");
 		if (split.length < 2)
 			return null;
 
-		String namespace = split[0];
+		String namespace = rawkey.toLowerCase();
 		String itemId = split[1];
+		String recipe = split.length > 2 ? split[2] : "";
+		String item = namespace + ":" + itemId;
 
 		if (Main.getInstance().serverVersionLessThan(1, 15)) {
-			logDebug("Issue detected with recipe.. ", "");
-			logDebug("Your server version does not support custom items from other plugins!", "");
-			logDebug("You must be on 1.15 or higher!", "");
+			logError("Issue detected with recipe.. ", recipe);
+			logError("Your server version does not support custom items from other plugins!", recipe);
+			logError("You must be on 1.15 or higher!", recipe);
 			return null;
 		}
 
-		switch (namespace.toLowerCase()) {
+		switch (namespace) {
 		case "itemsadder":
-			if (Main.getInstance().hasItemsAdderPlugin()) {
+			if (Main.getInstance().hasCustomPlugin("itemsadder")) {
 				CustomStack iaItem = CustomStack.getInstance(itemId);
 				if (iaItem != null)
 					return iaItem.getItemStack();
@@ -160,7 +167,7 @@ public class RecipeUtil {
 			break;
 
 		case "mythicmobs":
-			if (Main.getInstance().hasMythicMobsPlugin()) {
+			if (Main.getInstance().hasCustomPlugin("mythicmobs")) {
 				ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(itemId);
 				if (mythicItem != null)
 					return mythicItem;
@@ -168,7 +175,7 @@ public class RecipeUtil {
 			break;
 
 		case "executableitems":
-			if (Main.getInstance().hasExecutableItemsPlugin()) {
+			if (Main.getInstance().hasCustomPlugin("executableitems")) {
 				Optional<ExecutableItemInterface> ei = ExecutableItemsAPI.getExecutableItemsManager()
 						.getExecutableItem(itemId);
 				if (ei.isPresent())
@@ -177,7 +184,7 @@ public class RecipeUtil {
 			break;
 
 		case "oraxen":
-			if (Main.getInstance().hasOraxenPlugin()) {
+			if (Main.getInstance().hasCustomPlugin("oraxen")) {
 				ItemStack oraxenItem = OraxenItems.exists(itemId) ? OraxenItems.getItemById(itemId).build() : null;
 				if (oraxenItem != null)
 					return oraxenItem;
@@ -185,7 +192,7 @@ public class RecipeUtil {
 			break;
 
 		case "nexo":
-			if (Main.getInstance().hasNexoPlugin()) {
+			if (Main.getInstance().hasCustomPlugin("nexo")) {
 				if (NexoItems.itemFromId(itemId) != null)
 					return NexoItems.itemFromId(itemId).build();
 			}
@@ -193,13 +200,12 @@ public class RecipeUtil {
 
 		case "mmoitems":
 			if (split.length < 3) {
-				logDebug(
-						"[CRAPI] Could not complete recipe because MMOItems must specify a type, which can not be found. Key: ",
-						key);
+				logError("Could not complete recipe because MMOItems must specify a type, which can not be found. Key: "
+						+ item, recipe);
 				return null;
 			}
 
-			if (Main.getInstance().hasMMOItemsPlugin()) {
+			if (Main.getInstance().hasCustomPlugin("mmoitems")) {
 				ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()),
 						itemId.toUpperCase());
 				if (mmoitem != null)
@@ -208,6 +214,15 @@ public class RecipeUtil {
 			break;
 		}
 
+		if (SUPPORTED_PLUGINS.contains(namespace) && split.length > 2) {
+			if (!Main.getInstance().hasCustomPlugin(namespace)) {
+				logError("Error loading recipe..", recipe);
+				logError("Could not find plugin dependency needed for the referenced item! (" + item + ")", recipe);
+			} else {
+				logError("Error loading recipe..", recipe);
+				logError("Could not find the referenced custom item! (" + item + ")", recipe);
+			}
+		}
 		return null;
 	}
 
@@ -218,6 +233,17 @@ public class RecipeUtil {
 	 * @return the Recipe that is found, can be null
 	 */
 	public Recipe getRecipeFromResult(ItemStack item) {
+
+		if (item == null)
+			return null;
+
+		String id = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+				? NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+				: "none";
+
+		if (!id.equals("none"))
+			return getRecipeFromKey(id);
+
 		for (Recipe recipe : recipes.values()) {
 			ItemStack result = recipe.getResult();
 
@@ -247,40 +273,40 @@ public class RecipeUtil {
 		if (customID != null && !recipe.isCustomItem())
 			return customID;
 
-		if (Main.getInstance().hasItemsAdderPlugin()) {
+		if (Main.getInstance().hasCustomPlugin("itemsadder")) {
 			CustomStack ia = CustomStack.byItemStack(item);
 			if (ia != null) {
 				return "itemsadder:" + ia.getId();
 			}
 		}
 
-		if (Main.getInstance().hasMythicMobsPlugin()) {
+		if (Main.getInstance().hasCustomPlugin("mythicmobs")) {
 			String mythicId = MythicBukkit.inst().getItemManager().getMythicTypeFromItem(item);
 			if (mythicId != null) {
 				return "mythicmobs:" + mythicId;
 			}
 		}
 
-		if (Main.getInstance().hasExecutableItemsPlugin()) {
+		if (Main.getInstance().hasCustomPlugin("executableitems")) {
 			Optional<ExecutableItemInterface> ei = ExecutableItemsAPI.getExecutableItemsManager()
 					.getExecutableItem(item);
 			if (ei.isPresent())
 				return "executableitems:" + ei.get().getId();
 		}
 
-		if (Main.getInstance().hasOraxenPlugin()) {
+		if (Main.getInstance().hasCustomPlugin("oraxen")) {
 			if (OraxenItems.exists(item)) {
 				return "oraxen:" + OraxenItems.getIdByItem(item);
 			}
 		}
 
-		if (Main.getInstance().hasNexoPlugin()) {
+		if (Main.getInstance().hasCustomPlugin("nexo")) {
 			if (NexoItems.idFromItem(item) != null) {
 				return "nexo:" + NexoItems.idFromItem(item);
 			}
 		}
 
-		if (Main.getInstance().hasMMOItemsPlugin()) {
+		if (Main.getInstance().hasCustomPlugin("mmoitems")) {
 			String id = MMOItems.getID(item);
 			String type = MMOItems.getTypeName(item);
 			if (id != null && type != null) {
@@ -405,6 +431,10 @@ public class RecipeUtil {
 	 */
 	public Recipe getRecipeFromFurnaceSource(ItemStack item) {
 		HashMap<String, Recipe> furnaceRecipes = getRecipesFromType(Recipe.RecipeType.FURNACE);
+
+		if (furnaceRecipes == null)
+			return null;
+
 		for (Recipe recipes : furnaceRecipes.values()) {
 			ItemStack sourceItem = recipes.getFurnaceSource();
 
@@ -505,6 +535,7 @@ public class RecipeUtil {
 		private boolean active = true;
 		private boolean ignoreData = false;
 		private boolean ignoreModelData = false;
+		private boolean ignoreNames = false;
 		private boolean isTagged = false;
 		private boolean discoverable = false;
 		private boolean hasCommands = false;
@@ -912,6 +943,24 @@ public class RecipeUtil {
 		 */
 		public boolean getIgnoreData() {
 			return ignoreData;
+		}
+
+		/**
+		 * Setter for if the recipe ignores names
+		 * 
+		 * @param ignoreNames true to ignore, otherwise false
+		 */
+		public void setIgnoreNames(boolean ignoreNames) {
+			this.ignoreNames = ignoreNames;
+		}
+
+		/**
+		 * Getter for ignoreNames
+		 * 
+		 * @returns true of the recipe ignores names, false otherwise
+		 */
+		public boolean getIgnoreNames() {
+			return ignoreNames;
 		}
 
 		/**
@@ -1427,9 +1476,8 @@ public class RecipeUtil {
 		}
 	}
 
-	private void logDebug(String st, String recipe) {
-		if (Main.getInstance().debug)
-			Logger.getLogger("Minecraft").log(Level.WARNING,
-					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
+	private void logError(String st, String recipe) {
+		Logger.getLogger("Minecraft").log(Level.WARNING,
+				"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
 	}
 }

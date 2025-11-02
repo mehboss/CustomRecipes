@@ -128,17 +128,11 @@ public class RecipeManager {
 	}
 
 	void handleIgnoreFlags(String item, Recipe recipe) {
-		if (getConfig().isBoolean(item + ".Ignore-Data"))
-			recipe.setIgnoreData(getConfig().getBoolean(item + ".Ignore-Data"));
-
-		if (getConfig().isBoolean(item + ".Ignore-Model-Data"))
-			recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Ignore-Model-Data"));
-
-		if (getConfig().isBoolean(item + ".Exact-Choice"))
-			recipe.setExactChoice(getConfig().getBoolean(item + ".Exact-Choice"));
-
-		if (getConfig().isBoolean(item + ".Auto-Discover-Recipe"))
-			recipe.setDiscoverable(getConfig().getBoolean(item + ".Auto-Discover-Recipe"));
+		recipe.setIgnoreData(getConfig().getBoolean(item + ".Flags.Ignore-Data"));
+		recipe.setIgnoreNames(getConfig().getBoolean(item + ".Flags.Ignore-Name"));
+		recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Flags.Ignore-Model-Data"));
+		recipe.setExactChoice(getConfig().getBoolean(item + ".Exact-Choice"));
+		recipe.setDiscoverable(getConfig().getBoolean(item + ".Auto-Discover-Recipe"));
 
 		if (getConfig().isSet(item + ".Book-Category")) {
 			try {
@@ -173,8 +167,10 @@ public class RecipeManager {
 	}
 
 	void handleConditions(Recipe recipe, String configPath) {
-		ConfigurationSection rSec = getConfig().getConfigurationSection(configPath);
-		recipe.setConditionSet(RecipeConditions.parseConditionSet(rSec));
+		if (getConfig().getBoolean(configPath + ".Use-Conditions")) {
+			ConfigurationSection rSec = getConfig().getConfigurationSection(configPath);
+			recipe.setConditionSet(RecipeConditions.parseConditionSet(rSec));
+		}
 	}
 
 	ItemStack handleHeadTexture(String material) {
@@ -312,6 +308,47 @@ public class RecipeManager {
 						// Apply the modified enchantment meta to the item
 						item.setItemMeta(meta);
 					}
+				} else if ((item.getType() == Material.ITEM_FRAME || item.getType() == Material.GLOW_ITEM_FRAME)
+						&& path.get(0).equalsIgnoreCase("EntityTag")) {
+
+					try {
+						if (value instanceof Map) {
+							Map<String, Object> compound = (Map<String, Object>) value;
+
+							// Invisible (boolean)
+							if (compound.containsKey("Invisible")) {
+								boolean invisible = Boolean.parseBoolean(String.valueOf(compound.get("Invisible")));
+								item = NBTEditor.set(item, invisible, "EntityTag", "Invisible");
+							}
+
+							// Glowing (boolean)
+							if (compound.containsKey("Glowing")) {
+								boolean glowing = Boolean.parseBoolean(String.valueOf(compound.get("Glowing")));
+								item = NBTEditor.set(item, glowing, "EntityTag", "Glowing");
+							}
+
+							// Fixed (boolean)
+							if (compound.containsKey("Fixed")) {
+								boolean fixed = Boolean.parseBoolean(String.valueOf(compound.get("Fixed")));
+								item = NBTEditor.set(item, fixed, "EntityTag", "Fixed");
+							}
+
+							// Facing (byte)
+							if (compound.containsKey("Facing")) {
+								byte facing = ((Number) compound.get("Facing")).byteValue();
+								item = NBTEditor.set(item, facing, "EntityTag", "Facing");
+							}
+						} else {
+							logDebug("EntityTag value must be a map. Skipping.", recipe);
+						}
+
+						return item;
+
+					} catch (Throwable t) {
+						logError("Failed to apply EntityTag to item frame with NBTEditor.", recipe);
+						t.printStackTrace();
+						return item;
+					}
 				} else {
 					// Apply general NBT tag
 					item = applyNBT(item, value, path.toArray(new String[0]));
@@ -359,22 +396,21 @@ public class RecipeManager {
 	}
 
 	ItemStack applyNBT(ItemStack item, Object value, String... path) {
-	    if (path == null || path.length == 0)
-	        throw new IllegalArgumentException("NBT path cannot be null or empty");
+		if (path == null || path.length == 0)
+			throw new IllegalArgumentException("NBT path cannot be null or empty");
 
-	    // Optional: normalize numeric 0/1 -> byte
-	    if (value instanceof Number) {
-	        Number num = (Number) value;
-	        if (num.intValue() == 0 || num.intValue() == 1) value = num.byteValue();
-	    }
+		if (value instanceof Number) {
+			Number num = (Number) value;
+			if (num.intValue() == 0 || num.intValue() == 1)
+				value = num.byteValue();
+		}
 
-	    try {
-	        // If you just need tag "creeperEggId", call with path = new String[]{"creeperEggId"}
-	        return NBTEditor.set(item, value, (Object[]) path);   // NOTE: no CUSTOM_DATA
-	    } catch (Exception ex) {
-	        throw new RuntimeException(
-	            "Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
-	    }
+		try {
+			return NBTEditor.set(item, value, (Object[]) path);
+		} catch (Exception ex) {
+			throw new RuntimeException(
+					"Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -639,14 +675,13 @@ public class RecipeManager {
 	}
 
 	private void checkIdentifiers() {
-		for (Recipe recipe : getRecipeUtil().getAllRecipes().values()) {
+		for (Recipe recipe : new ArrayList<>(getRecipeUtil().getAllRecipes().values())) {
 			for (Ingredient ingredient : recipe.getIngredients()) {
 				if (ingredient.hasIdentifier()
-						&& getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) == null) {
-					logError("Error loading recipe.. an invalid ingredient identifier has been detected.",
+						&& getRecipeUtil().getResultFromKey(ingredient.getIdentifier() + ":" + recipe.getName()) == null) {
+					logError("Please double check the IDs of the ingredients matches that of a custom item or recipe.",
 							recipe.getName());
-					logError("Please double check the ID of the ingredient matches that of a custom item or recipe.",
-							recipe.getName());
+					logError("Skipping recipe..", recipe.getName());
 					getRecipeUtil().removeRecipe(recipe.getName());
 					break;
 				}
@@ -681,10 +716,9 @@ public class RecipeManager {
 			String item = recipeFile.getName().replace(".yml", "");
 
 			if (!(recipeConfig.isConfigurationSection(item))) {
-				Main.getInstance().getLogger().log(Level.WARNING,
-						"Could not find configuration section " + item
-								+ " in the recipe file that must match its filename: " + item
-								+ ".yml - (CaSeSeNsItIvE) - Skipping this recipe");
+				logError("Could not find configuration section " + item
+						+ " in the recipe file that must match its filename: " + item
+						+ ".yml - (CaSeSeNsItIvE) - Skipping this recipe", item);
 				continue;
 			}
 
@@ -797,7 +831,7 @@ public class RecipeManager {
 			// Checks for a custom item and attempts to set it
 			String rawItem = getConfig().getString(item + ".Item") != null ? getConfig().getString(item + ".Item")
 					: null;
-			ItemStack i = getRecipeUtil().getResultFromKey(rawItem);
+			ItemStack i = getRecipeUtil().getResultFromKey(rawItem + ":" + recipe.getName());
 
 			// handle custom item stacks
 			if (i != null)
@@ -971,8 +1005,9 @@ public class RecipeManager {
 			Short damage = Short.valueOf(getConfig().getString(item + ".Item-Damage"));
 			return new ItemStack(type.get().parseMaterial(), 1, damage);
 		} catch (Exception e) {
-			Main.getInstance().getLogger().log(Level.WARNING, "Couldn't apply item damage to the recipe " + item
-					+ ". Please double check that it is a valid item-damage. Skipping for now.");
+			logError(
+					"Couldn't apply item damage, please double check that it is a valid item-damage. Skipping for now.",
+					item);
 			return new ItemStack(type.get().parseMaterial(), 1);
 		}
 	}
@@ -1017,7 +1052,7 @@ public class RecipeManager {
 		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes();
 
 		if (recipeList == null) {
-			logDebug("No recipes were found to load..", "");
+			logError("No recipes were found to load..", "");
 			return;
 		}
 		if (specificRecipe != null) {
@@ -1195,6 +1230,9 @@ public class RecipeManager {
 
 	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
 		if (type == null || !type.isPresent()) {
+			if (isCustomItem(materialInput))
+				return false;
+
 			logError("Error loading recipe..", recipe);
 			logError("We are having trouble matching the material " + materialInput.toUpperCase()
 					+ " to a minecraft item or custom item. Please double check you have inputted the correct material enum into the 'Item'"
@@ -1224,20 +1262,18 @@ public class RecipeManager {
 		recipe.setFurnaceSource(source);
 	}
 
-	String isCustomItem(String identifier, String recipe) {
-		String[] key = identifier.split(":");
+	boolean isCustomItem(String id) {
+		String[] key = id.split(":");
 		if (key.length < 2)
-			return null;
+			return false;
 
 		String plugin = key[0];
 
-		if (Bukkit.getPluginManager().getPlugin(plugin) == null) {
-			logError("Found custom item from " + plugin + ", but did not find the required plugin. Skipping recipe..",
-					recipe);
-			return null;
+		if (getRecipeUtil().SUPPORTED_PLUGINS.contains(plugin.toLowerCase())) {
+			return true;
 		}
 
-		return plugin;
+		return false;
 
 	}
 

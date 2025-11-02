@@ -112,15 +112,11 @@ public class AmountManager implements Listener {
 		ItemStack customItem = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
 				: null;
 
-		return ((ingredient.hasIdentifier() && NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				&& ingredient.getIdentifier()
-						.equals(NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
-				|| (customItem != null && item.isSimilar(customItem))
-				|| (customItem != null
-						&& craftManager.checkCustomItems(customItem, item, ingredient.getIdentifier(), true))
-				|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
-				|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
-						ingredient.getIdentifier(), hasIdentifier, false)));
+		return (customItem != null && item.isSimilar(customItem))
+				|| (craftManager.tagsMatch(ingredient, item)
+						|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
+						|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
+								ingredient.getIdentifier(), hasIdentifier, false)));
 	}
 
 	boolean isCraftingRecipe(RecipeType type) {
@@ -330,7 +326,7 @@ public class AmountManager implements Listener {
 				return;
 			}
 		}
-		
+
 		// Add the result items to the player's inventory
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 			logDebug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");

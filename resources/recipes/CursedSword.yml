@@ -47,8 +47,8 @@ CursedSword:
   Flags:
     Ignore-Data: false
     Ignore-Custom-Model-Data: false
-    Ignore-Lore: false
     Ignore-Name: false
+  Use-Conditions: false
   Conditions_All: []
   Custom-Tags: []
   Item-Flags: []

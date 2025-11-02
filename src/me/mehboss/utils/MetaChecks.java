@@ -9,7 +9,9 @@ import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 
 public class MetaChecks {
-	RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+	RecipeUtil getRecipeUtil() {
+		return Main.getInstance().recipeUtil;
+	}
 	
 	public Boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		// Null check first
@@ -30,7 +32,7 @@ public class MetaChecks {
 
 		// Compares against #exactMatch
 		if (ingredient.hasIdentifier()) {
-			ItemStack foundItem = recipeUtil.getResultFromKey(ingredient.getIdentifier());
+			ItemStack foundItem = getRecipeUtil().getResultFromKey(ingredient.getIdentifier());
 
 			if (foundItem == null) {
 				logDebug("Ingredient identifier does not match to a valid recipe", recipeName);

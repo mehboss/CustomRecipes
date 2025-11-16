@@ -102,16 +102,17 @@ public class ItemBuilder {
 		}
 
 		itemConfig = cfg;
+		String resultPath = cfg.isConfigurationSection(section + ".Result") ? section + ".Result" : section;
 
-		Optional<ItemStack> built = Main.getInstance().recipeManager.buildItem(section, itemConfig);
+		Optional<ItemStack> built = Main.getInstance().recipeManager.buildItem(resultPath, itemConfig);
 		if (!built.isPresent()) {
 			Main.getInstance().getLogger().warning("[CustomItemAPI] buildItem failed for section " + section);
 			return;
 		}
 
 		ItemStack it = built.get();
-		it = Main.getInstance().recipeManager.handleDurability(it, section);
-		int amount = cfg.isInt(section + ".Amount") ? cfg.getInt(section + ".Amount") : 1;
+		it = Main.getInstance().recipeManager.handleDurability(it, resultPath);
+		int amount = cfg.isInt(resultPath + ".Amount") ? cfg.getInt(resultPath + ".Amount") : 1;
 		it.setAmount(amount);
 
 		// Identifier is required for lookup

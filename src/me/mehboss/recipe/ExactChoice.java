@@ -18,16 +18,17 @@ import org.bukkit.inventory.StonecuttingRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.recipe.CookingBookCategory;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
-
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.data.CookingRecipeData;
+import me.mehboss.utils.data.WorkstationRecipeData;
 
 public class ExactChoice {
 	RecipeManager recipeManager = Main.getInstance().recipeManager;
 
 	RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
 
 	RecipeChoice.ExactChoice findExactChoice(Recipe recipe, Ingredient ingredient) {
@@ -77,16 +78,18 @@ public class ExactChoice {
 				continue;
 
 			// Uses exactChoice if version is 1.14 or higher
-			if (recipe.isExactChoice() && !recipe.getIgnoreData()) {
+			if (recipe.isExactChoice() && !recipe.getIgnoreData() && !ingredient.hasMaterialChoices()) {
 				shapelessRecipe.addIngredient(findExactChoice(recipe, ingredient));
-
-				try {
-					shapelessRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
-				} catch (NoClassDefFoundError e) {
-				}
+			} else if (ingredient.hasMaterialChoices()) {
+				shapelessRecipe.addIngredient(new RecipeChoice.MaterialChoice(ingredient.getMaterialChoices()));
 			} else {
 				shapelessRecipe.addIngredient(ingredient.getMaterial());
 			}
+		}
+
+		try {
+			shapelessRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
+		} catch (NoClassDefFoundError e) {
 		}
 
 		if (recipe.isExactChoice())
@@ -104,21 +107,23 @@ public class ExactChoice {
 			if (ingredient.isEmpty() || ingredient.getMaterial() == Material.AIR
 					|| ingredients.contains(ingredient.getAbbreviation()))
 				continue;
-
 			ingredients.add(ingredient.getAbbreviation());
 
 			// Uses exactChoice if version is 1.14 or higher
 			// Ignores if IgnoreData or IgnoreModelData is true
-			if (recipe.isExactChoice() && !recipe.getIgnoreData()) {
-				shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), findExactChoice(recipe, ingredient));
-
-				try {
-					shapedRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
-				} catch (NoClassDefFoundError e) {
-				}
+			char abbrev = ingredient.getAbbreviation().charAt(0);
+			if (recipe.isExactChoice() && !recipe.getIgnoreData() && !ingredient.hasMaterialChoices()) {
+				shapedRecipe.setIngredient(abbrev, findExactChoice(recipe, ingredient));
+			} else if (ingredient.hasMaterialChoices()) {
+				shapedRecipe.setIngredient(abbrev, new RecipeChoice.MaterialChoice(ingredient.getMaterialChoices()));
 			} else {
-				shapedRecipe.setIngredient(ingredient.getAbbreviation().charAt(0), ingredient.getMaterial());
+				shapedRecipe.setIngredient(abbrev, ingredient.getMaterial());
 			}
+		}
+
+		try {
+			shapedRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
+		} catch (NoClassDefFoundError e) {
 		}
 
 		if (recipe.isExactChoice())
@@ -127,7 +132,7 @@ public class ExactChoice {
 		return shapedRecipe;
 	}
 
-	FurnaceRecipe createFurnaceRecipe(Recipe recipe) {
+	FurnaceRecipe createFurnaceRecipe(CookingRecipeData recipe) {
 
 		FurnaceRecipe furnaceRecipe;
 
@@ -148,7 +153,7 @@ public class ExactChoice {
 		return furnaceRecipe;
 	}
 
-	BlastingRecipe createBlastFurnaceRecipe(Recipe recipe) {
+	BlastingRecipe createBlastFurnaceRecipe(CookingRecipeData recipe) {
 
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
 			logError("Error loading recipe. Your server version does not support BlastFurnace recipes!",
@@ -167,7 +172,7 @@ public class ExactChoice {
 		return blastRecipe;
 	}
 
-	SmokingRecipe createSmokerRecipe(Recipe recipe) {
+	SmokingRecipe createSmokerRecipe(CookingRecipeData recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
 			logError("Error loading recipe. Your server version does not support Smoker recipes!", recipe.getName());
 			return null;
@@ -183,24 +188,23 @@ public class ExactChoice {
 		return smokingRecipe;
 	}
 
-	StonecuttingRecipe createStonecuttingRecipe(Recipe recipe) {
+	StonecuttingRecipe createStonecuttingRecipe(WorkstationRecipeData recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
 			logError("Error loading recipe. Your server version does not support Stonecutting recipes!",
 					recipe.getName());
 			return null;
 		}
 
-		StonecuttingRecipe sRecipe = new StonecuttingRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
-				findExactChoice(recipe, null));
+		StonecuttingRecipe sRecipe = new StonecuttingRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()),
+				recipe.getResult(), findExactChoice(recipe, null));
 		sRecipe.setGroup(recipe.getGroup());
-		
+
 		return sRecipe;
 	}
-	
-	CampfireRecipe createCampfireRecipe(Recipe recipe) {
+
+	CampfireRecipe createCampfireRecipe(CookingRecipeData recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-			logError("Error loading recipe. Your server version does not support Campfire recipes!",
-					recipe.getName());
+			logError("Error loading recipe. Your server version does not support Campfire recipes!", recipe.getName());
 			return null;
 		}
 

@@ -131,7 +131,7 @@ public class BookGUI implements Listener {
 			return null;
 
 		String name = ChatColor.stripColor(m.getDisplayName()).toUpperCase().split(" ")[0];
-		return RecipeType.valueOf(name);
+		return RecipeType.fromString(name);
 	}
 
 	public void showCreationMenu(Inventory inv, ItemStack item, Player p, String recipeName, String perm,

@@ -33,6 +33,7 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.WorkstationRecipeData;
 
 public class GrindstoneManager implements Listener {
 
@@ -143,7 +144,6 @@ public class GrindstoneManager implements Listener {
 			return;
 
 		InventoryView view = event.getView();
-		// If any dragged raw slot is the grindstone, cancel (matches your original)
 		if (event.getRawSlots().stream().anyMatch(i -> view.getInventory(i) instanceof GrindstoneInventory)) {
 			event.setCancelled(true);
 		}
@@ -287,12 +287,12 @@ public class GrindstoneManager implements Listener {
 		}
 	}
 
-	private void tryGiveXp(Player p, Recipe recipe) {
-
-		if (recipe.getExperience() <= 0)
+	private void tryGiveXp(Player p, Recipe rawRecipe) {
+		WorkstationRecipeData matched = (WorkstationRecipeData) rawRecipe;
+		if (matched.getExperience() <= 0)
 			return;
 
-		int xp = (int) recipe.getExperience();
+		int xp = (int) matched.getExperience();
 		if (xp > 0) {
 			ExperienceOrb orb = p.getWorld().spawn(p.getLocation(), ExperienceOrb.class);
 			orb.setExperience(xp);

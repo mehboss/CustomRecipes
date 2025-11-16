@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>CustomRecipes</groupId>
 	<artifactId>CustomRecipes</artifactId>
-	<version>2.0.5.1</version>
+	<version>2.0.5.3</version>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<resources>
@@ -27,13 +27,16 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
 				<version>3.6.0</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+					</execution>
+				</executions>
 				<configuration>
-					<!-- Here you can remove the classes you don't use. -->
-					<!-- These are some examples. -->
-					<!-- The "unused" package and SkullCacheListener are
-					excluded by default. -->
-					<!-- Some utilities such a XItemStack depend on more than 3
-					other classes, so watch out. -->
+					<minimizeJar>true</minimizeJar>
 					<filters>
 						<filter>
 							<artifact>*:*</artifact>
@@ -52,15 +55,15 @@
 							</excludes>
 						</filter>
 					</filters>
+					<relocations>
+						<relocation>
+							<pattern>de.tr7zw.changeme.nbtapi</pattern>
+							<shadedPattern>me.mehboss.utils.nbtapi</shadedPattern>
+						</relocation>
+					</relocations>
+					<finalName>${project.artifactId}-${project.version}</finalName>
+					<shadedArtifactAttached>false</shadedArtifactAttached>
 				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -80,8 +83,7 @@
 		</repository>
 		<repository>
 			<id>EcoEnchants</id>
-			<url>
-				https://repo.auxilor.io/repository/maven-public/</url>
+			<url>https://repo.auxilor.io/repository/maven-public/</url>
 		</repository>
 		<repository>
 			<id>jitpack-repo</id>
@@ -162,6 +164,11 @@
 			<artifactId>MMOItems-API</artifactId>
 			<version>6.9.5-SNAPSHOT</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>de.tr7zw</groupId>
+			<artifactId>item-nbt-api</artifactId>
+			<version>2.15.3</version>
 		</dependency>
 		<dependency>
 			<groupId>io.th0rgal</groupId>

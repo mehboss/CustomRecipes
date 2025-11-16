@@ -13,16 +13,6 @@ CursedPick:
   # Set to -1 or Omit if not needed
   Cooldown: 60
 
-  # Item ENUM for the crafted item
-  Item: 'DIAMOND_PICKAXE'  
-
-  # Specific item type (e.g. "19/00" or "13:4").
-  # Ommit or set to none if not needed
-  Item-Damage: 'none'  
-
-  # The quantity received upon crafting
-  Amount: 1  
-
   # Can this item be placed as a block?
   Placeable: true  
 
@@ -34,10 +24,6 @@ CursedPick:
   # Marks the item as being a custom item internally
   # Improves performance
   Custom-Tagged: true  
-
-  # 1-100 durability. 
-  # Omit or set to 100 if not applicable
-  Durability: '100'  
 
   # Unique identifier for the recipe
   # Also known as the NamespacedKey
@@ -60,27 +46,48 @@ CursedPick:
   # Category recipe is to be shown in the recipe book
   Book-Category: 'MISC'
   
-  # Display name with color codes. 
-  # Omit or set to none if not needed
-  Name: '&4&lCursed Pick'  
-
-  # Lore for the item, can be multiple lines. 
-  # Use [] if not needed
-  Lore:
-    - '&c&lThe Cursed Pickaxe'  
+  Result:
+    # Item ENUM for the crafted item
+    Item: 'DIAMOND_PICKAXE'  
+    # Specific item type (e.g. "19/00" or "13:4").
+    # Ommit or set to none if not needed
+    Item-Damage: 'none'  
+    # 1-100 durability. 
+    # Omit or set to 100 if not applicable
+    Durability: '100'  
+    # The quantity received upon crafting
+    Amount: 1  
+    # Display name with color codes. 
+    # Omit or set to none if not needed
+    Name: '&4&lCursed Pick'  
+    # Lore for the item, can be multiple lines. 
+    # Use [] if not needed
+    Lore:
+      - '&c&lThe Cursed Pickaxe'
+    # List of enchantments. 
+    # Use [] if not needed
+    Enchantments:
+      - 'DURABILITY:255'  
+    # Should enchantments be hidden?
+    Hide-Enchants: true
+    # For texture packs, available in MC 1.14+
+    # Omit or set to none if not needed
+    Custom-Model-Data: none  
+    # Add item flags, e.g., to hide attributes
+    # Use [] if not needed
+    Item-Flags: []  
+    # Specify attributes to add
+    # Format: ATTRIBUTE:AMOUNT:SLOT
+    # Use [] if not needed
+    Attribute: []  
+    # Add specific NBT tags if needed
+    # Use [] if not needed
+    Custom-Tags: []  
 
   # Potion effects format: "EFFECT:DURATION:AMPLIFIER"
   # Use [] if not needed
   Effects:
-    - 'POISON:20:2'  
-
-  # Should enchantments be hidden?
-  Hide-Enchants: true  
-
-  # List of enchantments. 
-  # Use [] if not needed
-  Enchantments:
-    - 'DURABILITY:255'  
+    - 'POISON:20:2'
 
   # List of commands to run
   # Should the output item still be granted?
@@ -152,23 +159,6 @@ CursedPick:
      - 'story/mine_stone'                    # vanilla format (minecraft:story/mine_stone is also ok)
      - 'minecraft:adventure/adventuring_time'
     moon_phase: [0, 4]                       # 0 = full moon, 4 = new moon [0-7]
-
-  # Add specific NBT tags if needed
-  # Use [] if not needed
-  Custom-Tags: []  
-
-  # Add item flags, e.g., to hide attributes
-  # Use [] if not needed
-  Item-Flags: []  
-
-  # Specify attributes to add
-  # Format: ATTRIBUTE:AMOUNT:SLOT
-  # Use [] if not needed
-  Attribute: []  
-
-  # For texture packs, available in MC 1.14+
-  # Omit or set to none if not needed
-  Custom-Model-Data: none  
 
   # Disable crafting in specific worlds
   # Use [] if not needed

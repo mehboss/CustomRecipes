@@ -17,6 +17,7 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.WorkstationRecipeData;
 
 public class AnvilManager implements Listener {
 
@@ -64,10 +65,12 @@ public class AnvilManager implements Listener {
 				sendNoPermsMessage(p, matchedRecipe.getName());
 				return;
 			}
+			
+			WorkstationRecipeData anvil = (WorkstationRecipeData) matchedRecipe;
 
-			logDebug(matchedRecipe.getName() + ": Requirements met.. Successfully set anvil result slot");
-			e.setResult(matchedRecipe.getResult());
-			inv.setRepairCost(matchedRecipe.getRepairCost());
+			logDebug(anvil.getName() + ": Requirements met.. Successfully set anvil result slot");
+			e.setResult(anvil.getResult());
+			inv.setRepairCost(anvil.getRepairCost());
 			p.updateInventory();
 		}
 	}

@@ -1,4 +1,4 @@
-package me.mehboss.utils;
+package me.mehboss.utils.libs;
 
 /*
  * This Metrics class was auto-generated and can be copied into your project if you are

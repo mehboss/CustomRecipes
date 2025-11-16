@@ -10,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.ChatColor;
@@ -48,7 +47,7 @@ public class RecipeSaver {
 	// Save the recipe map to the configuration file
 	public void saveRecipe(Inventory inv, Player p, String coloredName) {
 
-		String recipeName = ChatColor.stripColor(coloredName);
+		String recipeName = ChatColor.stripColor(coloredName).replaceAll(" ", "_").toLowerCase();
 		File recipesFolder = new File(Main.getInstance().getDataFolder(), "recipes");
 		if (!recipesFolder.exists()) {
 			recipesFolder.mkdirs();
@@ -132,16 +131,13 @@ public class RecipeSaver {
 
 		cfg.put("Enabled", enabled);
 		cfg.put("Shapeless", shapeless);
-		cfg.put("Cooldown", 60);
+		cfg.put("Cooldown", -1);
 
 		cfg.put("Item", getItemValue(resultItem, identifier, resultHasID));
 		cfg.put("Item-Damage", "none");
 		cfg.put("Amount", resultAmount);
 
 		cfg.put("Placeable", placeable);
-		cfg.put("Ignore-Data", false);
-		cfg.put("Ignore-Model-Data", false);
-		cfg.put("Multi-Resulted", false);
 		cfg.put("Exact-Choice", exactchoice);
 		cfg.put("Custom-Tagged", false);
 		cfg.put("Durability", resultItem.getDurability());
@@ -155,7 +151,7 @@ public class RecipeSaver {
 
 		if (resultHasID.get()) {
 			cfg.put("Name", "none");
-			cfg.put("Lore", null);
+			cfg.put("Lore", new ArrayList<>());
 
 		} else {
 			if (displayNameColored != null && !displayNameColored.isEmpty()) {
@@ -171,9 +167,21 @@ public class RecipeSaver {
 		cfg.put("Hide-Enchants", true);
 		cfg.put("Enchantments", enchantList);
 
+		cfg.put("Commands.Give-Item", true);
+		cfg.put("Commands.Run-Commands", new ArrayList<>());
+		
 		cfg.put("ItemCrafting", itemCrafting);
 		cfg.put("Ingredients", ingredients);
 
+		cfg.put("ItemsLeftover", new ArrayList<>());
+		
+		cfg.put("Flags.Ignore-Data", false);
+		cfg.put("Flags.Ignore-Model-Data", false);
+		cfg.put("Flags.Ignore-Name", false);
+		
+		cfg.put("Use-Conditions", false);
+		cfg.put("Conditions_All", new ArrayList<>());
+		
 		cfg.put("Custom-Tags", new ArrayList<>());
 		cfg.put("Item-Flags", new ArrayList<>());
 		cfg.put("Attribute", new ArrayList<>());
@@ -218,6 +226,7 @@ public class RecipeSaver {
 			ing.put("Identifier", findIngredientIdentifier(stack));
 			ing.put("Amount", Math.max(1, stack.getAmount()));
 			ing.put("Name", getIngredientNamePlain(stack));
+			ing.put("Custom-Model-Data", "none");
 
 			out.put(letter, ing);
 		}
@@ -330,7 +339,7 @@ public class RecipeSaver {
 		if (id != null && !id.isEmpty() && !"none".equalsIgnoreCase(id))
 			return id;
 
-		return UUID.randomUUID().toString();
+		return fallbackName;
 	}
 
 	private String readPermission(Inventory inv, String identifier) {
@@ -359,10 +368,7 @@ public class RecipeSaver {
 		if (im.hasLore() && im.getLore() != null && !im.getLore().isEmpty()) {
 			return ChatColor.stripColor(im.getLore().get(0));
 		}
-		if (im.hasDisplayName()) {
-			return ChatColor.stripColor(im.getDisplayName());
-		}
-		return null;
+			return "none";
 	}
 
 	private ItemStack safeGet(Inventory inv, int slot) {

@@ -9,7 +9,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.NBTItem;
 import me.mehboss.gui.RecipeGUI;
 import me.mehboss.recipe.Main;
 
@@ -70,7 +71,9 @@ public class CommandEditItem {
 
 		if (command.args.length == 3 && command.args[1].equalsIgnoreCase("key")) {
 			ItemStack item = p.getItemInHand();
-			item = NBTEditor.set(item, command.args[2], "CUSTOM_ITEM_IDENTIFIER");
+			NBT.modify(item, (nbt) -> {
+			    nbt.setString("CUSTOM_ITEM_IDENTIFIER", command.args[2]);
+			});
 			p.setItemInHand(item);
 
 			p.sendMessage(ChatColor.GREEN + "Successfully updated item identifier!");

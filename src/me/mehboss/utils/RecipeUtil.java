@@ -3,9 +3,11 @@ package me.mehboss.utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -29,14 +31,18 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.th0rgal.oraxen.api.OraxenItems;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.RecipeConditions.ConditionSet;
+import me.mehboss.utils.data.CookingRecipeData;
 import net.Indyuce.mmoitems.MMOItems;
 
 public class RecipeUtil {
+
 	private HashMap<String, Recipe> recipes = new HashMap<>();
 	private ArrayList<String> keyList = new ArrayList<>();
 	public List<String> SUPPORTED_PLUGINS = List.of("itemsadder", "mythicmobs", "executableitems", "oraxen", "nexo",
 			"mmoitems");
+
 
 	/**
 	 * Adds a finished Recipe object to the API
@@ -58,8 +64,8 @@ public class RecipeUtil {
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPED
-				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPELESS) && recipe.getIngredientSize() != 9) {
+		if ((recipe.getType() == RecipeType.SHAPED || recipe.getType() == RecipeType.SHAPELESS)
+				&& recipe.getIngredientSize() != 9) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName() + ". Recipe is "
 					+ recipe.getType() + " and does not have 9 ingredients! Ingredients: " + recipe.getIngredientSize();
 			throw new InvalidRecipeException(errorMessage);
@@ -71,8 +77,7 @@ public class RecipeUtil {
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if ((recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPED
-				|| recipe.getType() == RecipeUtil.Recipe.RecipeType.SHAPELESS)
+		if ((recipe.getType() == RecipeType.SHAPED || recipe.getType() == RecipeType.SHAPELESS)
 				&& (recipe.getRow(1) == null || recipe.getRow(2) == null || recipe.getRow(3) == null)) {
 			String errorMessage = "[CRAPI] Could not add recipe because shape cannot have null rows. Recipe: "
 					+ recipe.getName();
@@ -93,6 +98,26 @@ public class RecipeUtil {
 			clearDuplicates(recipes.get(recipeName));
 			recipes.remove(recipeName);
 		}
+	}
+
+	/**
+	 * Loads the specified recipe to the server. Checks and corrects duplicate
+	 * NamespacedKey.
+	 * 
+	 * @param recipe the recipe you want to load
+	 */
+	public void registerRecipe(Recipe recipe) {
+		this.clearDuplicates(recipe);
+		Main.getInstance().recipeManager.addRecipesFromAPI(recipe);
+	}
+
+	/**
+	 * Resets and reloads all registered recipes, including CR recipes. Checks and
+	 * corrects duplicate NamespacedKey.
+	 */
+	public void reloadRecipes() {
+		this.clearDuplicates(null);
+		Main.getInstance().recipeManager.addRecipesFromAPI(null);
 	}
 
 	public String getCustomItemPlugin(String key) {
@@ -227,33 +252,6 @@ public class RecipeUtil {
 	}
 
 	/**
-	 * Getter for a recipe from the result ItemStack
-	 * 
-	 * @param item the ItemStack
-	 * @return the Recipe that is found, can be null
-	 */
-	public Recipe getRecipeFromResult(ItemStack item) {
-
-		if (item == null)
-			return null;
-
-		String id = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				? NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				: "none";
-
-		if (!id.equals("none"))
-			return getRecipeFromKey(id);
-
-		for (Recipe recipe : recipes.values()) {
-			ItemStack result = recipe.getResult();
-
-			if (result.equals(item) || result.isSimilar(item))
-				return recipe;
-		}
-		return null;
-	}
-
-	/**
 	 * Getter for a key from the result ItemStack
 	 * 
 	 * @param item the ItemStack
@@ -347,12 +345,39 @@ public class RecipeUtil {
 	}
 
 	/**
+	 * Getter for a recipe from the result ItemStack
+	 * 
+	 * @param item the ItemStack
+	 * @return the Recipe that is found, can be null
+	 */
+	public Recipe getRecipeFromResult(ItemStack item) {
+
+		if (item == null || item.getType() == Material.AIR)
+			return null;
+
+		String id = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+				? NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
+				: "none";
+
+		if (!id.equals("none"))
+			return getRecipeFromKey(id);
+
+		for (Recipe recipe : recipes.values()) {
+			ItemStack result = recipe.getResult();
+
+			if (result.equals(item) || result.isSimilar(item))
+				return recipe;
+		}
+		return null;
+	}
+
+	/**
 	 * Getter for all recipes registered
 	 * 
 	 * @return a hashmap of recipes, including CR recipes, can be null
 	 */
 	public HashMap<String, Recipe> getAllRecipes() {
-		return recipes.isEmpty() ? null : recipes;
+		return recipes.isEmpty() ? new HashMap<String, Recipe>() : recipes;
 	}
 
 	/**
@@ -392,7 +417,7 @@ public class RecipeUtil {
 	 * @param type the recipe type
 	 * @return the hashmap of recipes found, can be null
 	 */
-	public HashMap<String, Recipe> getRecipesFromType(Recipe.RecipeType type) {
+	public HashMap<String, Recipe> getRecipesFromType(RecipeType type) {
 		if (recipes.isEmpty())
 			return null;
 
@@ -425,26 +450,6 @@ public class RecipeUtil {
 	}
 
 	/**
-	 * Getter for a furnace recipe by the source
-	 * 
-	 * @return recipe the recipe that matches
-	 */
-	public Recipe getRecipeFromFurnaceSource(ItemStack item) {
-		HashMap<String, Recipe> furnaceRecipes = getRecipesFromType(Recipe.RecipeType.FURNACE);
-
-		if (furnaceRecipes == null)
-			return null;
-
-		for (Recipe recipes : furnaceRecipes.values()) {
-			ItemStack sourceItem = recipes.getFurnaceSource();
-
-			if (sourceItem != null && (item.equals(sourceItem) || item.isSimilar(sourceItem)))
-				return recipes;
-		}
-		return null;
-	}
-
-	/**
 	 * Getter for all recipe names
 	 * 
 	 * @return a set of strings
@@ -453,25 +458,41 @@ public class RecipeUtil {
 		return recipes.isEmpty() ? new ArrayList<>() : new ArrayList<>(recipes.keySet());
 	}
 
-	/**
-	 * Loads the specified recipe to the server. Checks and corrects duplicate
-	 * NamespacedKey.
-	 * 
-	 * @param recipe the recipe you want to load
+	/*
+	 * ======================================================================
+	 * Cooking-Related Accessors (Furnace / etc.)
+	 * ======================================================================
 	 */
-	public void addRecipe(Recipe recipe) {
-		this.clearDuplicates(recipe);
-		Main.getInstance().recipeManager.addRecipesFromAPI(recipe);
-	}
 
 	/**
-	 * Resets and reloads all registered recipes, including CR recipes. Checks and
-	 * corrects duplicate NamespacedKey.
+	 * Getter for a furnace recipe by the source
+	 * 
+	 * @return recipe the recipe that matches
 	 */
-	public void reloadRecipes() {
-		this.clearDuplicates(null);
-		Main.getInstance().recipeManager.addRecipesFromAPI(null);
+	public Recipe getRecipeFromFurnaceSource(ItemStack item) {
+		HashMap<String, Recipe> furnaceRecipes = getRecipesFromType(RecipeType.FURNACE);
+
+		if (furnaceRecipes == null)
+			return null;
+
+		for (Recipe recipes : furnaceRecipes.values()) {
+			if (!(recipes instanceof CookingRecipeData))
+				continue;
+
+			CookingRecipeData cookRecipe = (CookingRecipeData) recipes;
+			ItemStack sourceItem = cookRecipe.getSource();
+
+			if (sourceItem != null && (item.equals(sourceItem) || item.isSimilar(sourceItem)))
+				return recipes;
+		}
+		return null;
 	}
+
+	/*
+	 * ======================================================================
+	 * Internal Helpers (private)
+	 * ======================================================================
+	 */
 
 	/**
 	 * Clears all or specific registered recipe(s) for duplicate NamespacedKey,
@@ -516,6 +537,17 @@ public class RecipeUtil {
 		}
 	}
 
+	private void logError(String st, String recipe) {
+		Logger.getLogger("Minecraft").log(Level.WARNING,
+				"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
+	}
+
+	/*
+	 * ======================================================================
+	 * Classes (Recipe, Ingredient)
+	 * ======================================================================
+	 */
+
 	public static class Recipe {
 
 		private ItemStack result;
@@ -541,23 +573,36 @@ public class RecipeUtil {
 		private boolean hasCommands = false;
 		private boolean isGrantItem = true;
 
-		private ItemStack furnaceSource;
-
 		private String row1;
 		private String row2;
 		private String row3;
 
 		private long cooldown = 0;
-		private int cookTime = 200;
-		private int anvilCost = 0;
-		private float furnaceExperience = 1.0f;
-
-		private String group = "";
 
 		private ConditionSet conditionSet = new ConditionSet();
 
 		public enum RecipeType {
-			SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE, BREWING_STAND;
+			SHAPELESS(), SHAPED(), STONECUTTER(), FURNACE(), ANVIL(), BLASTFURNACE(), SMOKER(), CAMPFIRE(),
+			GRINDSTONE(), BREWING_STAND("BREWING");
+
+			private final Set<String> aliases;
+
+			RecipeType(String... aliases) {
+				this.aliases = new HashSet<>();
+				for (String alias : aliases)
+					this.aliases.add(alias.toUpperCase().replace(" ", "_"));
+				this.aliases.add(this.name());
+			}
+
+			public static RecipeType fromString(String name) {
+				if (name == null)
+					return null;
+				String key = name.toUpperCase().replace(" ", "_");
+				for (RecipeType type : values())
+					if (type.aliases.contains(key))
+						return type;
+				return null;
+			}
 		}
 
 		private RecipeType recipeType = RecipeType.SHAPED;
@@ -1033,89 +1078,6 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Setter for the cook time of a furnace recipe
-		 * 
-		 * @param cooktime how long it takes to cook the ingredient, in seconds
-		 */
-		public void setCookTime(int cooktime) {
-			this.cookTime = cooktime;
-		}
-
-		/**
-		 * Getter for the cook time of a furnace recipe
-		 * 
-		 * @returns how long it takes to cook the ingredient
-		 */
-		public int getCookTime() {
-			return cookTime;
-		}
-
-		/**
-		 * Setter for the experience given from a furnace recipe
-		 * 
-		 * @param experience the amount of experience given
-		 */
-		public void setExperience(float experience) {
-			this.furnaceExperience = experience;
-		}
-
-		/**
-		 * Getter for the furnace experience of a furnace recipe result
-		 * 
-		 * @returns the amount of experience granted from a furnace result
-		 */
-		public float getExperience() {
-			return furnaceExperience;
-		}
-
-		/**
-		 * Setter for the group of a stonecutter recipe
-		 * 
-		 * @param group the group of a stonecutter recipe
-		 */
-		public void setGroup(String group) {
-			this.group = group;
-		}
-
-		/**
-		 * Getter for a stonecutter group
-		 * 
-		 * @returns the group of a stonecutter recipe
-		 */
-		public String getGroup() {
-			return group;
-		}
-
-		/**
-		 * Setter for the cost required for an anvil recipe
-		 * 
-		 * @param cost the cost required to complete an anvil transaction
-		 */
-		public void setRepairCost(int cost) {
-			this.anvilCost = cost;
-		}
-
-		/**
-		 * Getter for the anvil cost of an anvil usage
-		 * 
-		 * @returns the amount of cost required from an anvil result
-		 */
-		public int getRepairCost() {
-			return anvilCost;
-		}
-
-		/**
-		 * Getter for if the anvil recipe has a repair cost
-		 * 
-		 * @returns true or false
-		 */
-		public boolean hasRepairCost() {
-			if (anvilCost == 0)
-				return false;
-			return true;
-		}
-
-		/**
 		 * Getter for an ingredient slot
 		 * 
 		 * @param slot integer of the slot (1-9)
@@ -1192,30 +1154,13 @@ public class RecipeUtil {
 
 			return false;
 		}
-
-		/**
-		 * Getter for the source of a furnace recipe
-		 * 
-		 * @return a itemstack which represents the furnaces source
-		 */
-		public ItemStack getFurnaceSource() {
-			return furnaceSource;
-		}
-
-		/**
-		 * Setter for the source of a furnace recipe
-		 * 
-		 * @param item the furnace source itemstack
-		 */
-		public void setFurnaceSource(ItemStack item) {
-			furnaceSource = item;
-		}
 	}
 
 	public static class Ingredient {
 		private ItemStack item;
 		private Material material;
 		private MaterialData materialData;
+		private List<Material> materialChoices = new ArrayList<>();
 
 		private String displayName = "false";
 		private String abbreviation;
@@ -1415,6 +1360,29 @@ public class RecipeUtil {
 		}
 
 		/**
+		 * Adds an additional valid {@link Material} for this ingredient.
+		 *
+		 * <p>
+		 * When material choices are defined, the ingredient will match if the input
+		 * item's material is any of those added here.
+		 * </p>
+		 *
+		 * @param material a valid material option for this ingredient
+		 */
+		public void addMaterialChoice(Material material) {
+			materialChoices.add(material);
+		}
+
+		/**
+		 * Gets all additional materials that may satisfy this ingredient.
+		 *
+		 * @return a list of valid material choices
+		 */
+		public List<Material> getMaterialChoices() {
+			return materialChoices.isEmpty() ? Collections.singletonList(material) : materialChoices;
+		}
+
+		/**
 		 * Checks whether this ingredient has legacy {@link MaterialData}.
 		 *
 		 * <p>
@@ -1433,6 +1401,15 @@ public class RecipeUtil {
 				return false;
 
 			return true;
+		}
+
+		/**
+		 * Checks whether this ingredient has multiple valid materials.
+		 *
+		 * @return true if one or more material choices are defined
+		 */
+		public boolean hasMaterialChoices() {
+			return materialChoices.size() > 1;
 		}
 
 		/**
@@ -1474,10 +1451,5 @@ public class RecipeUtil {
 		public int getCustomModelData() {
 			return modelData;
 		}
-	}
-
-	private void logError(String st, String recipe) {
-		Logger.getLogger("Minecraft").log(Level.WARNING,
-				"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
 	}
 }

@@ -36,12 +36,15 @@ import com.cryptomorin.xseries.XMaterial;
 
 import me.mehboss.anvil.AnvilManager;
 import me.mehboss.anvil.GrindstoneManager;
+import me.mehboss.brewing.BrewEvent;
 import me.mehboss.commands.TabCompletion;
 import me.mehboss.cooking.CookingManager;
 import me.mehboss.crafting.AmountManager;
 import me.mehboss.crafting.CooldownManager;
 import me.mehboss.crafting.CraftManager;
 import me.mehboss.crafting.CrafterManager;
+import me.mehboss.crafting.ShapedChecks;
+import me.mehboss.crafting.ShapelessChecks;
 import me.mehboss.gui.RecipeGUI;
 import me.mehboss.gui.RecipeTypeGUI;
 import me.mehboss.gui.BookGUI;
@@ -49,10 +52,10 @@ import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
 import me.mehboss.utils.ItemBuilder;
 import me.mehboss.utils.MetaChecks;
-import me.mehboss.utils.Metrics;
 import me.mehboss.utils.Placeholders;
 import me.mehboss.utils.RecipeUtil;
-import me.mehboss.utils.UpdateChecker;
+import me.mehboss.utils.libs.Metrics;
+import me.mehboss.utils.libs.UpdateChecker;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
@@ -60,6 +63,8 @@ public class Main extends JavaPlugin implements Listener {
 	public AmountManager amountManager;
 	public CraftManager craftManager;
 	public RecipeManager recipeManager;
+	public ShapedChecks shapedChecks;
+	public ShapelessChecks shapelessChecks;
 	public BookGUI recipes;
 	public RecipeTypeGUI typeGUI;
 	public CooldownManager cooldownManager;
@@ -251,6 +256,8 @@ public class Main extends JavaPlugin implements Listener {
 		recipeUtil = new RecipeUtil();
 		recipeManager = new RecipeManager();
 		metaChecks = new MetaChecks();
+		shapedChecks = new ShapedChecks();
+		shapelessChecks = new ShapelessChecks();
 		craftManager = new CraftManager();
 		amountManager = new AmountManager(craftManager);
 
@@ -338,6 +345,7 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
+		Bukkit.getPluginManager().registerEvents(new BrewEvent(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
 		registerUpdateChecker();

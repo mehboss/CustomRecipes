@@ -61,7 +61,7 @@ public class BookGUI implements Listener {
 		if (recipesMap == null || recipesMap.isEmpty())
 			return new ArrayList<>();
 
-		return recipesMap.values().stream().filter(r -> !r.hasPerm() || p.hasPermission(r.getPerm()))
+		return recipesMap.values().stream().filter(r -> r.isActive() && (!r.hasPerm() || p.hasPermission(r.getPerm())))
 				.collect(Collectors.toList());
 	}
 

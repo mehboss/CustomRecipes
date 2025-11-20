@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Keyed;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
@@ -380,13 +381,6 @@ public class Main extends JavaPlugin implements Listener {
 
 	public void reload() {
 
-		// Remove old recipes
-		removeCustomRecipes();
-		removeRecipes();
-		clear();
-
-		disableRecipes();
-
 		// Reload configs
 		reloadConfig();
 		customConfig = YamlConfiguration.loadConfiguration(customYml);
@@ -399,6 +393,13 @@ public class Main extends JavaPlugin implements Listener {
 		recipes = new BookGUI(this);
 		typeGUI = new RecipeTypeGUI();
 		editItem = new RecipeGUI(this, null);
+
+		// Remove old recipes
+		removeCustomRecipes();
+		removeRecipes();
+		clear();
+
+		disableRecipes();
 
 		// Re-add recipes immediately
 		ItemBuilder.reload();
@@ -452,7 +453,7 @@ public class Main extends JavaPlugin implements Listener {
 				if (!recipe.isDiscoverable() || key == null || Bukkit.getRecipe(key) == null)
 					continue;
 
-				if (recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) {
+				if ((recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) || (!recipe.isActive())) {
 					if (p.hasDiscoveredRecipe(key)) {
 						p.undiscoverRecipe(key);
 					}
@@ -521,9 +522,15 @@ public class Main extends JavaPlugin implements Listener {
 					String s = entry == null ? "" : entry;
 					if (s.isEmpty())
 						continue;
+					
+					NamespacedKey nk;
 
-					// --- First: try explicit namespaced key, e.g. "minecraft:stick"
-					NamespacedKey nk = NamespacedKey.fromString(s.toLowerCase());
+					if (s.contains(":")) {
+					    nk = NamespacedKey.fromString(s.toLowerCase());
+					} else {
+					    nk = NamespacedKey.minecraft(s.toLowerCase());
+					}
+					
 					if (nk != null) {
 						Recipe rec = Bukkit.getRecipe(nk);
 						if (rec == null) {

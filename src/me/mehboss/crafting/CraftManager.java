@@ -137,14 +137,20 @@ public class CraftManager implements Listener {
 			recipeResult = foundRecipe.getResult();
 		}
 
-		ItemStack exactMatch = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
-				: recipeResult;
+		ItemStack exactMatch = null;
+		boolean matchesIdentifier = false;
+		boolean matchesTags = tagsMatch(ingredient, item);
+		
+		// since getResultFromKey is so resource heavy, try to check tags first for custom items.
+		if (!matchesTags) {
+			exactMatch = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
+					: recipeResult;
+			matchesIdentifier = ingredient.hasIdentifier() && item.isSimilar(exactMatch);
+		}
 
-		if (ingredient.hasIdentifier() && exactMatch == null)
+		if (ingredient.hasIdentifier() && !matchesTags && exactMatch == null)
 			return returnType;
 
-		boolean matchesIdentifier = ingredient.hasIdentifier() && item.isSimilar(exactMatch);
-		boolean matchesTags = tagsMatch(ingredient, exactMatch);
 		boolean matchesMaterial = item.getType() == ingredient.getMaterial();
 		boolean matchesMaterialChoice = ingredient.hasMaterialChoices()
 				&& ingredient.getMaterialChoices().contains(item.getType());
@@ -188,6 +194,7 @@ public class CraftManager implements Listener {
 		RecipeType type = getRecipeUtil().getRecipe(recipeName).getType();
 		ItemStack[] matrix = inv.getContents();
 
+		boolean[] usedSlots = new boolean[matrix.length];
 		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
 
 			if (type == RecipeType.SHAPED) {
@@ -205,18 +212,25 @@ public class CraftManager implements Listener {
 				continue;
 
 			} else {
-
 				if (ingredient.isEmpty())
 					continue;
 				int slot = isCraftingInventory ? 0 : -1;
 
 				for (ItemStack item : matrix) {
-					slot++;
+					if (isCraftingInventory && slot == 0) {
+						slot++;
+						continue;
+					}
+
+					if (usedSlots[slot])
+						continue;
 					if (item == null || item.getType() == Material.AIR)
 						continue;
-					if (!validateItem(item, ingredient, recipeName, slot, debug, false)) {
-						return false;
+					if (validateItem(item, ingredient, recipeName, slot, debug, false)) {
+						usedSlots[slot] = true;
+						break;
 					}
+					slot++;
 				}
 			}
 		}

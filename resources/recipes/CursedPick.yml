@@ -7,6 +7,11 @@ CursedPick:
   # Set to true for shapeless
   Shapeless: false
   
+  # Defines a group, valid only for crafting recipes
+  # Empty string denotes no group
+  # Ommit or set to none if not needed
+  Group: ''
+  
   # Defines a cooldown for crafting this item.
   # Define amount of time in seconds before the player can craft 
   # this recipe again

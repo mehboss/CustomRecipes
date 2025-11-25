@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -61,7 +62,8 @@ public class AmountManager implements Listener {
 
 	// Helper method for the handleShiftClick method
 	void handlesItemRemoval(CraftItemEvent e, CraftingInventory inv, Recipe recipe, ItemStack item,
-			RecipeUtil.Ingredient ingredient, int slot, int itemsToRemove, int itemsToAdd, int requiredAmount) {
+			RecipeUtil.Ingredient ingredient, int slot, int itemsToRemove, int itemsToAdd, int requiredAmount,
+			AtomicBoolean containerCraft) {
 
 		String recipeName = recipe.getName();
 		logDebug("[handleShiftClicks] Checking slot " + slot + " for the recipe " + recipeName);
@@ -97,20 +99,35 @@ public class AmountManager implements Listener {
 					|| item.getType() == Material.LINGERING_POTION || item.getType().toString().contains("_BUCKET");
 
 			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-				if ((item.getAmount() + 1) - requiredAmount == 0) {
+				if (item.getAmount() == 1 && !isContainer)
+					return;
+				
+				if (((item.getAmount()) - requiredAmount == 0)) {
+					if (isContainer && !recipe.isLeftover(id)) {
+						containerCraft.set(true);
+						Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+							inv.setItem(slot, null);
+						});
+						return;
+					}
+					// set to 1, not 0, since we don't cancel the event. Vanilla will handle the leftover.
+					item.setAmount(1);
+				} else {
+					if (isContainer) {
+						// remove exact, since containers are cancelled, normal vanilla deduction does not happen.
+						item.setAmount((item.getAmount()) - requiredAmount);
+						return;
+					}
+					item.setAmount((item.getAmount() + 1) - requiredAmount);
+				}
+			} else {
+				if ((item.getAmount() - itemsToRemove) <= 0) {
 					if (isContainer && !recipe.isLeftover(id)) {
 						Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
 							inv.setItem(slot, null);
 						});
 						return;
 					}
-
-					inv.setItem(slot, null);
-				} else {
-					item.setAmount((item.getAmount() + 1) - requiredAmount);
-				}
-			} else {
-				if ((item.getAmount() - itemsToRemove) <= 0) {
 					inv.setItem(slot, null);
 					return;
 				}
@@ -254,6 +271,8 @@ public class AmountManager implements Listener {
 			return;
 		}
 
+		AtomicBoolean containerCraft = new AtomicBoolean(false);
+
 		// ============================================================
 		// PASS 2 — REMOVE ITEMS
 		// ============================================================
@@ -272,7 +291,8 @@ public class AmountManager implements Listener {
 
 				int requiredAmount = Math.max(1, ing.getAmount());
 
-				handlesItemRemoval(e, inv, recipe, stack, ing, realInvSlot, itemsToRemove, itemsToAdd, requiredAmount);
+				handlesItemRemoval(e, inv, recipe, stack, ing, realInvSlot, itemsToRemove, itemsToAdd, requiredAmount,
+						containerCraft);
 			}
 
 		} else {
@@ -295,7 +315,8 @@ public class AmountManager implements Listener {
 						continue;
 
 					if (!handledIngredients.contains(ing.getAbbreviation())) {
-						handlesItemRemoval(e, inv, recipe, stack, ing, i, itemsToRemove, itemsToAdd, req);
+						handlesItemRemoval(e, inv, recipe, stack, ing, i, itemsToRemove, itemsToAdd, req,
+								containerCraft);
 					}
 				}
 
@@ -315,7 +336,6 @@ public class AmountManager implements Listener {
 		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Main.getInstance().inInventory.remove(id), 2L);
 
 		if (recipe.hasCommands()) {
-
 			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY)
 				itemsToAdd = 1;
 
@@ -332,6 +352,21 @@ public class AmountManager implements Listener {
 
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
 			logDebug("[handleShiftClicks] Normal click, no mass-add");
+
+			if (containerCraft.get()) {
+				e.setCancelled(true);
+
+				logDebug("[handleShiftClicks] Manual handle of container, since vanilla mechanics replace.");
+				ItemStack cursor = player.getItemOnCursor();
+				if (cursor == null || cursor.getType() == Material.AIR)
+					player.setItemOnCursor(result.clone());
+				else if (cursor.isSimilar(result))
+					cursor.setAmount(cursor.getAmount() + result.getAmount());
+				else
+					return;
+
+				inv.setResult(new ItemStack(Material.AIR));
+			}
 			return;
 		}
 

@@ -32,11 +32,11 @@ public class CommandRecipe {
 		String typeRaw = args[1];
 		RecipeType type;
 		try {
-			type = RecipeType.valueOf(typeRaw.toUpperCase());
+			type = RecipeType.fromString(typeRaw.toUpperCase());
 		} catch (IllegalArgumentException ex) {
 			sender.sendMessage(ChatColor.RED + "[CustomRecipes] Invalid recipe type: " + typeRaw);
 			sender.sendMessage(ChatColor.GRAY
-					+ "Valid types: SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE, BREWING_STAND");
+					+ "Valid types: SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE, BREWING");
 			return true;
 		}
 

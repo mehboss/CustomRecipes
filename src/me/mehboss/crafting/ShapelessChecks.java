@@ -11,16 +11,17 @@ import java.util.logging.Logger;
 
 import org.bukkit.Material;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class ShapelessChecks {
 
-	public boolean handleShapelessRecipe(CraftingInventory inv, Recipe recipe,
+	public boolean handleShapelessRecipe(Inventory inv, Recipe recipe,
 			List<RecipeUtil.Ingredient> recipeIngredients, UUID id) {
 
 		logDebug("[handleShapeless] Handling shapeless checks..!", recipe.getName(), id);
@@ -44,9 +45,13 @@ public class ShapelessChecks {
 			Collections.addAll(inventoryMD, -1, -1, -1, -1, -1);
 		}
 
-		ItemStack[] matrix = inv.getMatrix();
+		Boolean isCrafting = inv.getType() == InventoryType.CRAFTING || inv.getType() == InventoryType.WORKBENCH;
+		ItemStack[] matrix = inv.getContents();
 
 		for (int i = 0; i < matrix.length; i++) {
+			if (i == 0 && isCrafting)
+				continue;
+			
 			ItemStack it = matrix[i];
 
 			if (it == null || it.getType() == Material.AIR || it.getAmount() <= 0) {
@@ -71,7 +76,7 @@ public class ShapelessChecks {
 
 			inventoryCount.put(it.getType(), inventoryCount.getOrDefault(it.getType(), 0) + 1);
 
-			if (!it.hasItemMeta() || !it.getItemMeta().hasDisplayName()) {
+			if (!it.hasItemMeta() || !CompatibilityUtil.hasDisplayname(it.getItemMeta())) {
 				slotNames.add("false");
 				continue;
 			}
@@ -107,8 +112,8 @@ public class ShapelessChecks {
 					}
 				}
 
-				if (exactMatch.getItemMeta().hasDisplayName()) {
-					recipeNames.add(exactMatch.getItemMeta().getDisplayName());
+				if (CompatibilityUtil.hasDisplayname(exactMatch.getItemMeta())) {
+					recipeNames.add(CompatibilityUtil.getDisplayname(exactMatch.getItemMeta()));
 				} else {
 					recipeNames.add("false");
 				}

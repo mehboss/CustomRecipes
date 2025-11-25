@@ -176,6 +176,14 @@ public class RecipeManager {
 			} catch (NoClassDefFoundError e) {
 			}
 		}
+		if (Main.getInstance().serverVersionAtLeast(1, 13))
+			if (getConfig().isSet(item + ".Group")
+					&& !getConfig().getString(item + ".Group").equalsIgnoreCase("none")) {
+				try {
+					recipe.setGroup(getConfig().getString(item + ".Group"));
+				} catch (NoClassDefFoundError e) {
+				}
+			}
 	}
 
 	void handleFurnaceData(Recipe recipe, String configPath) {
@@ -744,7 +752,7 @@ public class RecipeManager {
 			logDebug("Applying displayname..", item);
 			logDebug("Displayname: " + name, item);
 
-			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+			itemMeta = CompatibilityUtil.setDisplayname(recipe, name);
 		}
 		return itemMeta;
 	}
@@ -861,13 +869,23 @@ public class RecipeManager {
 	void checkIdentifiers() {
 		for (Recipe recipe : new ArrayList<>(getRecipeUtil().getAllRecipes().values())) {
 			for (Ingredient ingredient : recipe.getIngredients()) {
-				if (ingredient.hasIdentifier() && getRecipeUtil()
-						.getResultFromKey(ingredient.getIdentifier() + ":" + recipe.getName()) == null) {
+				if (!ingredient.hasIdentifier())
+					continue;
+
+				// recipe name hyphen-argument is strictly for debugging, and is needed for
+				// attaching a recipe during getResultFromKey()
+				ItemStack matchedItem = getRecipeUtil()
+						.getResultFromKey(ingredient.getIdentifier() + ":" + recipe.getName());
+				if (matchedItem == null) {
 					logError("Please double check the IDs of the ingredients matches that of a custom item or recipe.",
 							recipe.getName());
 					logError("Skipping recipe..", recipe.getName());
 					getRecipeUtil().removeRecipe(recipe.getName());
 					break;
+				} else {
+					if (ingredient.getMaterial() != matchedItem.getType()) {
+						ingredient.setMaterial(matchedItem.getType());
+					}
 				}
 			}
 		}
@@ -886,6 +904,10 @@ public class RecipeManager {
 		}
 
 		if (name != null) {
+			if (!name.endsWith(".yml")) {
+				name = name + ".yml";
+			}
+
 			File single = new File(recipeFolder, name);
 			if (single.exists() && single.isFile()) {
 				recipeFiles = new File[] { single };
@@ -1012,7 +1034,7 @@ public class RecipeManager {
 				}
 
 				if (name == null) {
-					delayedRecipes.add(recipeFile.getName());
+					delayedRecipes.add(item);
 					continue;
 				}
 			}
@@ -1173,17 +1195,22 @@ public class RecipeManager {
 				recipe.setPerm(getConfig().getString(item + ".Permission"));
 
 			getRecipeUtil().createRecipe(recipe);
+			if (delayedRecipes.isEmpty() && name != null) {
+				getRecipeUtil().registerRecipe(recipe);
+				return;
+			}
 		}
 
-		if (name == null && !delayedRecipes.isEmpty()) {
+		if (!delayedRecipes.isEmpty() && name == null) {
 			for (String recipe : delayedRecipes)
 				addRecipes(recipe);
 
 			delayedRecipes.clear();
 		}
 
-		if (delayedRecipes.isEmpty())
+		if (delayedRecipes.isEmpty()) {
 			getRecipeUtil().reloadRecipes();
+		}
 	}
 
 	boolean hasItemDamage(String item, Optional<XMaterial> type) {

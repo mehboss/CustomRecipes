@@ -249,6 +249,7 @@ public class BookGUI implements Listener {
 						viewing = true;
 
 					logDebug("[RecipeBooklet][" + p.getName() + "] Opening recipe matrix.. " + recipeName);
+					Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
 					showCreationMenu(e.getInventory(), e.getCurrentItem(), p, recipeName, null, false, viewing, null);
 				}
 			}
@@ -358,10 +359,12 @@ public class BookGUI implements Listener {
 		return item;
 	}
 
-	public void openType(Player p, RecipeType type) {
+	public void openType(Player p, RecipeType type, Inventory inv) {
 		List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
-		if (recipes.isEmpty())
+		if (recipes.isEmpty()) {
+			showCreationMenu(inv, null, p, "", null, true, false, type);
 			return;
+		}
 
 		String title = ChatColor.translateAlternateColorCodes('&',
 				Main.getInstance().getConfig().getString("gui.Displayname").replace("%page%", "1"));

@@ -381,8 +381,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	public void reload() {
 
-		// Reload configs
-		reloadConfig();
+		clear();
 		customConfig = YamlConfiguration.loadConfiguration(customYml);
 		saveCustomYml(customConfig, customYml);
 		saveAllCustomYml();
@@ -397,7 +396,6 @@ public class Main extends JavaPlugin implements Listener {
 		// Remove old recipes
 		removeCustomRecipes();
 		removeRecipes();
-		clear();
 
 		disableRecipes();
 
@@ -522,15 +520,15 @@ public class Main extends JavaPlugin implements Listener {
 					String s = entry == null ? "" : entry;
 					if (s.isEmpty())
 						continue;
-					
+
 					NamespacedKey nk;
 
 					if (s.contains(":")) {
-					    nk = NamespacedKey.fromString(s.toLowerCase());
+						nk = NamespacedKey.fromString(s.toLowerCase());
 					} else {
-					    nk = NamespacedKey.minecraft(s.toLowerCase());
+						nk = NamespacedKey.minecraft(s.toLowerCase());
 					}
-					
+
 					if (nk != null) {
 						Recipe rec = Bukkit.getRecipe(nk);
 						if (rec == null) {
@@ -765,23 +763,23 @@ public class Main extends JavaPlugin implements Listener {
 
 	private int[] getServerVersionParts() {
 		String version = Bukkit.getServer().getBukkitVersion();
-		// Example version: 1.14-R0.1-SNAPSHOT
-		int version_minor = -1;
-		int version_major = -1;
+		int major = -1, minor = -1, patch = 0;
 
-		// Split by "-" to get the version part before the hyphen
 		String[] parts = version.split("-");
 		if (parts.length > 0) {
-			String[] version_parts = parts[0].split("\\."); // Split by dot to separate major and minor versions
+			String[] nums = parts[0].split("\\.");
 			try {
-				version_major = Integer.parseInt(version_parts[0]);
-				version_minor = Integer.parseInt(version_parts[1]);
+				major = Integer.parseInt(nums[0]);
+				minor = Integer.parseInt(nums[1]);
+				if (nums.length > 2) {
+					patch = Integer.parseInt(nums[2]);
+				}
 			} catch (NumberFormatException e) {
 				Main.getInstance().getLogger().log(Level.WARNING, "Error parsing server version numbers: " + version);
 			}
 		}
 
-		return new int[] { version_major, version_minor };
+		return new int[] { major, minor, patch };
 	}
 
 	public boolean serverVersionAtLeast(int major, int minor) {
@@ -791,6 +789,18 @@ public class Main extends JavaPlugin implements Listener {
 			return true;
 		}
 		return false;
+	}
+	
+	public boolean serverVersionAtLeast(int major, int minor, int patch) {
+	    int[] v = getServerVersionParts();
+
+	    if (v[0] != major)
+	        return v[0] > major;
+
+	    if (v[1] != minor)
+	        return v[1] > minor;
+
+	    return v[2] >= patch;
 	}
 
 	public boolean serverVersionLessThan(int major, int minor) {

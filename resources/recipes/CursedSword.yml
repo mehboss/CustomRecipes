@@ -1,6 +1,7 @@
 CursedSword: 
   Enabled: true
   Shapeless: true
+  Group: ''
   Cooldown: -1
   Placeable: true
   Exact-Choice: false

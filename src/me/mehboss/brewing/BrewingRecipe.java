@@ -6,7 +6,9 @@ import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.BrewingStand;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.BrewerInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -49,7 +51,16 @@ public class BrewingRecipe {
                     ? (fuel != null && fuel.isSimilar(recipe.getBrewFuel()))
                     : (fuel != null && fuel.getType() == recipe.getBrewFuel().getType());
 
-            if (ingredientMatch && fuelMatch)
+            Player p = null;
+            World w = inventory.getLocation().getWorld();
+            
+            if (inventory.getHolder() != null && inventory.getHolder() instanceof Player)
+            	p = (Player) inventory.getHolder();
+            
+            boolean hasPerms = p == null || !recipe.hasPerm() || p.hasPermission(recipe.getPerm());
+            boolean allowWorld = w == null || !recipe.getDisabledWorlds().contains(w.getName());
+            
+            if (ingredientMatch && fuelMatch && recipe.isActive() && hasPerms && allowWorld)
                 return recipe;
         }
 

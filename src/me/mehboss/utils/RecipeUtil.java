@@ -40,9 +40,9 @@ public class RecipeUtil {
 
 	private HashMap<String, Recipe> recipes = new HashMap<>();
 	private ArrayList<String> keyList = new ArrayList<>();
+	private HashMap<String, ItemStack> custom_items = new HashMap<>();
 	public List<String> SUPPORTED_PLUGINS = List.of("itemsadder", "mythicmobs", "executableitems", "oraxen", "nexo",
 			"mmoitems");
-
 
 	/**
 	 * Adds a finished Recipe object to the API
@@ -85,7 +85,8 @@ public class RecipeUtil {
 		}
 
 		recipes.put(recipe.getName(), recipe);
-		keyList.add(recipe.getKey());
+		if (!keyList.contains(recipe.getKey()))
+			keyList.add(recipe.getKey());
 	}
 
 	/**
@@ -95,7 +96,9 @@ public class RecipeUtil {
 	 */
 	public void removeRecipe(String recipeName) {
 		if (recipes.containsKey(recipeName)) {
-			clearDuplicates(recipes.get(recipeName));
+			Recipe recipe = recipes.get(recipeName);
+			clearDuplicates(recipe);
+			keyList.remove(recipe.getKey());
 			recipes.remove(recipeName);
 		}
 	}
@@ -203,8 +206,15 @@ public class RecipeUtil {
 			if (Main.getInstance().hasCustomPlugin("executableitems")) {
 				Optional<ExecutableItemInterface> ei = ExecutableItemsAPI.getExecutableItemsManager()
 						.getExecutableItem(itemId);
-				if (ei.isPresent())
-					return ei.get().buildItem(1, Optional.empty());
+				if (ei.isPresent()) {
+					if (custom_items.containsKey(itemId)) {
+						return custom_items.get(itemId);
+					} else {
+						ItemStack eiItem = ei.get().buildItem(1, Optional.empty());
+						custom_items.put(itemId, eiItem);
+						return eiItem;
+					}
+				}
 			}
 			break;
 
@@ -560,6 +570,7 @@ public class RecipeUtil {
 		private String name;
 		private String key;
 		private String permission;
+		private String group = "";
 		private List<String> commands;
 
 		private boolean exactChoice = false;
@@ -582,8 +593,8 @@ public class RecipeUtil {
 		private ConditionSet conditionSet = new ConditionSet();
 
 		public enum RecipeType {
-			SHAPELESS(), SHAPED(), STONECUTTER(), FURNACE(), ANVIL(), BLASTFURNACE(), SMOKER(), CAMPFIRE(),
-			GRINDSTONE(), BREWING_STAND("BREWING");
+			SHAPELESS(), SHAPED(), STONECUTTER(), FURNACE(), ANVIL(), BLASTFURNACE("BLAST", "BLAST_FURNACE"), SMOKER(),
+			CAMPFIRE(), GRINDSTONE(), BREWING_STAND("BREWING");
 
 			private final Set<String> aliases;
 
@@ -661,6 +672,37 @@ public class RecipeUtil {
 					this.category = category.toUpperCase();
 			} catch (NoClassDefFoundError e) {
 			} catch (Exception e) {
+			}
+		}
+
+		/**
+		 * Getter for the recipe group.
+		 * 
+		 * <p>
+		 * Available since Spigot 1.13+
+		 * </p>
+		 * 
+		 * @return the group string this recipe belongs to. Empty string means no group.
+		 */
+		public String getGroup() {
+			return group;
+		}
+
+		/**
+		 * Sets the group of the recipe. Recipes with the same group may be grouped
+		 * together when displayed in the client.
+		 * 
+		 * <p>
+		 * Available since Spigot 1.13+
+		 * </p>
+		 * 
+		 * @param group the group name. Empty string denotes no group.
+		 */
+		public void setGroup(String group) {
+			if (group == null) {
+				this.group = "";
+			} else {
+				this.group = group;
 			}
 		}
 
@@ -1138,9 +1180,9 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Getter for ingredients that are leftover for the recipe
+		 * Checks if a MATERIAL is marked as leftover.
 		 * 
-		 * @returns an arraylist of ids
+		 * @returns true or false boolean
 		 */
 		public Boolean isLeftover(String id) {
 			if (leftoverItems.isEmpty())
@@ -1321,6 +1363,17 @@ public class RecipeUtil {
 		 */
 		public Material getMaterial() {
 			return material == null ? Material.AIR : material;
+		}
+		
+		/**
+		 * Setter for the material of the ingredient
+		 *
+		 * This should NEVER be used, except internally!
+		 * 
+		 * @param material the material to be used
+		 */
+		public void setMaterial(Material material) {
+			this.material = material;
 		}
 
 		/**

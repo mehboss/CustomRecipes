@@ -23,7 +23,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import me.mehboss.commands.CommandRemove;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 
 public class RecipeSaver {
@@ -33,8 +35,9 @@ public class RecipeSaver {
 	private static final int SLOT_PLACEABLE_TOGGLE = 8;
 	private static final int SLOT_RESULT = 24;
 	private static final int SLOT_PERMISSION = 26;
-	private static final int SLOT_ENABLED_TOGGLE = 52;
-	private static final int SLOT_SHAPELESS_TOGGLE = 53;
+	private static final int SLOT_ENABLED_TOGGLE = 53;
+	private static final int SLOT_GROUP = 51;
+	private static final int SLOT_SHAPELESS_TOGGLE = 52;
 	private static final int SLOT_EXACTCHOICE_TOGGLE = 18;
 	private static final int SLOT_CONVERTER = 17;
 
@@ -47,7 +50,7 @@ public class RecipeSaver {
 	// Save the recipe map to the configuration file
 	public void saveRecipe(Inventory inv, Player p, String coloredName) {
 
-		String recipeName = ChatColor.stripColor(coloredName).replaceAll(" ", "_").toLowerCase();
+		String recipeName = ChatColor.stripColor(coloredName).replace("EDITING:", "").trim().replace(" ", "_");
 		File recipesFolder = new File(Main.getInstance().getDataFolder(), "recipes");
 		if (!recipesFolder.exists()) {
 			recipesFolder.mkdirs();
@@ -95,7 +98,7 @@ public class RecipeSaver {
 			p.sendMessage(ChatColor.RED + "Failed to save the recipe to " + recipeFile.getName() + ".");
 		}
 
-		Main.getInstance().reload();
+		Main.getInstance().recipeManager.addRecipes(recipeName);
 		p.closeInventory();
 	}
 
@@ -116,7 +119,7 @@ public class RecipeSaver {
 		String identifier = readIdentifier(inventory, resultItem, recipeName);
 		String permission = readPermission(inventory, identifier);
 		String displayNameColored = readNameColored(inventory);
-
+		String group = readFirstLoreOrNameStripped(inventory, SLOT_GROUP);
 		String rawConverterType = readLoreTag(inventory);
 		String converterType = rawConverterType.equals("SHAPED") || rawConverterType.equals("SHAPELESS") ? "none"
 				: rawConverterType;
@@ -131,6 +134,7 @@ public class RecipeSaver {
 
 		cfg.put("Enabled", enabled);
 		cfg.put("Shapeless", shapeless);
+		cfg.put("Group", group);
 		cfg.put("Cooldown", -1);
 
 		cfg.put("Item", getItemValue(resultItem, identifier, resultHasID));
@@ -169,19 +173,19 @@ public class RecipeSaver {
 
 		cfg.put("Commands.Give-Item", true);
 		cfg.put("Commands.Run-Commands", new ArrayList<>());
-		
+
 		cfg.put("ItemCrafting", itemCrafting);
 		cfg.put("Ingredients", ingredients);
 
 		cfg.put("ItemsLeftover", new ArrayList<>());
-		
+
 		cfg.put("Flags.Ignore-Data", false);
 		cfg.put("Flags.Ignore-Model-Data", false);
 		cfg.put("Flags.Ignore-Name", false);
-		
+
 		cfg.put("Use-Conditions", false);
 		cfg.put("Conditions_All", new ArrayList<>());
-		
+
 		cfg.put("Custom-Tags", new ArrayList<>());
 		cfg.put("Item-Flags", new ArrayList<>());
 		cfg.put("Attribute", new ArrayList<>());
@@ -336,7 +340,7 @@ public class RecipeSaver {
 	private String readIdentifier(Inventory inv, ItemStack result, String fallbackName) {
 		// Prefer slot 7 lore first line or display name, STRIPPED
 		String id = readFirstLoreOrNameStripped(inv, SLOT_IDENTIFIER);
-		if (id != null && !id.isEmpty() && !"none".equalsIgnoreCase(id))
+		if (id != null && !id.isEmpty() && !id.equals("null") && !id.equals("none"))
 			return id;
 
 		return fallbackName;
@@ -345,7 +349,7 @@ public class RecipeSaver {
 	private String readPermission(Inventory inv, String identifier) {
 		String perm = readFirstLoreOrNameStripped(inv, SLOT_PERMISSION);
 		if (perm == null || perm.isEmpty() || "none".equalsIgnoreCase(perm)) {
-			perm = "crecipe.recipe." + identifier;
+			perm = "none";
 		}
 		return perm;
 	}
@@ -356,7 +360,11 @@ public class RecipeSaver {
 		if (item == null || item.getType() == Material.AIR || item.getItemMeta() == null)
 			return null;
 		ItemMeta im = item.getItemMeta();
-		return im.hasDisplayName() ? im.getDisplayName() : null;
+		String customName = CompatibilityUtil.hasDisplayname(im) ? CompatibilityUtil.getDisplayname(im) : "none";
+		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
+
+		// returns displayname if exists, otherwise returns item name or null.
+		return displayName != null && !displayName.equals("none") ? displayName : customName;
 	}
 
 	// STRIP colors helper for IDs / permissions
@@ -368,7 +376,7 @@ public class RecipeSaver {
 		if (im.hasLore() && im.getLore() != null && !im.getLore().isEmpty()) {
 			return ChatColor.stripColor(im.getLore().get(0));
 		}
-			return "none";
+		return "none";
 	}
 
 	private ItemStack safeGet(Inventory inv, int slot) {
@@ -390,13 +398,6 @@ public class RecipeSaver {
 		return null;
 	}
 
-	// Result display name (may include colors)
-	public String getItemName(ItemStack itemStack) {
-		return (itemStack != null && itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName())
-				? itemStack.getItemMeta().getDisplayName()
-				: "none";
-	}
-
 	// Ingredient identifier (recipe ref or NBT), default "none"
 	private String findIngredientIdentifier(ItemStack item) {
 		if (item == null)
@@ -415,10 +416,11 @@ public class RecipeSaver {
 		if (item == null || !item.hasItemMeta())
 			return "none";
 		ItemMeta im = item.getItemMeta();
-		if (im.hasDisplayName()) {
-			return ChatColor.stripColor(im.getDisplayName());
-		}
-		return "none";
+		String customName = CompatibilityUtil.hasDisplayname(im) ? CompatibilityUtil.getDisplayname(im) : "none";
+		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
+
+		// returns displayname if exists, otherwise returns item name or null.
+		return displayName != null && !displayName.equals("none") ? displayName : customName;
 	}
 
 	public String getCustomIdentifier(ItemStack itemStack) {

@@ -149,6 +149,7 @@ public class TabCompletion implements TabCompleter {
 		types.add("CAMPFIRE");
 		types.add("ANVIL");
 		types.add("GRINDSTONE");
+		types.add("BREWING");
 		return types;
 	}
 

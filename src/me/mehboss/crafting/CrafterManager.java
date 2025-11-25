@@ -1,9 +1,7 @@
 package me.mehboss.crafting;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Material;
@@ -67,7 +65,7 @@ public class CrafterManager implements Listener {
 			// -------------------------
 			if (recipe.getType() == RecipeType.SHAPELESS) {
 
-				if (!handleShapelessRecipe(inv, result, recipe, recipeIngredients)) {
+				if (!shapelessChecks().handleShapelessRecipe(inv, recipe, recipeIngredients, null)) {
 					passedCheck = false;
 					continue;
 				}
@@ -146,185 +144,6 @@ public class CrafterManager implements Listener {
 		}
 
 		return result;
-	}
-
-	boolean handleShapelessRecipe(Inventory inv, ItemStack result, Recipe recipe,
-			List<RecipeUtil.Ingredient> recipeIngredients) {
-		// runs checks if recipe is shapeless
-
-		logDebug("[handleShapeless] Handling shapeless checks..!", recipe.getName());
-		if (getRecipeUtil().getRecipeFromResult(result) != null)
-			recipe = getRecipeUtil().getRecipeFromResult(result);
-
-		ArrayList<String> slotNames = new ArrayList<>();
-		ArrayList<String> recipeNames = new ArrayList<>();
-
-		ArrayList<Integer> recipeMD = new ArrayList<>();
-		ArrayList<Integer> inventoryMD = new ArrayList<>();
-
-		ArrayList<String> slotIDs = new ArrayList<>();
-		ArrayList<String> recipeIDs = new ArrayList<>();
-
-		Map<Material, Integer> recipeCount = new HashMap<>();
-		Map<Material, Integer> inventoryCount = new HashMap<>();
-
-		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
-			if (ingredient.isEmpty()) {
-				recipeCount.put(Material.AIR, recipeCount.getOrDefault(Material.AIR, 0) + 1);
-				recipeNames.add("null");
-				continue;
-			}
-
-			if (ingredient.hasIdentifier() && getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) != null) {
-				ItemStack exactMatch = getRecipeUtil().getResultFromKey(ingredient.getIdentifier());
-				recipeCount.put(exactMatch.getType(), recipeCount.getOrDefault(exactMatch.getType(), 0) + 1);
-				recipeIDs.add(ingredient.getIdentifier());
-
-				// recipe model data
-				if (Main.getInstance().serverVersionAtLeast(1, 14)) {
-					if (exactMatch.hasItemMeta() && exactMatch.getItemMeta().hasCustomModelData()) {
-						recipeMD.add(exactMatch.getItemMeta().getCustomModelData());
-					} else {
-						recipeMD.add(-1);
-					}
-				}
-
-				// recipe names
-				if (exactMatch.getItemMeta().hasDisplayName()) {
-					recipeNames.add(exactMatch.getItemMeta().getDisplayName());
-				} else {
-					recipeNames.add("false");
-				}
-				continue;
-			}
-
-			recipeCount.put(ingredient.getMaterial(), recipeCount.getOrDefault(ingredient.getMaterial(), 0) + 1);
-			recipeIDs.add("null");
-
-			if (Main.getInstance().serverVersionAtLeast(1, 14))
-				recipeMD.add(ingredient.getCustomModelData());
-
-			if (ingredient.hasDisplayName()) {
-				recipeNames.add(ingredient.getDisplayName());
-			} else {
-				recipeNames.add("false");
-			}
-		}
-
-		for (int i = 0; i < 9; i++) {
-			ItemStack it = inv.getItem(i);
-
-			if (it == null || it.getType() == Material.AIR || it.getAmount() <= 0) {
-				slotNames.add("null");
-				inventoryCount.put(Material.AIR, inventoryCount.getOrDefault(Material.AIR, 0) + 1);
-				continue;
-			}
-
-			// check ids
-			String key = getRecipeUtil().getKeyFromResult(it);
-			if (key == null)
-				key = "null";
-			slotIDs.add(key);
-
-			// inv model data
-			if (Main.getInstance().serverVersionAtLeast(1, 14)) {
-				if (it.hasItemMeta() && it.getItemMeta().hasCustomModelData()) {
-					inventoryMD.add(it.getItemMeta().getCustomModelData());
-				} else {
-					inventoryMD.add(-1);
-				}
-			}
-
-			inventoryCount.put(it.getType(), inventoryCount.getOrDefault(it.getType(), 0) + 1);
-
-			if (!it.hasItemMeta() || !it.getItemMeta().hasDisplayName()) {
-				slotNames.add("false");
-				continue;
-			}
-
-			slotNames.add(it.getItemMeta().getDisplayName());
-		}
-
-		boolean hasIngredients = true;
-		for (Map.Entry<Material, Integer> entry : recipeCount.entrySet()) {
-			Material material = entry.getKey();
-			int requiredCount = entry.getValue();
-			int invCount = inventoryCount.getOrDefault(material, 0);
-
-			if (invCount < requiredCount) {
-				hasIngredients = false;
-				break;
-			}
-		}
-
-		if (!hasIngredients) {
-			logDebug("[handleShapeless] Missing required ingredients! Skipping recipe..", recipe.getName());
-			return false;
-		}
-
-		logDebug("[handleShapeless] All required ingredients found..", recipe.getName());
-		// checks hardcoded nbt tags
-		if (!recipeIDs.equals(slotIDs) || !slotIDs.equals(recipeIDs)) {
-			logDebug("[handleShapeless] NBT tags mismatch: recipe vs inventory", recipe.getName());
-			return false;
-		}
-
-		// ignore data
-		if (recipe.getIgnoreData())
-			return true;
-
-		// ignore model data
-		if (!recipe.getIgnoreModelData()) {
-			Map<Integer, Integer> recipeModelCount = new HashMap<>();
-			Map<Integer, Integer> inventoryModelCount = new HashMap<>();
-
-			for (int model : recipeMD) {
-				recipeModelCount.put(model, recipeModelCount.getOrDefault(model, 0) + 1);
-			}
-			for (int model : inventoryMD) {
-				inventoryModelCount.put(model, inventoryModelCount.getOrDefault(model, 0) + 1);
-			}
-
-			if (!recipeMD.containsAll(inventoryMD) || !inventoryMD.containsAll(recipeMD)) {
-				logDebug("[handleShapeless] Model data mismatch: recipe vs inventory", recipe.getName());
-				return false;
-			}
-
-			if (!recipeModelCount.equals(inventoryModelCount)) {
-				logDebug("[handleShapeless] Model data mismatch: recipe vs inventory", recipe.getName());
-				logDebug(" Recipe Model Data Map: " + recipeModelCount, recipe.getName());
-				logDebug(" Inventory Model Data Map: " + inventoryModelCount, recipe.getName());
-				return false;
-			}
-		}
-
-		// ignore names
-		if (!recipe.getIgnoreNames()) {
-			Map<String, Integer> recipeNameCount = new HashMap<>();
-			Map<String, Integer> slotNameCount = new HashMap<>();
-
-			for (String name : recipeNames) {
-				recipeNameCount.put(name, recipeNameCount.getOrDefault(name, 0) + 1);
-			}
-			for (String name : slotNames) {
-				slotNameCount.put(name, slotNameCount.getOrDefault(name, 0) + 1);
-			}
-
-			if (!recipeNames.containsAll(slotNames) || !slotNames.containsAll(recipeNames)) {
-				logDebug("[handleShapeless] Display name mismatch: recipe vs inventory", recipe.getName());
-				logDebug(slotNames.toString(), recipe.getName());
-				logDebug(recipeNames.toString(), recipe.getName());
-				return false;
-			}
-
-			if (!recipeNameCount.equals(slotNameCount)) {
-				logDebug("[handleShapeless] Display name count mismatch: recipe vs inventory", recipe.getName());
-				logDebug(" RN: " + recipeNameCount, recipe.getName());
-				logDebug(" IN: " + slotNameCount, recipe.getName());
-				return false;
-			}
-		}
-		return true;
 	}
 
 	void handleAmountDeductions(CrafterCraftEvent e, String recipeName, Inventory inv) {
@@ -416,6 +235,10 @@ public class CrafterManager implements Listener {
 		return Main.getInstance().shapedChecks;
 	}
 
+	ShapelessChecks shapelessChecks() {
+		return Main.getInstance().shapelessChecks;
+	}
+	
 	CraftManager CraftManager() {
 		return Main.getInstance().craftManager;
 	}

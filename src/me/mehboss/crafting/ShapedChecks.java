@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -166,8 +167,8 @@ public class ShapedChecks {
 			// NAME CHECKS
 			if (!recipe.getIgnoreNames()) {
 
-				if ((!meta.hasDisplayName() && ingredient.hasDisplayName())
-						|| (meta.hasDisplayName() && !ingredient.hasDisplayName())) {
+				if ((!CompatibilityUtil.hasDisplayname(meta) && ingredient.hasDisplayName())
+						|| (CompatibilityUtil.hasDisplayname(meta) && !ingredient.hasDisplayName())) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug(
 							"[handleShaped] The recipe ingredient displayname and the inventory slot displayname do not match",
@@ -181,8 +182,8 @@ public class ShapedChecks {
 					return false;
 				}
 
-				if (ingredient.hasDisplayName() && meta.hasDisplayName()
-						&& !(ingredient.getDisplayName().equals(meta.getDisplayName()))) {
+				if (ingredient.hasDisplayName() && CompatibilityUtil.hasDisplayname(meta)
+						&& !(ingredient.getDisplayName().equals(CompatibilityUtil.getDisplayname(meta)))) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug("[handleShaped] The ingredient name for the recipe and inventory do not match",
 							recipe.getName());

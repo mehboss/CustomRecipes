@@ -87,8 +87,10 @@ public class ExactChoice {
 			}
 		}
 
+		// only if 1.13 or higher
 		try {
 			shapelessRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
+			shapelessRecipe.setGroup(recipe.getGroup());
 		} catch (NoClassDefFoundError e) {
 		}
 
@@ -123,6 +125,7 @@ public class ExactChoice {
 
 		try {
 			shapedRecipe.setCategory(CraftingBookCategory.valueOf(recipe.getBookCategory()));
+			shapedRecipe.setGroup(recipe.getGroup());
 		} catch (NoClassDefFoundError e) {
 		}
 

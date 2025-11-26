@@ -25,11 +25,16 @@
           </execution>
         </executions>
         <configuration>
-          <failOnError>false</failOnError>
-          <quiet>true</quiet>
-          <excludePackageNames>com.ssomar.score.* net.advancedplugins.ae.*
-						valorless.havenbags.*</excludePackageNames>
-          <additionalJOption>-Xdoclint:none</additionalJOption>
+          <additionalJOptions>
+            <additionalJOption>-Xdoclint:none</additionalJOption>
+            <additionalJOption>-quiet</additionalJOption>
+            <additionalJOption>-ignore-source-errors</additionalJOption>
+          </additionalJOptions>
+          <sourcepath>IGNORE</sourcepath>
+          <excludePackageNames>com.ssomar.*:net.advancedplugins.*:valorless.*</excludePackageNames>
+          <doclint>none</doclint>
+          <excludePackageNames>com.ssomar.score.api.executableitems.*,
+						net.advancedplugins.ae.api.*,</excludePackageNames>
         </configuration>
       </plugin>
       <plugin>

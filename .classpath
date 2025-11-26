@@ -25,7 +25,6 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/timot/Downloads/new-plugins/HavenBags-1.25.0.1589.jar"/>
 	<classpathentry kind="lib" path="C:/Users/timot/Downloads/SCore-5.25.3.30.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

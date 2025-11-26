@@ -20,11 +20,11 @@
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>3.5.0</version>
 				<configuration>
-					<failOnError>false</failOnError>
+					<failOnError>false</failOnError> <!-- don’t fail build if
+					Javadocs missing -->
+					<quiet>true</quiet>              <!-- suppress warnings -->
 					<excludePackageNames>
-						com.ssomar.score.api.executableitems.*,
-						net.advancedplugins.ae.api.*,
-						valorless.havenbags.*
+						me.mehboss.recipe.*
 					</excludePackageNames>
 				</configuration>
 				<executions>

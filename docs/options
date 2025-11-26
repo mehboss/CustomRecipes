@@ -5,20 +5,20 @@
 -protected
 -quiet
 -sourcepath
-'C:/Users/timot/eclipse-workspace/Custom Recipes/src'
+'C:/Users/timot/eclipse-workspace/CustomRecipesAPI/src'
 -author
 -bottom
 'Copyright &#169; 2025. All rights reserved.'
 -charset
 'UTF-8'
 -d
-'C:/Users/timot/eclipse-workspace/Custom Recipes/target/site/apidocs'
+'C:/Users/timot/eclipse-workspace/CustomRecipesAPI/target/site/apidocs'
 -docencoding
 'UTF-8'
 -doctitle
 'CustomRecipes 2.0.5.4 API'
 -linkoffline
-'https://docs.oracle.com/javase/8/docs/api' 'C:/Users/timot/eclipse-workspace/Custom Recipes/target/javadoc-bundle-options'
+'https://docs.oracle.com/javase/8/docs/api' 'C:/Users/timot/eclipse-workspace/CustomRecipesAPI/target/javadoc-bundle-options'
 -use
 -version
 -windowtitle

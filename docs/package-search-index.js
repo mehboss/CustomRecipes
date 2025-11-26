@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"me.mehboss.anvil"},{"l":"me.mehboss.brewing"},{"l":"me.mehboss.commands"},{"l":"me.mehboss.cooking"},{"l":"me.mehboss.crafting"},{"l":"me.mehboss.gui"},{"l":"me.mehboss.listeners"},{"l":"me.mehboss.recipe"},{"l":"me.mehboss.utils"},{"l":"me.mehboss.utils.data"},{"l":"me.mehboss.utils.libs"}];updateSearchResults();
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"me.mehboss.utils"},{"l":"me.mehboss.utils.data"}];updateSearchResults();

@@ -562,16 +562,14 @@ public class RecipeUtil {
 
 		private ItemStack result;
 
+		private List<String> commands;
 		private ArrayList<String> disabledWorlds = new ArrayList<>();
-		private ArrayList<String> leftoverItems = new ArrayList<>();
 		private ArrayList<Ingredient> ingredients;
 
 		private String customItem;
 		private String name;
 		private String key;
 		private String permission;
-		private String group = "";
-		private List<String> commands;
 
 		private boolean exactChoice = false;
 		private boolean placeable = true;
@@ -581,16 +579,14 @@ public class RecipeUtil {
 		private boolean ignoreNames = false;
 		private boolean isTagged = false;
 		private boolean discoverable = false;
+
 		private boolean hasCommands = false;
 		private boolean isGrantItem = true;
-
 		private String row1;
 		private String row2;
 		private String row3;
 
 		private long cooldown = 0;
-
-		private ConditionSet conditionSet = new ConditionSet();
 
 		public enum RecipeType {
 			SHAPELESS(), SHAPED(), STONECUTTER(), FURNACE(), ANVIL(), BLASTFURNACE("BLAST", "BLAST_FURNACE"), SMOKER(),
@@ -631,26 +627,6 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Gets the ConditionSet attached to this recipe. Conditions define extra
-		 * requirements for crafting (e.g. world, time, weather).
-		 *
-		 * @return the ConditionSet for this recipe, never null
-		 */
-		public ConditionSet getConditionSet() {
-			return conditionSet;
-		}
-
-		/**
-		 * Sets the ConditionSet for this recipe. If {@code cs} is null, an empty
-		 * ConditionSet is applied instead.
-		 *
-		 * @param cs the new ConditionSet for this recipe, can be null
-		 */
-		public void setConditionSet(ConditionSet cs) {
-			this.conditionSet = (cs == null) ? new ConditionSet() : cs;
-		}
-
-		/**
 		 * Getter for setBookCategory
 		 * 
 		 * @return the Category enum the recipe belongs to in the recipe book.
@@ -672,37 +648,6 @@ public class RecipeUtil {
 					this.category = category.toUpperCase();
 			} catch (NoClassDefFoundError e) {
 			} catch (Exception e) {
-			}
-		}
-
-		/**
-		 * Getter for the recipe group.
-		 * 
-		 * <p>
-		 * Available since Spigot 1.13+
-		 * </p>
-		 * 
-		 * @return the group string this recipe belongs to. Empty string means no group.
-		 */
-		public String getGroup() {
-			return group;
-		}
-
-		/**
-		 * Sets the group of the recipe. Recipes with the same group may be grouped
-		 * together when displayed in the client.
-		 * 
-		 * <p>
-		 * Available since Spigot 1.13+
-		 * </p>
-		 * 
-		 * @param group the group name. Empty string denotes no group.
-		 */
-		public void setGroup(String group) {
-			if (group == null) {
-				this.group = "";
-			} else {
-				this.group = group;
 			}
 		}
 
@@ -771,52 +716,6 @@ public class RecipeUtil {
 		public void setExactChoice(Boolean exactChoice) {
 			if (Main.getInstance().serverVersionAtLeast(1, 14))
 				this.exactChoice = exactChoice;
-		}
-
-		/**
-		 * Sets whether the recipe output should be granted after a command is performed
-		 * 
-		 * @return true if the recipe is granted, false otherwise.
-		 */
-		public void setGrantItem(Boolean grantItem) {
-			this.isGrantItem = grantItem;
-		}
-
-		/**
-		 * Gets whether the recipe output should be granted after a command is performed
-		 * 
-		 * @return true if the recipe is granted, false otherwise.
-		 */
-		public boolean isGrantItem() {
-			return isGrantItem;
-		}
-
-		/**
-		 * Gets whether the recipe is an item or a command
-		 * 
-		 * @return true if the recipe is a command, false otherwise
-		 */
-		public boolean hasCommands() {
-			return hasCommands;
-		}
-
-		/**
-		 * Sets the commands to perform upon crafting a recipe
-		 *
-		 * @param commands the list of command strings
-		 */
-		public void setCommands(List<String> commands) {
-			this.commands = commands;
-			this.hasCommands = true;
-		}
-
-		/**
-		 * Gets the commands to perform upon crafting a recipe
-		 *
-		 * @return the list of commands to be performed
-		 */
-		public List<String> getCommand() {
-			return commands;
 		}
 
 		/**
@@ -1102,6 +1001,25 @@ public class RecipeUtil {
 		}
 
 		/**
+		 * Compiles all ingredient materials of a recipe
+		 * 
+		 * @returns an ArrayList of all ingredient types
+		 */
+		public ArrayList<Material> getAllIngredientTypes() {
+			ArrayList<Material> types = new ArrayList<>();
+			if (this.ingredients.isEmpty())
+				return types;
+
+			for (Ingredient ingredient : this.ingredients) {
+				if (ingredient.isEmpty())
+					continue;
+				types.add(ingredient.getMaterial());
+
+			}
+			return types;
+		}
+
+		/**
 		 * Getter for the recipe ingredients
 		 * 
 		 * @returns a list of Ingredients
@@ -1169,32 +1087,51 @@ public class RecipeUtil {
 		public ArrayList<String> getDisabledWorlds() {
 			return disabledWorlds;
 		}
-
+		
 		/**
-		 * Setter for adding an ingredient as a leftover
+		 * Sets whether the recipe output should be granted after a command is performed
 		 * 
-		 * @param id the id of the ingredient to be leftover.
+		 * @return true if the recipe is granted, false otherwise.
 		 */
-		public void addLeftoverItem(String id) {
-			leftoverItems.add(id);
+		public void setGrantItem(Boolean grantItem) {
+			this.isGrantItem = grantItem;
 		}
 
 		/**
-		 * Checks if a MATERIAL is marked as leftover.
+		 * Gets whether the recipe output should be granted after a command is performed
 		 * 
-		 * @returns true or false boolean
+		 * @return true if the recipe is granted, false otherwise.
 		 */
-		public Boolean isLeftover(String id) {
-			if (leftoverItems.isEmpty())
-				return false;
+		public boolean isGrantItem() {
+			return isGrantItem;
+		}
 
-			if (XMaterial.matchXMaterial(id).isPresent())
-				id = XMaterial.matchXMaterial(id).get().parseMaterial().toString();
+		/**
+		 * Gets whether the recipe is an item or a command
+		 * 
+		 * @return true if the recipe is a command, false otherwise
+		 */
+		public boolean hasCommands() {
+			return hasCommands;
+		}
 
-			if (leftoverItems.contains(id))
-				return true;
+		/**
+		 * Sets the commands to perform upon crafting a recipe
+		 *
+		 * @param commands the list of command strings
+		 */
+		public void setCommands(List<String> commands) {
+			this.commands = commands;
+			this.hasCommands = true;
+		}
 
-			return false;
+		/**
+		 * Gets the commands to perform upon crafting a recipe
+		 *
+		 * @return the list of commands to be performed
+		 */
+		public List<String> getCommand() {
+			return commands;
 		}
 	}
 
@@ -1364,7 +1301,7 @@ public class RecipeUtil {
 		public Material getMaterial() {
 			return material == null ? Material.AIR : material;
 		}
-		
+
 		/**
 		 * Setter for the material of the ingredient
 		 *

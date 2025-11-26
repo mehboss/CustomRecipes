@@ -22,6 +22,7 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.data.CookingRecipeData;
+import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
 
 public class ExactChoice {
@@ -69,7 +70,7 @@ public class ExactChoice {
 		}
 	}
 
-	ShapelessRecipe createShapelessRecipe(Recipe recipe) {
+	ShapelessRecipe createShapelessRecipe(CraftingRecipeData recipe) {
 		ShapelessRecipe shapelessRecipe = new ShapelessRecipe(recipeManager.createNamespacedKey(recipe),
 				recipe.getResult());
 
@@ -100,7 +101,7 @@ public class ExactChoice {
 		return shapelessRecipe;
 	}
 
-	ShapedRecipe createShapedRecipe(Recipe recipe) {
+	ShapedRecipe createShapedRecipe(CraftingRecipeData recipe) {
 		ShapedRecipe shapedRecipe = new ShapedRecipe(recipeManager.createNamespacedKey(recipe), recipe.getResult());
 		ArrayList<String> ingredients = new ArrayList<String>();
 

@@ -15,6 +15,24 @@
     </resources>
     <plugins>
       <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>javadoc</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <failOnError>false</failOnError>
+          <quiet>true</quiet>
+          <excludePackageNames>com.ssomar.score.* net.advancedplugins.ae.*
+						valorless.havenbags.*</excludePackageNames>
+          <additionalJOption>-Xdoclint:none</additionalJOption>
+        </configuration>
+      </plugin>
+      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
         <configuration>

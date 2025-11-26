@@ -14,16 +14,6 @@ public class WorkstationRecipeData extends Recipe {
         super(name);
     }
 
-    /** Sets a group identifier for this recipe (used by stonecutter). */
-    public void setGroup(String group) {
-        this.group = group;
-    }
-
-    /** Gets the group identifier for this recipe. */
-    public String getGroup() {
-        return group;
-    }
-
     /** Sets the repair cost for this recipe (used by anvil). */
     public void setRepairCost(int cost) {
         this.repairCost = cost;
@@ -47,4 +37,35 @@ public class WorkstationRecipeData extends Recipe {
     public float getExperience() {
         return experience;
     }
+    
+	/**
+	 * Getter for the recipe group.
+	 * 
+	 * <p>
+	 * Available since Spigot 1.13+
+	 * </p>
+	 * 
+	 * @return the group string this recipe belongs to. Empty string means no group.
+	 */
+	public String getGroup() {
+		return group;
+	}
+
+	/**
+	 * Sets the group of the recipe. Recipes with the same group may be grouped
+	 * together when displayed in the client.
+	 * 
+	 * <p>
+	 * Available since Spigot 1.13+
+	 * </p>
+	 * 
+	 * @param group the group name. Empty string denotes no group.
+	 */
+	public void setGroup(String group) {
+		if (group == null) {
+			this.group = "";
+		} else {
+			this.group = group;
+		}
+	}
 }

@@ -16,6 +16,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapelessRecipe;
@@ -24,10 +25,13 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CooldownManager.Cooldown;
+import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.CraftingRecipeData;
 
 public class AmountManager implements Listener {
 
@@ -40,6 +44,10 @@ public class AmountManager implements Listener {
 	void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
+	}
+
+	CooldownManager getCooldownManager() {
+		return Main.getInstance().cooldownManager;
 	}
 
 	RecipeUtil getRecipeUtil() {
@@ -61,7 +69,7 @@ public class AmountManager implements Listener {
 	}
 
 	// Helper method for the handleShiftClick method
-	void handlesItemRemoval(CraftItemEvent e, CraftingInventory inv, Recipe recipe, ItemStack item,
+	void handlesItemRemoval(CraftItemEvent e, CraftingInventory inv, CraftingRecipeData recipe, ItemStack item,
 			RecipeUtil.Ingredient ingredient, int slot, int itemsToRemove, int itemsToAdd, int requiredAmount,
 			AtomicBoolean containerCraft) {
 
@@ -95,26 +103,24 @@ public class AmountManager implements Listener {
 				return;
 			}
 
-			boolean isContainer = item.getType() == Material.DRAGON_BREATH || item.getType() == Material.POTION
-					|| item.getType() == Material.LINGERING_POTION || item.getType().toString().contains("_BUCKET");
-
 			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-				if (item.getAmount() == 1 && !isContainer)
+				if (item.getAmount() == 1 && !containerCraft.get())
 					return;
-				
+
 				if (((item.getAmount()) - requiredAmount == 0)) {
-					if (isContainer && !recipe.isLeftover(id)) {
-						containerCraft.set(true);
+					if (containerCraft.get() && !recipe.isLeftover(id)) {
 						Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
 							inv.setItem(slot, null);
 						});
 						return;
 					}
-					// set to 1, not 0, since we don't cancel the event. Vanilla will handle the leftover.
+					// set to 1, not 0, since we don't cancel the event. Vanilla will handle the
+					// leftover.
 					item.setAmount(1);
 				} else {
-					if (isContainer) {
-						// remove exact, since containers are cancelled, normal vanilla deduction does not happen.
+					if (containerCraft.get()) {
+						// remove exact, since containers are cancelled, normal vanilla deduction does
+						// not happen.
 						item.setAmount((item.getAmount()) - requiredAmount);
 						return;
 					}
@@ -122,7 +128,7 @@ public class AmountManager implements Listener {
 				}
 			} else {
 				if ((item.getAmount() - itemsToRemove) <= 0) {
-					if (isContainer && !recipe.isLeftover(id)) {
+					if (containerCraft.get() && !recipe.isLeftover(id)) {
 						Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
 							inv.setItem(slot, null);
 						});
@@ -202,7 +208,7 @@ public class AmountManager implements Listener {
 
 		logDebug("[handleShiftClicks] Final recipe = " + findName);
 
-		Recipe recipe = getRecipeUtil().getRecipe(findName);
+		CraftingRecipeData recipe = (CraftingRecipeData) getRecipeUtil().getRecipe(findName);
 		if (recipe == null)
 			return;
 
@@ -271,7 +277,10 @@ public class AmountManager implements Listener {
 			return;
 		}
 
-		AtomicBoolean containerCraft = new AtomicBoolean(false);
+		boolean recipeHasContainer = recipe.getAllIngredientTypes().stream()
+				.anyMatch(mat -> mat == Material.DRAGON_BREATH || mat == Material.POTION
+						|| mat == Material.LINGERING_POTION || mat.toString().contains("_BUCKET"));
+		AtomicBoolean containerCraft = new AtomicBoolean(recipeHasContainer);
 
 		// ============================================================
 		// PASS 2 — REMOVE ITEMS
@@ -328,8 +337,8 @@ public class AmountManager implements Listener {
 		// COMMANDS + OUTPUT
 		// ============================================================
 		Player player = (Player) e.getWhoClicked();
-		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(),
-				System.currentTimeMillis());
+		Cooldown cooldown = new Cooldown(recipe.getKey(), recipe.getCooldown());
+		getCooldownManager().addCooldown(player.getUniqueId(), cooldown);
 
 		// debug suppression window
 		Main.getInstance().inInventory.add(id);
@@ -365,7 +374,11 @@ public class AmountManager implements Listener {
 				else
 					return;
 
-				inv.setResult(new ItemStack(Material.AIR));
+				// since we cancel, we have to retrigger an evaluation manually
+				Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+					PrepareItemCraftEvent fake = new PrepareItemCraftEvent(inv, e.getView(), false);
+					Bukkit.getPluginManager().callEvent(fake);
+				});
 			}
 			return;
 		}

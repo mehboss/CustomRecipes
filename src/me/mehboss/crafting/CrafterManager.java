@@ -21,6 +21,7 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.CraftingRecipeData;
 
 public class CrafterManager implements Listener {
 
@@ -32,7 +33,7 @@ public class CrafterManager implements Listener {
 	}
 
 	ItemStack handleCraftingChecks(CrafterCraftEvent e, Inventory inv, ItemStack result) {
-		Recipe finalRecipe = null;
+		CraftingRecipeData recipe = null;
 		Boolean passedCheck = true;
 		Boolean found = false;
 		AlignedResult grid = null;
@@ -40,14 +41,13 @@ public class CrafterManager implements Listener {
 		if (CraftManager().hasVanillaIngredients(inv, result))
 			return result;
 
-		for (Recipe recipe : getRecipeUtil().getAllRecipesSortedByResult(result)) {
+		for (Recipe data : getRecipeUtil().getAllRecipesSortedByResult(result)) {
 
-			finalRecipe = recipe;
-			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
-
-			if (recipe.getType() != RecipeType.SHAPELESS && recipe.getType() != RecipeType.SHAPED)
+			if (data.getType() != RecipeType.SHAPELESS && data.getType() != RecipeType.SHAPED)
 				continue;
 
+			recipe = (CraftingRecipeData) data;
+			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
 			if (!CraftManager().hasAllIngredients(inv, recipe.getName(), recipeIngredients, null)) {
 				logDebug("[handleCrafting] Skipping to the next recipe! Ingredients did not match..", recipe.getName());
 				passedCheck = false;
@@ -112,7 +112,7 @@ public class CrafterManager implements Listener {
 		}
 
 		logDebug("[handleCrafting] Final crafting results: (passedChecks: " + passedCheck + ")(foundRecipe: " + found
-				+ ")", finalRecipe.getName());
+				+ ")", recipe.getName());
 
 		if (!found)
 			return result;
@@ -121,25 +121,25 @@ public class CrafterManager implements Listener {
 			return new ItemStack(Material.AIR);
 		}
 
-		if (!finalRecipe.isActive() || finalRecipe.getDisabledWorlds().contains(e.getBlock().getWorld().getName())
-				|| Main.getInstance().disabledrecipe.contains(finalRecipe.getKey())) {
+		if (!recipe.isActive() || recipe.getDisabledWorlds().contains(e.getBlock().getWorld().getName())
+				|| Main.getInstance().disabledrecipe.contains(recipe.getKey())) {
 
-			logDebug(" Attempt to craft recipe was detected, but recipe is disabled!", finalRecipe.getName());
+			logDebug(" Attempt to craft recipe was detected, but recipe is disabled!", recipe.getName());
 			return new ItemStack(Material.AIR);
 		}
 
 		// CONDITIONS
-		ConditionSet cs = finalRecipe.getConditionSet();
+		ConditionSet cs = recipe.getConditionSet();
 		if (cs != null && !cs.isEmpty()) {
 			if (!cs.test(e.getBlock().getLocation(), null, null)) {
-				logDebug("Preventing craft due to failing required recipe conditions!", finalRecipe.getName());
+				logDebug("Preventing craft due to failing required recipe conditions!", recipe.getName());
 				return new ItemStack(Material.AIR);
 			}
 		}
 
 		if (passedCheck && found) {
-			ItemStack item = new ItemStack(finalRecipe.getResult());
-			handleAmountDeductions(e, finalRecipe.getName(), inv);
+			ItemStack item = new ItemStack(recipe.getResult());
+			handleAmountDeductions(e, recipe.getName(), inv);
 			return item;
 		}
 
@@ -147,7 +147,7 @@ public class CrafterManager implements Listener {
 	}
 
 	void handleAmountDeductions(CrafterCraftEvent e, String recipeName, Inventory inv) {
-		Recipe recipe = getRecipeUtil().getRecipe(recipeName);
+		CraftingRecipeData recipe = (CraftingRecipeData) getRecipeUtil().getRecipe(recipeName);
 		ArrayList<String> handledIngredients = new ArrayList<>();
 
 		final int itemsToAdd = 1; // Crafter always crafts exactly one
@@ -186,7 +186,7 @@ public class CrafterManager implements Listener {
 	}
 
 	// Helper method for the handleShiftClick method
-	void handlesItemRemoval(Inventory inv, Recipe recipe, ItemStack item, RecipeUtil.Ingredient ingredient, int slot,
+	void handlesItemRemoval(Inventory inv, CraftingRecipeData recipe, ItemStack item, RecipeUtil.Ingredient ingredient, int slot,
 			int itemsToRemove, int itemsToAdd, int requiredAmount) {
 
 		String recipeName = recipe.getName();

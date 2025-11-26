@@ -41,7 +41,6 @@ import me.mehboss.brewing.BrewEvent;
 import me.mehboss.commands.TabCompletion;
 import me.mehboss.cooking.CookingManager;
 import me.mehboss.crafting.AmountManager;
-import me.mehboss.crafting.CooldownManager;
 import me.mehboss.crafting.CraftManager;
 import me.mehboss.crafting.CrafterManager;
 import me.mehboss.crafting.ShapedChecks;
@@ -51,10 +50,12 @@ import me.mehboss.gui.RecipeTypeGUI;
 import me.mehboss.gui.BookGUI;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
+import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.ItemBuilder;
 import me.mehboss.utils.MetaChecks;
 import me.mehboss.utils.Placeholders;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.CooldownManager.Cooldown;
 import me.mehboss.utils.libs.Metrics;
 import me.mehboss.utils.libs.UpdateChecker;
 import net.md_5.bungee.api.ChatMessageType;
@@ -411,32 +412,34 @@ public class Main extends JavaPlugin implements Listener {
 	public void onDisable() {
 
 		if (cooldownManager != null) {
-			// Check if there are any cooldowns
-			if (cooldownManager.getCooldowns().isEmpty() && cooldownConfig.isConfigurationSection("Cooldowns")) {
-				cooldownConfig.set("Cooldowns", null);
-				saveCustomYml(cooldownConfig, cooldownYml);
-			} else if (!cooldownManager.getCooldowns().isEmpty()) {
-				// Iterate over each player's cooldowns
-				for (Map.Entry<UUID, Map<String, Long>> playerEntry : cooldownManager.getCooldowns().entrySet()) {
-					UUID playerUUID = playerEntry.getKey();
-					Map<String, Long> playerCooldowns = playerEntry.getValue();
 
-					// Iterate over each recipe's cooldown for the player
-					for (Map.Entry<String, Long> recipeEntry : playerCooldowns.entrySet()) {
-						String recipeID = recipeEntry.getKey();
-						Long cooldownTime = recipeEntry.getValue();
+			Map<UUID, Map<String, Cooldown>> allCooldowns = cooldownManager.getCooldowns();
 
-						// Save the cooldown data under the player's UUID and recipe ID
-						cooldownConfig.set("Cooldowns." + playerUUID.toString() + "." + recipeID, cooldownTime);
+			// Clear the entire section first to avoid leftovers
+			cooldownConfig.set("Cooldowns", null);
+			for (Map.Entry<UUID, Map<String, Cooldown>> playerEntry : allCooldowns.entrySet()) {
+
+				UUID playerUUID = playerEntry.getKey();
+				Map<String, Cooldown> playerCooldowns = playerEntry.getValue();
+
+				for (Map.Entry<String, Cooldown> recipeEntry : playerCooldowns.entrySet()) {
+
+					String recipeID = recipeEntry.getKey();
+					Cooldown cooldown = recipeEntry.getValue();
+
+					// Skip expired cooldowns AND ensure old entries are removed
+					if (cooldown.isExpired()) {
+						cooldownConfig.set("Cooldowns." + playerUUID + "." + recipeID, null);
+						continue;
 					}
+
+					// Save remaining time
+					cooldownConfig.set("Cooldowns." + playerUUID + "." + recipeID, cooldown.getTimeLeft());
 				}
-
-				// Save the updated cooldown data to the YML file
-				saveCustomYml(cooldownConfig, cooldownYml);
 			}
+			saveCustomYml(cooldownConfig, cooldownYml);
 		}
-
-		clear(); // Clear any additional data or cleanup
+		clear();
 	}
 
 	void handleAutoDiscover() {
@@ -467,19 +470,31 @@ public class Main extends JavaPlugin implements Listener {
 	void addCooldowns() {
 		if (cooldownConfig == null)
 			return;
+		if (!cooldownConfig.isConfigurationSection("Cooldowns"))
+			return;
 
-		if (cooldownConfig.isSet("Cooldowns")) {
-			// Iterate through all players in the "Cooldowns" section
-			for (String playerUUIDString : cooldownConfig.getConfigurationSection("Cooldowns").getKeys(false)) {
-				UUID playerUUID = UUID.fromString(playerUUIDString);
+		// Loop through each player UUID section
+		for (String playerUUIDString : cooldownConfig.getConfigurationSection("Cooldowns").getKeys(false)) {
+			UUID playerUUID;
 
-				// Iterate through each recipe ID for this player
-				for (String recipeID : cooldownConfig.getConfigurationSection("Cooldowns." + playerUUIDString)
-						.getKeys(false)) {
-					// Get the cooldown time for the recipe
-					long cooldownTime = cooldownConfig.getLong("Cooldowns." + playerUUIDString + "." + recipeID);
-					cooldownManager.setCooldown(playerUUID, recipeID, cooldownTime);
-				}
+			// Validate UUID
+			try {
+				playerUUID = UUID.fromString(playerUUIDString);
+			} catch (IllegalArgumentException ex) {
+				continue; // Skip invalid UUID entries
+			}
+
+			String basePath = "Cooldowns." + playerUUIDString;
+
+			// Loop through each recipe ID inside this player's section
+			for (String recipeID : cooldownConfig.getConfigurationSection(basePath).getKeys(false)) {
+				long remainingSeconds = cooldownConfig.getLong(basePath + "." + recipeID);
+				if (remainingSeconds <= 0)
+					continue;
+
+				// Create new cooldown with the remaining time
+				Cooldown cooldown = new Cooldown(recipeID, remainingSeconds);
+				cooldownManager.addCooldown(playerUUID, cooldown);
 			}
 		}
 	}
@@ -790,17 +805,17 @@ public class Main extends JavaPlugin implements Listener {
 		}
 		return false;
 	}
-	
+
 	public boolean serverVersionAtLeast(int major, int minor, int patch) {
-	    int[] v = getServerVersionParts();
+		int[] v = getServerVersionParts();
 
-	    if (v[0] != major)
-	        return v[0] > major;
+		if (v[0] != major)
+			return v[0] > major;
 
-	    if (v[1] != minor)
-	        return v[1] > minor;
+		if (v[1] != minor)
+			return v[1] > minor;
 
-	    return v[2] >= patch;
+		return v[2] >= patch;
 	}
 
 	public boolean serverVersionLessThan(int major, int minor) {

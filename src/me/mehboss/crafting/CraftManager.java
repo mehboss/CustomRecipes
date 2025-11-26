@@ -42,10 +42,12 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.crafting.ShapedChecks.AlignedResult;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
+import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.CraftingRecipeData;
 
 public class CraftManager implements Listener {
 
@@ -59,6 +61,10 @@ public class CraftManager implements Listener {
 
 	Logger getLogger() {
 		return Main.getInstance().getLogger();
+	}
+
+	CooldownManager getCooldownManager() {
+		return Main.getInstance().cooldownManager;
 	}
 
 	RecipeUtil getRecipeUtil() {
@@ -140,8 +146,9 @@ public class CraftManager implements Listener {
 		ItemStack exactMatch = null;
 		boolean matchesIdentifier = false;
 		boolean matchesTags = tagsMatch(ingredient, item);
-		
-		// since getResultFromKey is so resource heavy, try to check tags first for custom items.
+
+		// since getResultFromKey is so resource heavy, try to check tags first for
+		// custom items.
 		if (!matchesTags) {
 			exactMatch = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
 					: recipeResult;
@@ -235,14 +242,6 @@ public class CraftManager implements Listener {
 			}
 		}
 		return true;
-	}
-
-	boolean hasCooldown(Player p, Recipe recipe) {
-		if (recipe.hasCooldown())
-			if (!(Main.getInstance().cooldownManager.cooldownExpired(p.getUniqueId(), recipe.getKey())))
-				return true;
-
-		return false;
 	}
 
 	@SuppressWarnings("deprecation")
@@ -532,21 +531,19 @@ public class CraftManager implements Listener {
 	}
 
 	public void handleCraftingChecks(CraftingInventory inv, Player p) {
-		Recipe finalRecipe = null;
+		CraftingRecipeData recipe = null;
 		Boolean passedCheck = true;
 		Boolean found = false;
 
 		UUID id = p.getUniqueId();
 		AlignedResult alignedGrid = null;
 
-		for (Recipe recipe : getRecipeUtil().getAllRecipesSortedByResult(inv.getResult())) {
-
-			finalRecipe = recipe;
-			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
-
-			if (recipe.getType() != RecipeType.SHAPELESS && recipe.getType() != RecipeType.SHAPED)
+		for (Recipe data : getRecipeUtil().getAllRecipesSortedByResult(inv.getResult())) {
+			if (data.getType() != RecipeType.SHAPELESS && data.getType() != RecipeType.SHAPED)
 				continue;
 
+			recipe = (CraftingRecipeData) data;
+			List<RecipeUtil.Ingredient> recipeIngredients = recipe.getIngredients();
 			if (!hasAllIngredients(inv, recipe.getName(), recipeIngredients, id)) {
 				logDebug("[handleCrafting] Skipping to the next recipe! Ingredients did not match..", recipe.getName(),
 						id);
@@ -613,7 +610,7 @@ public class CraftManager implements Listener {
 			return;
 
 		logDebug("[handleCrafting] Final crafting results: (passedChecks: " + passedCheck + ")(foundRecipe: " + found
-				+ ")", finalRecipe.getName(), id);
+				+ ")", recipe.getName(), id);
 
 		if ((!passedCheck) || (passedCheck && !found)) {
 			inv.setResult(new ItemStack(Material.AIR));
@@ -623,22 +620,22 @@ public class CraftManager implements Listener {
 		// -------------------------
 		// DISABLED CHECKS
 		// -------------------------
-		if (!finalRecipe.isActive()) {
+		if (!recipe.isActive()) {
 			inv.setResult(new ItemStack(Material.AIR));
-			logDebug(" Attempt to craft disabled recipe detected..", finalRecipe.getName(), id);
+			logDebug(" Attempt to craft disabled recipe detected..", recipe.getName(), id);
 			return;
 		}
 
 		// PERMISSIONS
-		if (finalRecipe.hasPerm() && !p.hasPermission(finalRecipe.getPerm())) {
+		if (recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) {
 			inv.setResult(new ItemStack(Material.AIR));
-			sendNoPermsMessage(p, finalRecipe.getName());
+			sendNoPermsMessage(p, recipe.getName());
 			return;
 		}
 
 		// WORLD DISABLED
-		if (!(finalRecipe.getDisabledWorlds().isEmpty())) {
-			for (String string : finalRecipe.getDisabledWorlds()) {
+		if (!(recipe.getDisabledWorlds().isEmpty())) {
+			for (String string : recipe.getDisabledWorlds()) {
 				if (p.getWorld().getName().equalsIgnoreCase(string)) {
 					inv.setResult(new ItemStack(Material.AIR));
 					sendMessages(p, "none", 0);
@@ -648,17 +645,17 @@ public class CraftManager implements Listener {
 		}
 
 		// COOLDOWN
-		if ((finalRecipe.hasPerm() && !(p.hasPermission(finalRecipe.getPerm() + ".bypass")))
-				&& hasCooldown(p, finalRecipe)) {
+		if ((recipe.hasPerm() && !(p.hasPermission(recipe.getPerm() + ".bypass")))
+				&& getCooldownManager().hasCooldown(p.getUniqueId(), recipe.getKey())) {
 
-			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), finalRecipe.getKey());
+			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
 			sendMessages(p, "crafting-limit", timeLeft);
 			inv.setResult(new ItemStack(Material.AIR));
 			return;
 		}
 
 		// CONDITIONS
-		ConditionSet cs = finalRecipe.getConditionSet();
+		ConditionSet cs = recipe.getConditionSet();
 		if (cs != null && !cs.isEmpty()) {
 			List<String> reasons = new ArrayList<String>();
 			if (!cs.test(p.getLocation(), p, reasons)) {
@@ -674,7 +671,7 @@ public class CraftManager implements Listener {
 				if (closeInventory)
 					p.closeInventory();
 
-				logDebug(" Preventing craft due to failing required recipe conditions!", finalRecipe.getName(), id);
+				logDebug(" Preventing craft due to failing required recipe conditions!", recipe.getName(), id);
 				inv.setResult(new ItemStack(Material.AIR));
 				return;
 			}
@@ -684,10 +681,10 @@ public class CraftManager implements Listener {
 		// SUCCESSFUL CRAFT
 		// -------------------------
 		if (passedCheck && found) {
-			ItemStack item = new ItemStack(finalRecipe.getResult());
+			ItemStack item = new ItemStack(recipe.getResult());
 
 			// PlaceholderAPI support
-			if (!finalRecipe.isCustomItem()) {
+			if (!recipe.isCustomItem()) {
 
 				List<String> withPlaceholders = null;
 

@@ -79,6 +79,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
+import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
 import net.advancedplugins.ae.api.AEAPI;
 import valorless.havenbags.hooks.CustomRecipes;
@@ -137,15 +138,6 @@ public class RecipeManager {
 		}
 	}
 
-	void handleLeftovers(Material material, String item, Recipe recipe) {
-		if (getConfig().isSet(item + ".ItemsLeftover"))
-			for (String leftOver : getConfig().getStringList(item + ".ItemsLeftover")) {
-				if (leftOver.equalsIgnoreCase("none"))
-					return;
-				recipe.addLeftoverItem(leftOver);
-			}
-	}
-
 	void handlePlaceable(String item, Recipe recipe) {
 		if (getConfig().isBoolean(item + ".Placeable"))
 			recipe.setPlaceable(getConfig().getBoolean(item + ".Placeable"));
@@ -154,13 +146,6 @@ public class RecipeManager {
 	void handleCooldown(String item, Recipe recipe) {
 		if (getConfig().isInt(item + ".Cooldown") && getConfig().getInt(item + ".Cooldown") != -1)
 			recipe.setCooldown(getConfig().getInt(item + ".Cooldown"));
-	}
-
-	void handleConditions(Recipe recipe, String configPath) {
-		if (getConfig().getBoolean(configPath + ".Use-Conditions")) {
-			ConfigurationSection rSec = getConfig().getConfigurationSection(configPath);
-			recipe.setConditionSet(RecipeConditions.parseConditionSet(rSec));
-		}
 	}
 
 	void handleIgnoreFlags(String item, Recipe recipe) {
@@ -176,11 +161,27 @@ public class RecipeManager {
 			} catch (NoClassDefFoundError e) {
 			}
 		}
+	}
+
+	void handleCraftingData(Recipe recipe, String configPath) {
+		CraftingRecipeData workbench = (CraftingRecipeData) recipe;
+		if (getConfig().getBoolean(configPath + ".Use-Conditions")) {
+			ConfigurationSection rSec = getConfig().getConfigurationSection(configPath);
+			workbench.setConditionSet(RecipeConditions.parseConditionSet(rSec));
+		}
+
+		if (getConfig().isSet(configPath + ".ItemsLeftover"))
+			for (String leftOver : getConfig().getStringList(configPath + ".ItemsLeftover")) {
+				if (leftOver.equalsIgnoreCase("none"))
+					return;
+				workbench.addLeftoverItem(leftOver);
+			}
+
 		if (Main.getInstance().serverVersionAtLeast(1, 13))
-			if (getConfig().isSet(item + ".Group")
-					&& !getConfig().getString(item + ".Group").equalsIgnoreCase("none")) {
+			if (getConfig().isSet(configPath + ".Group")
+					&& !getConfig().getString(configPath + ".Group").equalsIgnoreCase("none")) {
 				try {
-					recipe.setGroup(getConfig().getString(item + ".Group"));
+					workbench.setGroup(getConfig().getString(configPath + ".Group"));
 				} catch (NoClassDefFoundError e) {
 				}
 			}
@@ -1002,9 +1003,10 @@ public class RecipeManager {
 				break;
 
 			default:
-				recipe = new Recipe(item);
+				recipe = new CraftingRecipeData(item);
 				recipe.setType(
-						getConfig().getBoolean(item + ".Shapeless", false) ? RecipeType.SHAPELESS : RecipeType.SHAPED);
+						getConfig().getBoolean(item + ".Shapeless") ? RecipeType.SHAPELESS : RecipeType.SHAPED);
+				handleCraftingData(recipe, item);
 				break;
 			}
 
@@ -1080,9 +1082,7 @@ public class RecipeManager {
 			handleCooldown(item, recipe);
 			handlePlaceable(item, recipe);
 			handleCommand(item, recipe);
-			handleLeftovers(i.getType(), item, recipe);
 			handleDisabledWorlds(item, recipe);
-			handleConditions(recipe, item);
 
 			if (getConfig().getBoolean(item + ".Custom-Tagged"))
 				recipe.setTagged(true);
@@ -1307,20 +1307,20 @@ public class RecipeManager {
 				switch (recipe.getType()) {
 				case SHAPELESS:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						shapelessRecipe = Main.getInstance().exactChoice.createShapelessRecipe(recipe);
+						shapelessRecipe = Main.getInstance().exactChoice.createShapelessRecipe((CraftingRecipeData) recipe);
 						break;
 					}
 
-					shapelessRecipe = createShapelessRecipe(recipe);
+					shapelessRecipe = createShapelessRecipe((CraftingRecipeData) recipe);
 					break;
 
 				case SHAPED:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						shapedRecipe = Main.getInstance().exactChoice.createShapedRecipe(recipe);
+						shapedRecipe = Main.getInstance().exactChoice.createShapedRecipe((CraftingRecipeData) recipe);
 						break;
 					}
 
-					shapedRecipe = createShapedRecipe(recipe);
+					shapedRecipe = createShapedRecipe((CraftingRecipeData) recipe);
 					break;
 
 				case FURNACE:
@@ -1391,7 +1391,7 @@ public class RecipeManager {
 	}
 
 	@SuppressWarnings("deprecation")
-	private ShapelessRecipe createShapelessRecipe(Recipe recipe) {
+	private ShapelessRecipe createShapelessRecipe(CraftingRecipeData recipe) {
 		ShapelessRecipe shapelessRecipe;
 
 		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
@@ -1416,7 +1416,7 @@ public class RecipeManager {
 	}
 
 	@SuppressWarnings("deprecation")
-	private ShapedRecipe createShapedRecipe(Recipe recipe) {
+	private ShapedRecipe createShapedRecipe(CraftingRecipeData recipe) {
 		ShapedRecipe shapedRecipe;
 
 		ArrayList<String> ingredients = new ArrayList<String>();

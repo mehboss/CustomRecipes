@@ -20,59 +20,71 @@ public class WorkstationRecipeData extends Recipe {
         super(name);
     }
 
-    /** Sets the repair cost for this recipe (used by anvil). */
+    /**
+     * Sets the repair cost for this recipe (used by anvil mechanics).
+     *
+     * @param cost the repair cost to assign
+     */
     public void setRepairCost(int cost) {
         this.repairCost = cost;
     }
 
-    /** Gets the repair cost for this recipe. */
+    /**
+     * Gets the repair cost assigned to this workstation recipe.
+     *
+     * @return numerical repair cost
+     */
     public int getRepairCost() {
         return repairCost;
     }
 
-    /** @return true if a repair cost has been assigned. */
+    /**
+     * Checks whether this recipe has a defined repair cost.
+     *
+     * @return true if repairCost > 0
+     */
     public boolean hasRepairCost() {
         return repairCost > 0;
     }
-    
-    /** Sets the experience yield of the result. */
+
+    /**
+     * Sets the amount of experience granted by this recipe.
+     *
+     * @param experience the XP reward value
+     */
     public void setExperience(float experience) {
         this.experience = experience;
     }
 
-    /** Gets the experience yield of the result. */
+    /**
+     * Gets the experience reward assigned to this recipe.
+     *
+     * @return experience value
+     */
     public float getExperience() {
         return experience;
     }
-    
-	/**
-	 * Getter for the recipe group.
-	 * 
-	 * <p>
-	 * Available since Spigot 1.13+
-	 * </p>
-	 * 
-	 * @return the group string this recipe belongs to. Empty string means no group.
-	 */
-	public String getGroup() {
-		return group;
-	}
 
-	/**
-	 * Sets the group of the recipe. Recipes with the same group may be grouped
-	 * together when displayed in the client.
-	 * 
-	 * <p>
-	 * Available since Spigot 1.13+
-	 * </p>
-	 * 
-	 * @param group the group name. Empty string denotes no group.
-	 */
-	public void setGroup(String group) {
-		if (group == null) {
-			this.group = "";
-		} else {
-			this.group = group;
-		}
-	}
+    /**
+     * Gets the group tag assigned to this recipe.
+     * <p>
+     * Available since Spigot 1.13+.
+     *
+     * @return the recipe group name, or empty string if ungrouped
+     */
+    public String getGroup() {
+        return group;
+    }
+
+    /**
+     * Sets the group this recipe belongs to.
+     * Recipes with the same group may be visually grouped in the client.
+     * <p>
+     * Available since Spigot 1.13+.
+     *
+     * @param group the group identifier, or empty string for no group
+     */
+    public void setGroup(String group) {
+        this.group = (group == null ? "" : group);
+    }
 }

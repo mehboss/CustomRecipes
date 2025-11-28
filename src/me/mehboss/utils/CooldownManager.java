@@ -18,7 +18,7 @@ import java.util.UUID;
  *     <li>Adding cooldowns</li>
  *     <li>Checking active cooldowns</li>
  *     <li>Auto-removing expired cooldowns</li>
- *     <li>Saving & restoring cooldown data</li>
+ *     <li>Saving and restoring cooldown data</li>
  *     <li>Querying remaining cooldown time</li>
  * </ul>
  *

@@ -9,9 +9,16 @@ import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 
-/* ======================================================================
- * Brewing Recipes - Specialized Subclass
- * ====================================================================== */
+/**
+ * Stores all extra data required for a custom brewing-stand recipe.
+ * <p>
+ * Extends {@link Recipe} by adding fields used specifically by brewing logic:
+ * ingredient item, fuel item, fuel behavior, bottle requirements, brew-action
+ * behavior, and slot indexing.
+ * <p>
+ * This is a flexible data container. Recipes may come from config, code,
+ * integrations, or any other source.
+ */
 public class BrewingRecipeData extends Recipe {
 	private ItemStack brewIngredient;
 	private ItemStack brewFuel;
@@ -30,7 +37,10 @@ public class BrewingRecipeData extends Recipe {
 	}
 
 	/**
-	 * Builds and set the ingredient item (slot 1).
+	 * Builds and stores the ingredient item used for brewing. Supports custom
+	 * identifiers or vanilla material/meta.
+	 *
+	 * @param ingredientItem ingredient definition
 	 */
 	public void setBrewIngredient(Ingredient ingredientItem) {
 		ItemStack ingredient = null;
@@ -55,15 +65,16 @@ public class BrewingRecipeData extends Recipe {
 		brewIngredient = ingredient;
 	}
 
-	/**
-	 * Gets the ingredient item (slot 1).
-	 */
+	/** @return the brewing ingredient item. */
 	public ItemStack getBrewIngredient() {
 		return brewIngredient;
 	}
 
 	/**
-	 * Builds and sets the fuel item (slot 2).
+	 * Builds and stores the fuel item used for brewing. Supports custom identifiers
+	 * or vanilla material/meta.
+	 *
+	 * @param fuelItem fuel definition
 	 */
 	public void setBrewFuel(Ingredient fuelItem) {
 		ItemStack fuel = null;
@@ -88,76 +99,88 @@ public class BrewingRecipeData extends Recipe {
 		brewFuel = fuel;
 	}
 
-	/**
-	 * Gets the fuel item (slot 1).
-	 */
+	/** @return the brewing fuel item. */
 	public ItemStack getBrewFuel() {
 		return brewFuel;
 	}
 
-	// --- existing brew settings below ---
-
+	/** Sets how this recipe behaves when brewing completes. */
 	public void setBrewAction(BrewAction action) {
 		brewAction = action;
 	}
 
+	/** @return the brew action assigned to this recipe. */
 	public BrewAction getBrewAction() {
 		return brewAction;
 	}
 
+	/** Enables or disables exact matching for ingredient and fuel. */
 	public void setBrewPerfect(boolean perfect) {
 		brewPerfect = perfect;
 	}
 
+	/** @return true if ingredient/fuel must match exactly. */
 	public boolean isBrewPerfect() {
 		return brewPerfect;
 	}
 
+	/** Sets the fuel amount added when consuming one fuel item. */
 	public void setBrewFuelSet(int value) {
 		brewFuelSet = value;
 	}
 
+	/** @return fuel provided per fuel item. */
 	public int getBrewFuelSet() {
 		return brewFuelSet;
 	}
 
+	/** Sets how much fuel is consumed per brew cycle. */
 	public void setBrewFuelCharge(int value) {
 		brewFuelCharge = value;
 	}
 
+	/** @return fuel consumed per brew cycle. */
 	public int getBrewFuelCharge() {
 		return brewFuelCharge;
 	}
 
+	/** Sets which slot is used as the ingredient slot. */
 	public void setBrewIngredientSlot(int slot) {
 		brewIngredientSlot = slot;
 	}
 
+	/** @return the ingredient slot index. */
 	public int getBrewIngredientSlot() {
 		return brewIngredientSlot;
 	}
 
+	/** Sets which slot is used as the fuel slot. */
 	public void setBrewFuelSlot(int slot) {
 		brewFuelSlot = slot;
 	}
 
+	/** @return the fuel slot index. */
 	public int getBrewFuelSlot() {
 		return brewFuelSlot;
 	}
-	
+
+	/** Enables or disables bottle validation for brew output. */
 	public void setRequiresBottles(boolean requiresBottles) {
-	    this.requiresBottles = requiresBottles;
+		this.requiresBottles = requiresBottles;
 	}
 
+	/** @return true if brewing requires valid bottle items. */
 	public boolean requiresBottles() {
-	    return requiresBottles;
+		return requiresBottles;
 	}
 
+	/** Sets the bottle material required for this recipe's output. */
 	public void setRequiredBottleType(Material type) {
-	    this.requiredBottleType = type;
+		this.requiredBottleType = type;
 	}
 
+	/** @return the required bottle material. */
 	public Material getRequiredBottleType() {
-	    return requiredBottleType;
+		return requiredBottleType;
 	}
 }

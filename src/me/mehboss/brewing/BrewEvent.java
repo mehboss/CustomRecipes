@@ -24,7 +24,7 @@ import me.mehboss.utils.data.BrewingRecipeData;
 public class BrewEvent implements Listener {
 
 	@EventHandler
-	public void onCustomPotionClick(InventoryClickEvent event) {
+	void onCustomPotionClick(InventoryClickEvent event) {
 		Inventory inv = event.getClickedInventory();
 		if (inv == null || inv.getType() != InventoryType.BREWING)
 			return;

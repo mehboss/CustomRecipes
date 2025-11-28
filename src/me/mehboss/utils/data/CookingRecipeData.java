@@ -2,12 +2,17 @@ package me.mehboss.utils.data;
 
 import org.bukkit.inventory.ItemStack;
 
-import me.mehboss.utils.RecipeUtil.Recipe;
 
-/* ======================================================================
- * Cooking Recipes - Specialized Subclass
- * ====================================================================== */
+import me.mehboss.utils.RecipeUtil.Recipe;
+/**
+ * Stores extra data for custom furnace-based recipes.
+ * <p>
+ * Extends {@link Recipe} by adding furnace-specific fields such as
+ * source item, cook time, and experience yield. This class is a simple
+ * data container and does not enforce how recipes are created.
+ */
 public class CookingRecipeData extends Recipe {
+
     private ItemStack source;
     private int cookTime = 200;
     private float experience = 1.0f;
@@ -16,12 +21,12 @@ public class CookingRecipeData extends Recipe {
         super(name);
     }
 
-    /** Sets the source item for this cooking recipe. */
+    /** Sets the input item that this recipe smelts or cooks. */
     public void setSource(ItemStack source) {
         this.source = source;
     }
 
-    /** Gets the source item used in this cooking recipe. */
+    /** @return the item used as the furnace input. */
     public ItemStack getSource() {
         return source;
     }
@@ -31,17 +36,17 @@ public class CookingRecipeData extends Recipe {
         this.cookTime = cookTime;
     }
 
-    /** Gets the cook time in ticks. */
+    /** @return the configured cook time in ticks. */
     public int getCookTime() {
         return cookTime;
     }
 
-    /** Sets the experience yield of the result. */
+    /** Sets the experience granted when the recipe is completed. */
     public void setExperience(float experience) {
         this.experience = experience;
     }
 
-    /** Gets the experience yield of the result. */
+    /** @return the experience value of the cooked result. */
     public float getExperience() {
         return experience;
     }

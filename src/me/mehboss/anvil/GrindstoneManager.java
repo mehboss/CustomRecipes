@@ -35,6 +35,14 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
 
+/**
+ * Handles all custom logic for grindstone-based workstation recipes.
+ * <p>
+ * This listener monitors grindstone input changes, result collection actions,
+ * and drag events to allow players to craft custom grindstone recipes registered
+ * via {@link RecipeUtil}. The class also handles permission checks, XP rewards,
+ * ingredient consumption, and result previewing.
+ */
 public class GrindstoneManager implements Listener {
 
 	private static final Map<UUID, Recipe> matchedByPlayer = new HashMap<>();
@@ -42,8 +50,21 @@ public class GrindstoneManager implements Listener {
 	    return Main.getInstance().recipeUtil;
 	}
 	
+    /**
+     * Handles all result-collection actions inside a grindstone. This includes:
+     * <ul>
+     *     <li>Detecting whether the click is a valid take action</li>
+     *     <li>Ensuring custom output is only given when a recipe was matched</li>
+     *     <li>Handling cursor stacking and shift-clicking</li>
+     *     <li>Playing grindstone sound effects</li>
+     *     <li>Giving experience (if configured)</li>
+     *     <li>Consuming recipe ingredients</li>
+     * </ul>
+     *
+     * @param event The InventoryClickEvent triggered by a player.
+     */
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onCollectResult(InventoryClickEvent event) {
+	void onCollectResult(InventoryClickEvent event) {
 		if (event.getClickedInventory() == null || event.getAction() == InventoryAction.NOTHING
 				|| event.getClickedInventory().getType() != InventoryType.GRINDSTONE) {
 			return;
@@ -138,8 +159,15 @@ public class GrindstoneManager implements Listener {
 		Bukkit.getScheduler().runTask(Main.getInstance(), player::updateInventory);
 	}
 
+
+    /**
+     * Prevents dragging into grindstone slots, ensuring only controlled click
+     * interactions can place or remove items.
+     *
+     * @param event The InventoryDragEvent triggered by a drag action.
+     */
 	@EventHandler(ignoreCancelled = true)
-	public void onDrag(InventoryDragEvent event) {
+	void onDrag(InventoryDragEvent event) {
 		if (event.getInventory().getType() != InventoryType.GRINDSTONE || event.getInventorySlots().isEmpty())
 			return;
 
@@ -149,7 +177,20 @@ public class GrindstoneManager implements Listener {
 		}
 	}
 
-	private void processGrindstone(Inventory inv, Player player, InventoryInteractEvent event) {
+    /**
+     * Core logic to determine whether current grindstone inputs match a custom recipe.
+     * Handles:
+     * <ul>
+     *     <li>Clearing the result slot when no longer matching</li>
+     *     <li>Displaying the custom output if matched</li>
+     *     <li>Performing permission & world-disabled checks</li>
+     * </ul>
+     *
+     * @param inv    Grindstone inventory being processed.
+     * @param player Player using the grindstone.
+     * @param event  Inventory event that triggered this update.
+     */
+	void processGrindstone(Inventory inv, Player player, InventoryInteractEvent event) {
 		if (!(inv instanceof GrindstoneInventory))
 			return;
 
@@ -195,7 +236,16 @@ public class GrindstoneManager implements Listener {
 		}
 	}
 
-	private Optional<Recipe> findMatch(ItemStack top, ItemStack bottom, Player p, InventoryView view) {
+    /**
+     * Attempts to match two grindstone input items with a registered custom recipe.
+     *
+     * @param top  Item in slot 0.
+     * @param bottom Item in slot 1.
+     * @param p Player interacting with the grindstone.
+     * @param view InventoryView representing the UI state.
+     * @return Optional containing a matching Recipe or empty.
+     */
+	Optional<Recipe> findMatch(ItemStack top, ItemStack bottom, Player p, InventoryView view) {
 		if (getRecipeUtil().getAllRecipes() == null)
 			return Optional.empty();
 
@@ -241,15 +291,24 @@ public class GrindstoneManager implements Listener {
 		return Optional.empty();
 	}
 
+    /** Returns a safe result ItemStack for recipe output (never null). */
 	private ItemStack safeResultOf(Recipe recipe) {
 		ItemStack res = recipe.getResult();
 		return res == null ? new ItemStack(Material.AIR) : res.clone();
 	}
 
+    /** Clears output slot (slot 2) of a grindstone. */
 	private void clearResultSlot(GrindstoneInventory inv) {
 		inv.setItem(2, new ItemStack(Material.AIR));
 	}
 
+    /**
+     * Consumes ingredients from the grindstone input slots according to recipe needs.
+     *
+     * @param inv Grindstone inventory used.
+     * @param recipe Recipe whose ingredients will be consumed.
+     * @param p Player performing the craft.
+     */
 	private void consumeIngredients(GrindstoneInventory inv, Recipe recipe, Player p) {
 
 		Ingredient topIng = null;
@@ -271,6 +330,7 @@ public class GrindstoneManager implements Listener {
 			shrinkSlot(inv, 1, bottomIng, p);
 	}
 
+    /** Reduces item count in a grindstone input slot or clears it if empty. */
 	private void shrinkSlot(GrindstoneInventory inv, int slot, Ingredient ing, Player p) {
 		ItemStack stack = inv.getItem(slot);
 		if (stack == null)
@@ -287,6 +347,7 @@ public class GrindstoneManager implements Listener {
 		}
 	}
 
+    /** Gives the player experience based on the recipe configuration. */
 	private void tryGiveXp(Player p, Recipe rawRecipe) {
 		WorkstationRecipeData matched = (WorkstationRecipeData) rawRecipe;
 		if (matched.getExperience() <= 0)
@@ -299,6 +360,7 @@ public class GrindstoneManager implements Listener {
 		}
 	}
 
+    /** Checks ingredient amount requirements. */
 	private boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		if (item == null || ingredient == null) {
 			logDebug("Item or Ingredient is null", recipeName);
@@ -315,6 +377,7 @@ public class GrindstoneManager implements Listener {
 		return true;
 	}
 
+    /** Checks item similarity using metadata comparison handlers. */
 	private boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
 	}

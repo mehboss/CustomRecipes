@@ -2,9 +2,15 @@ package me.mehboss.utils.data;
 
 import me.mehboss.utils.RecipeUtil.Recipe;
 
-/* ======================================================================
- * Anvil / Stonecutter Recipes - Specialized Subclass
- * ====================================================================== */
+/**
+ * Stores additional data for workstation-based recipes such as
+ * anvils or stonecutters.
+ * <p>
+ * Extends {@link Recipe} by adding fields related to workstation
+ * behavior, including repair cost, experience output, and optional
+ * grouping. This class is a flexible data container and does not
+ * define how recipes must be created.
+ */
 public class WorkstationRecipeData extends Recipe {
     private String group = "";
     private int repairCost = 0;
@@ -24,6 +30,7 @@ public class WorkstationRecipeData extends Recipe {
         return repairCost;
     }
 
+    /** @return true if a repair cost has been assigned. */
     public boolean hasRepairCost() {
         return repairCost > 0;
     }

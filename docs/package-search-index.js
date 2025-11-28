@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"me.mehboss.utils"},{"l":"me.mehboss.utils.data"}];updateSearchResults();
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"me.mehboss.brewing"},{"l":"me.mehboss.commands"},{"l":"me.mehboss.recipe"},{"l":"me.mehboss.utils"},{"l":"me.mehboss.utils.data"}];updateSearchResults();

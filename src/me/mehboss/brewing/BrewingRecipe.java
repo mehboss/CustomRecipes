@@ -23,14 +23,38 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.BrewingRecipeData;
 
 /**
- * BrewingRecipe helper for managing brewing timers and finding matching
- * recipes.
+ * Handles runtime logic for custom brewing recipes.
+ * <p>
+ * This class:
+ * <ul>
+ *     <li>Locates matching brewing recipes based on inventory contents</li>
+ *     <li>Starts and manages brewing timers</li>
+ *     <li>Consumes fuel and ingredients</li>
+ *     <li>Controls progress via NBT BrewTime</li>
+ *     <li>Applies custom brewing results</li>
+ * </ul>
  *
- * This no longer stores any recipe data — it just handles the runtime logic.
+ * <p><b>Note:</b> This class does <i>not</i> store recipe definitions. All
+ * recipe data is stored within {@link BrewingRecipeData} via RecipeUtil.
  */
 public class BrewingRecipe {
 
-    // Finds a brewing recipe that matches the current inventory setup
+
+    /**
+     * Attempts to locate a brewing recipe that matches the given brewer inventory.
+     * <p>
+     * Matching criteria:
+     * <ul>
+     *     <li>Ingredient slot item matches recipe ingredient</li>
+     *     <li>Fuel slot item matches recipe fuel</li>
+     *     <li>Recipe is active</li>
+     *     <li>Player has permission (if required)</li>
+     *     <li>World is not disabled</li>
+     * </ul>
+     *
+     * @param inventory The brewing stand inventory to match.
+     * @return A matching {@link BrewingRecipeData}, or {@code null} if none match.
+     */
     public static BrewingRecipeData getRecipe(BrewerInventory inventory) {
         RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
         Map<String, Recipe> recipes = recipeUtil.getRecipesFromType(RecipeType.BREWING_STAND);
@@ -67,7 +91,21 @@ public class BrewingRecipe {
         return null;
     }
 
-    // Starts brewing cycle (400 ticks)
+    /**
+     * Begins a brewing cycle using the provided recipe.
+     * <p>
+     * The default brewing time is 400 ticks (20 seconds), unless overridden in
+     * {@link BrewClock}.
+     *
+     * <p>This method:
+     * <ul>
+     *     <li>Consumes fuel if internal fuel tank is empty</li>
+     *     <li>Initializes a {@link BrewClock} to track progress</li>
+     * </ul>
+     *
+     * @param inventory Brewer inventory involved in brewing.
+     * @param recipe    The recipe to brew.
+     */
     public static void startBrewing(BrewerInventory inventory, BrewingRecipeData recipe) {
         BrewingStand stand = inventory.getHolder();
         if (stand == null) return;
@@ -98,12 +136,32 @@ public class BrewingRecipe {
         new BrewClock(inventory, recipe, 400);
     }
 
-    // Handles ticking down the brew progress and finishing results
+
+    /**
+     * Handles the ticking and completion of a brewing cycle.
+     * <p>
+     * This class:
+     * <ul>
+     *     <li>Counts down BrewTime via NBT</li>
+     *     <li>Checks for missing ingredients/fuel mid-brew</li>
+     *     <li>Consumes internal tank fuel</li>
+     *     <li>Consumes recipe ingredients</li>
+     *     <li>Applies recipe results into potion bottle slots</li>
+     *     <li>Automatically triggers the next brewing cycle if conditions allow</li>
+     * </ul>
+     */
     private static class BrewClock extends BukkitRunnable {
         private final BrewerInventory inventory;
         private final BrewingRecipeData recipe;
         private int ticksRemaining;
 
+        /**
+         * Creates and starts a brewing timer.
+         *
+         * @param inventory      The brewing stand inventory.
+         * @param recipe         The recipe being brewed.
+         * @param brewTimeTicks  Total ticks for the brewing cycle (typically 400).
+         */
         public BrewClock(BrewerInventory inventory, BrewingRecipeData recipe, int brewTimeTicks) {
             this.inventory = inventory;
             this.recipe = recipe;
@@ -135,6 +193,19 @@ public class BrewingRecipe {
             ticksRemaining--;
         }
 
+        /**
+         * Completes a single brewing cycle.
+         * Handles:
+         * <ul>
+         *     <li>Fuel drain / consumption</li>
+         *     <li>Ingredient consumption</li>
+         *     <li>Result placement</li>
+         *     <li>Sound effects</li>
+         *     <li>Automatic continuation</li>
+         * </ul>
+         *
+         * @param stand The brewing stand completing its brew.
+         */
         private void finishOneBrew(BrewingStand stand) {
             ItemStack ingredient = inventory.getItem(recipe.getBrewIngredientSlot());
             if (ingredient == null || ingredient.getType() == Material.AIR)
@@ -204,6 +275,7 @@ public class BrewingRecipe {
                 startBrewing(inventory, recipe);
         }
 
+        /** @return true if brewing can continue into another automatic cycle. */
         private boolean canContinue() {
             ItemStack ing = inventory.getItem(recipe.getBrewIngredientSlot());
             ItemStack fuel = inventory.getItem(recipe.getBrewFuelSlot());
@@ -212,6 +284,9 @@ public class BrewingRecipe {
                    hasValidResultSlot();
         }
 
+        /**
+         * Checks whether there is at least one available or valid bottle slot.
+         */
         private boolean hasValidResultSlot() {
             boolean requiresBottles = recipe.requiresBottles();
             Material requiredBottle = recipe.getRequiredBottleType();
@@ -227,6 +302,7 @@ public class BrewingRecipe {
             return false;
         }
 
+        /** @return true if either ingredient or fuel is missing. */
         private boolean ingredientOrFuelGone() {
             ItemStack ing = inventory.getItem(recipe.getBrewIngredientSlot());
             ItemStack fuel = inventory.getItem(recipe.getBrewFuelSlot());
@@ -235,7 +311,12 @@ public class BrewingRecipe {
         }
     }
 
-    // === Utility ===
+    /**
+     * Updates the brewing stand's NBT BrewTime value.
+     *
+     * @param stand The brewing stand whose BrewTime is being updated.
+     * @param ticks The number of ticks remaining in the brewing cycle.
+     */
     private static void setBrewTimeNBT(BrewingStand stand, int ticks) {
         try {
             new NBTTileEntity(stand).setInteger("BrewTime", ticks);

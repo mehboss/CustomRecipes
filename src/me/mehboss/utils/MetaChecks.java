@@ -8,11 +8,35 @@ import org.bukkit.inventory.ItemStack;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 
+/**
+ * Handles all metadata comparison logic used during special recipe matching.
+ * <p>
+ * Provides utility checks for matching item materials, display names,
+ * and custom identifiers. This class is used internally by RecipeUtil
+ * and recipe handlers to determine whether an input item matches a
+ * defined ingredient.
+ */
 public class MetaChecks {
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
 
+	/**
+	 * Compares an input item against a recipe ingredient definition.
+	 * <p>
+	 * Validates:
+	 * <ul>
+	 *     <li>null vs non-null mismatches</li>
+	 *     <li>material type</li>
+	 *     <li>custom identifier match (if present)</li>
+	 *     <li>display name match (if present)</li>
+	 * </ul>
+	 *
+	 * @param recipeName name of the recipe (used for debug output)
+	 * @param item        the actual input item
+	 * @param ingredient  expected ingredient definition
+	 * @return true if the item satisfies all required checks
+	 */
 	public Boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		// Null check first
 		if ((ingredient.isEmpty() && item != null) || (!ingredient.isEmpty() && item == null)) {

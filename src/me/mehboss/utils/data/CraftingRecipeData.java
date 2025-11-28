@@ -7,6 +7,14 @@ import com.cryptomorin.xseries.XMaterial;
 import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil.Recipe;
 
+/**
+ * Stores additional data for custom crafting recipes.
+ * <p>
+ * Extends {@link Recipe} with fields used only by crafting systems,
+ * including leftover item rules, conditional requirements, and
+ * optional recipe grouping. This class acts only as a data container
+ * and does not enforce how a recipe is created.
+ */
 public class CraftingRecipeData extends Recipe {
 	private ArrayList<String> leftoverItems = new ArrayList<>();
 	private ConditionSet conditionSet = new ConditionSet();

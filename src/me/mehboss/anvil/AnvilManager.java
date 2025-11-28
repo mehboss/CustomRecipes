@@ -19,12 +19,26 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
 
+/**
+ * Handles custom anvil crafting logic for recipes registered via RecipeUtil.
+ * <p>
+ * This class listens for {@link PrepareAnvilEvent} and attempts to match the
+ * anvil's current input items to any custom anvil-type recipe. If a match is
+ * found and the player has the required permissions, the output result and
+ * repair cost are applied to the anvil.
+ */
 public class AnvilManager implements Listener {
 
 	public HashMap<UUID, Integer> runTimes = new HashMap<UUID, Integer>();
 
+    /**
+     * Handles anvil preparation events and checks if the items inside the anvil
+     * inputs match any custom ANVIL-type recipe.
+     *
+     * @param e The PrepareAnvilEvent fired by Bukkit.
+     */
 	@EventHandler
-	public void onPlace(PrepareAnvilEvent e) {
+	void onPlace(PrepareAnvilEvent e) {
 		AnvilInventory inv = e.getInventory();
 		Recipe matchedRecipe = null;
 		Player p = (Player) e.getView().getPlayer();
@@ -75,6 +89,14 @@ public class AnvilManager implements Listener {
 		}
 	}
 
+    /**
+     * Checks whether the provided item satisfies the ingredient's required amount.
+     *
+     * @param recipeName Name of the recipe (used for debugging messages).
+     * @param item       ItemStack inside the anvil.
+     * @param ingredient Ingredient definition being compared to.
+     * @return true if the item meets or exceeds the amount required; false otherwise.
+     */
 	Boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		if (item == null || ingredient == null) {
 			logDebug(recipeName + ": Item or Ingredient is null");
@@ -97,6 +119,14 @@ public class AnvilManager implements Listener {
 	    return Main.getInstance().recipeUtil;
 	}
 	
+    /**
+     * Checks if the given ItemStack matches the ingredient's item type and metadata.
+     *
+     * @param recipeName Name of the recipe (used for debug logging).
+     * @param item       ItemStack from the anvil input.
+     * @param ingredient Ingredient to compare against.
+     * @return true if items match according to MetaChecks; false otherwise.
+     */
 	boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
 	}

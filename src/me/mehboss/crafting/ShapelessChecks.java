@@ -57,6 +57,7 @@ public class ShapelessChecks {
 			if (it == null || it.getType() == Material.AIR || it.getAmount() <= 0) {
 				slotNames.add("null");
 				slotIDs.add("null");
+				inventoryMD.add(-1);
 				inventoryCount.put(Material.AIR, inventoryCount.getOrDefault(Material.AIR, 0) + 1);
 				continue;
 			}
@@ -91,6 +92,7 @@ public class ShapelessChecks {
 			if (ingredient.isEmpty()) {
 				recipeCount.put(Material.AIR, recipeCount.getOrDefault(Material.AIR, 0) + 1);
 				recipeNames.add("null");
+				recipeMD.add(-1);
 				recipeIDs.add("null");
 				continue;
 			}
@@ -141,9 +143,7 @@ public class ShapelessChecks {
 			}
 
 			recipeIDs.add("null");
-
-			if (Main.getInstance().serverVersionAtLeast(1, 14))
-				recipeMD.add(ingredient.getCustomModelData());
+			recipeMD.add(ingredient.getCustomModelData());
 
 			if (ingredient.hasDisplayName()) {
 				recipeNames.add(ingredient.getDisplayName());
@@ -184,6 +184,10 @@ public class ShapelessChecks {
 			Map<Integer, Integer> recipeModelCount = new HashMap<>();
 			Map<Integer, Integer> inventoryModelCount = new HashMap<>();
 
+			if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
+				recipeMD.clear();
+				inventoryMD.clear();
+			}
 			for (int model : recipeMD) {
 				recipeModelCount.put(model, recipeModelCount.getOrDefault(model, 0) + 1);
 			}

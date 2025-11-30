@@ -15,6 +15,7 @@ package me.mehboss.crafting;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -341,6 +342,12 @@ public class CraftManager implements Listener {
 		boolean isCraftingInventory = inv.getType() == InventoryType.WORKBENCH
 				|| inv.getType() == InventoryType.CRAFTING;
 		int slot = 0;
+		
+		if (inv.getType() == InventoryType.CRAFTING) {
+			// Since ingredients is always 9, add 5 to the 2x2 slot for the inventory check.
+			Collections.addAll(invMaterials, "null", "null", "null", "null", "null");
+		}
+
 		for (ItemStack invSlot : inv.getContents()) {
 
 			if (invMaterials.size() == 9)
@@ -417,7 +424,7 @@ public class CraftManager implements Listener {
 			}
 		}
 
-		// handles 4x4 slot
+		// handles 2x2 slot
 		if (inv.getType() == InventoryType.CRAFTING) {
 			Map<String, Integer> invCount = new HashMap<>();
 			Map<String, Integer> ingCount = new HashMap<>();
@@ -431,6 +438,10 @@ public class CraftManager implements Listener {
 			for (Map.Entry<String, Integer> e : ingCount.entrySet()) {
 				if (invCount.getOrDefault(e.getKey(), 0) < e.getValue()) {
 					logDebug("[hasAllIngredients] Recipe ingredient requirements not met..", recipeName, id);
+					logDebug("IngCount: " + ingCount.keySet(), "");
+					logDebug("IngCount: " + ingCount.values(), "");
+					logDebug("InvCount: " + invCount.keySet(), "");
+					logDebug("InvCount: " + invCount.values(), "");
 					return false;
 				}
 			}
@@ -521,7 +532,7 @@ public class CraftManager implements Listener {
 
 		if (inv.getType() == InventoryType.CRAFTING) {
 			if (!(inv.getRecipe() instanceof ShapelessRecipe)) {
-				logDebug("[handleCrafting] Skipping 4x4 checks.. recipe isn't shapeless.", "");
+				logDebug("[handleCrafting] Skipping 2x2 checks.. recipe isn't shapeless..", "");
 				
 				if (getRecipeUtil().getRecipeFromResult(inv.getResult()) != null)
 					inv.setResult(new ItemStack(Material.AIR));

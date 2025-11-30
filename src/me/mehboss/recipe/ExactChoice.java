@@ -18,6 +18,8 @@ import org.bukkit.inventory.StonecuttingRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.recipe.CookingBookCategory;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
+
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -60,7 +62,7 @@ public class ExactChoice {
 			ItemMeta exactMeta = exactItem.getItemMeta();
 
 			if (item.hasDisplayName())
-				exactMeta.setDisplayName(item.getDisplayName());
+				exactMeta = CompatibilityUtil.setDisplayname(exactItem, item.getDisplayName());
 
 			if (item.hasCustomModelData())
 				exactMeta.setCustomModelData(item.getCustomModelData());

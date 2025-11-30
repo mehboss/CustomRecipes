@@ -94,7 +94,7 @@ public class ShapedChecks {
 	                    if (ing.isEmpty())
 	                        continue;
 
-	                    if (!ing.getMaterialChoices().contains(invItem.getType()))
+	                    if (invItem == null || !ing.getMaterialChoices().contains(invItem.getType()))
 	                        match = false;
 	                }
 	            }

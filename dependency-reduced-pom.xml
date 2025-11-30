@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>CustomRecipes</groupId>
   <artifactId>CustomRecipes</artifactId>
-  <version>2.0.5.4</version>
+  <version>2.0.5.6</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
@@ -25,16 +25,9 @@
           </execution>
         </executions>
         <configuration>
-          <additionalJOptions>
-            <additionalJOption>-Xdoclint:none</additionalJOption>
-            <additionalJOption>-quiet</additionalJOption>
-            <additionalJOption>-ignore-source-errors</additionalJOption>
-          </additionalJOptions>
-          <sourcepath>IGNORE</sourcepath>
-          <excludePackageNames>com.ssomar.*:net.advancedplugins.*:valorless.*</excludePackageNames>
-          <doclint>none</doclint>
-          <excludePackageNames>com.ssomar.score.api.executableitems.*,
-						net.advancedplugins.ae.api.*,</excludePackageNames>
+          <failOnError>false</failOnError>
+          <quiet>true</quiet>
+          <excludePackageNames>me.mehboss.recipe.*</excludePackageNames>
         </configuration>
       </plugin>
       <plugin>
@@ -237,6 +230,12 @@
       <groupId>com.mojang</groupId>
       <artifactId>authlib</artifactId>
       <version>6.0.54</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.Valorless</groupId>
+      <artifactId>HavenBags</artifactId>
+      <version>156279014a</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

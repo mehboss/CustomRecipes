@@ -36,43 +36,60 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.data.CookingRecipeData;
 import net.Indyuce.mmoitems.MMOItems;
+import valorless.havenbags.api.BagCreationObject;
+import valorless.havenbags.api.HavenBagsAPI;
+import valorless.havenbags.datamodels.Data;
 
 /**
  * Utility manager and API entry point for creating, validating, and storing
  * custom recipe definitions inside the CustomRecipes plugin.
  *
- * <p>This class maintains several internal collections used by the plugin:</p>
+ * <p>
+ * This class maintains several internal collections used by the plugin:
+ * </p>
  *
  * <ul>
- *   <li><b>recipes:</b> A map of recipe names to their corresponding {@link Recipe} objects.</li>
- *   <li><b>keyList:</b> A list of all registered {@link org.bukkit.NamespacedKey} identifiers.</li>
- *   <li><b>custom_items:</b> A lookup table for custom ItemStacks used by recipes.</li>
- *   <li><b>SUPPORTED_PLUGINS:</b> A list of optional hookable item systems
- *       (ItemsAdder, MythicMobs, ExecutableItems, Oraxen, Nexo, MMOItems).</li>
+ * <li><b>recipes:</b> A map of recipe names to their corresponding
+ * {@link Recipe} objects.</li>
+ * <li><b>keyList:</b> A list of all registered {@link org.bukkit.NamespacedKey}
+ * identifiers.</li>
+ * <li><b>custom_items:</b> A lookup table for custom ItemStacks used by
+ * recipes.</li>
+ * <li><b>SUPPORTED_PLUGINS:</b> A list of optional hookable item systems
+ * (ItemsAdder, MythicMobs, ExecutableItems, Oraxen, Nexo, MMOItems).</li>
  * </ul>
  *
  * <h3>Recipe Registration</h3>
- * <p>The {@link #createRecipe(Recipe)} method is the primary entry point for
+ * <p>
+ * The {@link #createRecipe(Recipe)} method is the primary entry point for
  * adding recipes to CustomRecipes. Before a recipe is accepted, it is validated
- * against several rules — if any fail, an {@link InvalidRecipeException} is thrown
- * with a descriptive error message.</p>
+ * against several rules — if any fail, an {@link InvalidRecipeException} is
+ * thrown with a descriptive error message.
+ * </p>
  *
  * <h4>Validation rules include:</h4>
  * <ul>
- *   <li><b>Null or missing key:</b> The recipe must not be null and must have a valid
- *       NamespacedKey.</li>
- *   <li><b>Ingredient count:</b>
- *       Shaped / shapeless recipes must contain exactly 9 ingredient slots.</li>
- *   <li><b>Result validity:</b> The output item must exist and cannot be AIR.</li>
- *   <li><b>Shape integrity:</b> Shaped recipes must have non-null rows (1–3).</li>
- *   <li><b>Single-input rules:</b> Furnace / stonecutter recipes may only have 1 ingredient.</li>
+ * <li><b>Null or missing key:</b> The recipe must not be null and must have a
+ * valid NamespacedKey.</li>
+ * <li><b>Ingredient count:</b> Shaped / shapeless recipes must contain exactly
+ * 9 ingredient slots.</li>
+ * <li><b>Result validity:</b> The output item must exist and cannot be
+ * AIR.</li>
+ * <li><b>Shape integrity:</b> Shaped recipes must have non-null rows
+ * (1–3).</li>
+ * <li><b>Single-input rules:</b> Furnace / stonecutter recipes may only have 1
+ * ingredient.</li>
  * </ul>
  *
- * <p>When validation passes, the recipe is stored internally and becomes retrievable
- * by name or its associated key.</p>
+ * <p>
+ * When validation passes, the recipe is stored internally and becomes
+ * retrievable by name or its associated key.
+ * </p>
  *
- * <p>This class is intended for use by addon developers and internal systems that
- * need programmatic control over recipe creation and management.</p>
+ * <p>
+ * This class is intended for use by addon developers and internal systems that
+ * need programmatic control over recipe creation and management.
+ * </p>
  */
 public class RecipeUtil {
 
@@ -80,7 +97,7 @@ public class RecipeUtil {
 	private ArrayList<String> keyList = new ArrayList<>();
 	private HashMap<String, ItemStack> custom_items = new HashMap<>();
 	public List<String> SUPPORTED_PLUGINS = List.of("itemsadder", "mythicmobs", "executableitems", "oraxen", "nexo",
-			"mmoitems");
+			"mmoitems", "havenbags");
 
 	/**
 	 * Adds a finished Recipe object to the API
@@ -161,17 +178,18 @@ public class RecipeUtil {
 		Main.getInstance().recipeManager.addRecipesFromAPI(null);
 	}
 
-    /**
-     * Extracts the plugin namespace from a custom item key.
-     * <p>
-     * Custom item keys typically follow the format:
-     * <pre>
-     * pluginNamespace:itemId
-     * </pre>
-     *
-     * @param key the full custom item key (e.g. "mmoitems:SWORD_1")
-     * @return the namespace before the colon, or null if the key is invalid.
-     */
+	/**
+	 * Extracts the plugin namespace from a custom item key.
+	 * <p>
+	 * Custom item keys typically follow the format:
+	 * 
+	 * <pre>
+	 * pluginNamespace:itemId
+	 * </pre>
+	 *
+	 * @param key the full custom item key (e.g. "mmoitems:SWORD_1")
+	 * @return the namespace before the colon, or null if the key is invalid.
+	 */
 	public String getCustomItemPlugin(String key) {
 		if (key == null)
 			return null;
@@ -184,15 +202,15 @@ public class RecipeUtil {
 		return namespace;
 	}
 
-    /**
-     * Checks whether a namespace belongs to a supported custom-item plugin.
-     * <p>
-     * This only validates the namespace string (e.g. "mmoitems") — it does not
-     * check if the plugin is installed or if the item exists.
-     *
-     * @param key the plugin namespace to check
-     * @return true if the namespace matches a known custom-item plugin.
-     */
+	/**
+	 * Checks whether a namespace belongs to a supported custom-item plugin.
+	 * <p>
+	 * This only validates the namespace string (e.g. "mmoitems") — it does not
+	 * check if the plugin is installed or if the item exists.
+	 *
+	 * @param key the plugin namespace to check
+	 * @return true if the namespace matches a known custom-item plugin.
+	 */
 	public Boolean isCustomItem(String key) {
 		if (key == null)
 			return false;
@@ -305,6 +323,28 @@ public class RecipeUtil {
 					return mmoitem;
 			}
 			break;
+
+		case "havenbags":
+			boolean hasArgs = split.length >= 3;
+			Material bagMaterial = hasArgs && XMaterial.matchXMaterial(split[2]).isPresent()
+					? XMaterial.matchXMaterial(split[2]).get().get()
+					: null;
+			int size = !hasArgs || Integer.getInteger(split[1]) == null ? 1 : Integer.parseInt(split[1]);
+			int bagCMD = split.length < 4 || Integer.getInteger(split[3]) == null ? 0 : Integer.parseInt(split[3]);
+			String canBind = split.length >= 5 ? split[4] : "null";
+			String bagTexture = split.length >= 6 ? split[5] : "none";
+
+			if (!hasArgs || bagMaterial == null) {
+				logError("Could not complete recipe because HavenBags is missing either a material or bag size. Key: "
+						+ item, recipe);
+				return null;
+			}
+
+			// havenbags:size:material:customModelData:canBind:texture
+			ItemStack bagItem = Main.getInstance().recipeManager.handleBagCreation(bagMaterial, size, bagCMD, canBind,
+					bagTexture, null);
+			return bagItem;
+
 		}
 
 		if (SUPPORTED_PLUGINS.contains(namespace) && split.length > 2) {
@@ -326,7 +366,7 @@ public class RecipeUtil {
 	 * @return the key that is found, can be null
 	 */
 	public String getKeyFromResult(ItemStack item) {
-		if (item == null)
+		if (item == null || !item.hasItemMeta())
 			return null;
 
 		// First, try to get a key from normal recipes
@@ -380,6 +420,18 @@ public class RecipeUtil {
 			}
 		}
 
+		if (Main.getInstance().hasCustomPlugin("havenbags")) {
+			Data bagData = HavenBagsAPI.getBagData(item);
+			if (bagData != null) {
+				Material material = bagData.getMaterial();
+				String texture = bagData.getTexture();
+				int modelData = bagData.getModeldata();
+				int size = bagData.getSize();
+				
+				// havenbags:size:material:customModelData:texture
+				return "havenbags:" + size + material + modelData + texture; 
+			}
+		}
 		return null;
 	}
 
@@ -620,27 +672,32 @@ public class RecipeUtil {
 	 * Represents a fully defined custom recipe used by the CustomRecipes API.
 	 * <p>
 	 * A Recipe stores its output item, ingredient layout, behavior flags,
-	 * permissions, cooldowns, optional commands, and metadata such as whether
-	 * the recipe is shaped, shapeless, furnace-based, etc.
+	 * permissions, cooldowns, optional commands, and metadata such as whether the
+	 * recipe is shaped, shapeless, furnace-based, etc.
 	 * </p>
 	 *
-	 * <p>Only validated recipes should be added through {@link RecipeUtil#createRecipe}.</p>
+	 * <p>
+	 * Only validated recipes should be added through
+	 * {@link RecipeUtil#createRecipe}.
+	 * </p>
 	 *
 	 * <h4>Key features:</h4>
 	 * <ul>
-	 *   <li><b>result</b> – the final ItemStack produced by crafting.</li>
-	 *   <li><b>ingredients</b> – a list of ingredient entries, optionally exact.</li>
-	 *   <li><b>commands</b> – commands executed when the recipe is crafted.</li>
-	 *   <li><b>name/key</b> – human-readable name and NamespacedKey identifier.</li>
-	 *   <li><b>disabledWorlds</b> – worlds where this recipe cannot be used.</li>
-	 *   <li><b>flags</b> – behavior options such as exactChoice, ignoreData,
-	 *       ignoreModelData, ignoreNames, discoverable, grantItem, etc.</li>
-	 *   <li><b>shape rows</b> – row1, row2, row3 for shaped crafting layouts.</li>
-	 *   <li><b>cooldown</b> – optional per-player cooldown before recrafting.</li>
+	 * <li><b>result</b> – the final ItemStack produced by crafting.</li>
+	 * <li><b>ingredients</b> – a list of ingredient entries, optionally exact.</li>
+	 * <li><b>commands</b> – commands executed when the recipe is crafted.</li>
+	 * <li><b>name/key</b> – human-readable name and NamespacedKey identifier.</li>
+	 * <li><b>disabledWorlds</b> – worlds where this recipe cannot be used.</li>
+	 * <li><b>flags</b> – behavior options such as exactChoice, ignoreData,
+	 * ignoreModelData, ignoreNames, discoverable, grantItem, etc.</li>
+	 * <li><b>shape rows</b> – row1, row2, row3 for shaped crafting layouts.</li>
+	 * <li><b>cooldown</b> – optional per-player cooldown before recrafting.</li>
 	 * </ul>
 	 *
-	 * <p>This class serves as a simple data container. Logic is handled in
-	 * RecipeUtil during registration and validation.</p>
+	 * <p>
+	 * This class serves as a simple data container. Logic is handled in RecipeUtil
+	 * during registration and validation.
+	 * </p>
 	 */
 	public static class Recipe {
 
@@ -1171,7 +1228,7 @@ public class RecipeUtil {
 		public ArrayList<String> getDisabledWorlds() {
 			return disabledWorlds;
 		}
-		
+
 		/**
 		 * Sets whether the recipe output should be granted after a command is performed
 		 * 
@@ -1220,17 +1277,21 @@ public class RecipeUtil {
 	}
 
 	/**
-	 * Represents a single ingredient used in a recipe. An Ingredient may define
-	 * a specific ItemStack, a base Material, a list of acceptable material
-	 * choices, custom display/name matching options, and metadata such as slot
-	 * position, amount, and model data.
+	 * Represents a single ingredient used in a recipe. An Ingredient may define a
+	 * specific ItemStack, a base Material, a list of acceptable material choices,
+	 * custom display/name matching options, and metadata such as slot position,
+	 * amount, and model data.
 	 *
-	 * <p>Ingredients are created with an abbreviation (the shaped-crafting key
-	 * character) and may be configured with additional properties depending on
-	 * the recipe type.</p>
+	 * <p>
+	 * Ingredients are created with an abbreviation (the shaped-crafting key
+	 * character) and may be configured with additional properties depending on the
+	 * recipe type.
+	 * </p>
 	 * 
-	 * <p>This class acts as a data container. Matching logic is performed elsewhere
-	 * when validating recipe input.</p>
+	 * <p>
+	 * This class acts as a data container. Matching logic is performed elsewhere
+	 * when validating recipe input.
+	 * </p>
 	 */
 	public static class Ingredient {
 		private ItemStack item;

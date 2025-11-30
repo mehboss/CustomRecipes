@@ -5,9 +5,11 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
@@ -31,22 +33,23 @@ public class AnvilManager implements Listener {
 
 	public HashMap<UUID, Integer> runTimes = new HashMap<UUID, Integer>();
 
-    /**
-     * Handles anvil preparation events and checks if the items inside the anvil
-     * inputs match any custom ANVIL-type recipe.
-     *
-     * @param e The PrepareAnvilEvent fired by Bukkit.
-     */
+	/**
+	 * Handles anvil preparation events and checks if the items inside the anvil
+	 * inputs match any custom ANVIL-type recipe.
+	 *
+	 * @param e The PrepareAnvilEvent fired by Bukkit.
+	 */
 	@EventHandler
 	void onPlace(PrepareAnvilEvent e) {
 		AnvilInventory inv = e.getInventory();
 		Recipe matchedRecipe = null;
 		Player p = (Player) e.getView().getPlayer();
 
-		if (getRecipeUtil().getAllRecipes() == null)
+		HashMap<String, Recipe> anvilRecipes = getRecipeUtil().getRecipesFromType(RecipeType.ANVIL);
+		if (anvilRecipes == null || anvilRecipes.isEmpty())
 			return;
 
-		for (Recipe recipe : getRecipeUtil().getAllRecipes().values()) {
+		for (Recipe recipe : anvilRecipes.values()) {
 			Boolean matchedToRecipe = true;
 
 			if (recipe.getType() != RecipeType.ANVIL) {
@@ -79,7 +82,7 @@ public class AnvilManager implements Listener {
 				sendNoPermsMessage(p, matchedRecipe.getName());
 				return;
 			}
-			
+
 			WorkstationRecipeData anvil = (WorkstationRecipeData) matchedRecipe;
 
 			logDebug(anvil.getName() + ": Requirements met.. Successfully set anvil result slot");
@@ -89,14 +92,82 @@ public class AnvilManager implements Listener {
 		}
 	}
 
-    /**
-     * Checks whether the provided item satisfies the ingredient's required amount.
-     *
-     * @param recipeName Name of the recipe (used for debugging messages).
-     * @param item       ItemStack inside the anvil.
-     * @param ingredient Ingredient definition being compared to.
-     * @return true if the item meets or exceeds the amount required; false otherwise.
-     */
+	@EventHandler
+	void onPlace(InventoryClickEvent e) {
+
+		// Only run in an anvil
+		if (!(e.getInventory() instanceof AnvilInventory))
+			return;
+
+		if (Main.getInstance().serverVersionAtLeast(1, 9))
+			return;
+
+		// Only respond to clicks inside the anvil input/result slots
+		if (e.getRawSlot() > 2)
+			return;
+
+		Player p = (Player) e.getWhoClicked();
+		AnvilInventory inv = (AnvilInventory) e.getInventory();
+
+		// Delay by 1 tick so the inventory updates like PrepareAnvilEvent would
+		Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+
+			Recipe matchedRecipe = null;
+			HashMap<String, Recipe> anvilRecipes = getRecipeUtil().getRecipesFromType(RecipeType.ANVIL);
+
+			if (anvilRecipes == null || anvilRecipes.isEmpty())
+				return;
+
+			for (Recipe recipe : anvilRecipes.values()) {
+				Boolean matchedToRecipe = true;
+
+				int slot = 0;
+				for (Ingredient ingredient : recipe.getIngredients()) {
+					if (!itemsMatch(recipe.getName(), inv.getItem(slot), ingredient)
+							|| !amountsMatch(recipe.getName(), inv.getItem(slot), ingredient)) {
+						matchedToRecipe = false;
+						break;
+					}
+					slot++;
+				}
+
+				if (matchedToRecipe) {
+					matchedRecipe = recipe;
+					break;
+				}
+
+				logDebug(recipe.getName() + ": Requirements not met.. Skipping to next recipe");
+			}
+
+			if (matchedRecipe != null) {
+				if (!matchedRecipe.isActive()
+						|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))
+						|| matchedRecipe.getDisabledWorlds().contains(p.getWorld().getName())) {
+					sendNoPermsMessage(p, matchedRecipe.getName());
+					inv.setItem(2, null);
+					return;
+				}
+
+				WorkstationRecipeData anvil = (WorkstationRecipeData) matchedRecipe;
+
+				logDebug(anvil.getName() + ": Requirements met.. Successfully set anvil result slot");
+
+				inv.setItem(2, anvil.getResult()); // prepareAnvilEvent#setResult equivalent
+				inv.setRepairCost(anvil.getRepairCost());
+				p.updateInventory();
+			}
+		});
+	}
+
+	/**
+	 * Checks whether the provided item satisfies the ingredient's required amount.
+	 *
+	 * @param recipeName Name of the recipe (used for debugging messages).
+	 * @param item       ItemStack inside the anvil.
+	 * @param ingredient Ingredient definition being compared to.
+	 * @return true if the item meets or exceeds the amount required; false
+	 *         otherwise.
+	 */
 	Boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		if (item == null || ingredient == null) {
 			logDebug(recipeName + ": Item or Ingredient is null");
@@ -116,17 +187,18 @@ public class AnvilManager implements Listener {
 	}
 
 	RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
-	
-    /**
-     * Checks if the given ItemStack matches the ingredient's item type and metadata.
-     *
-     * @param recipeName Name of the recipe (used for debug logging).
-     * @param item       ItemStack from the anvil input.
-     * @param ingredient Ingredient to compare against.
-     * @return true if items match according to MetaChecks; false otherwise.
-     */
+
+	/**
+	 * Checks if the given ItemStack matches the ingredient's item type and
+	 * metadata.
+	 *
+	 * @param recipeName Name of the recipe (used for debug logging).
+	 * @param item       ItemStack from the anvil input.
+	 * @param ingredient Ingredient to compare against.
+	 * @return true if items match according to MetaChecks; false otherwise.
+	 */
 	boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
 		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
 	}

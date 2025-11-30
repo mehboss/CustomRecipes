@@ -82,6 +82,9 @@ import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
 import net.advancedplugins.ae.api.AEAPI;
+import valorless.havenbags.api.BagCreationObject;
+import valorless.havenbags.api.HavenBagsAPI;
+import valorless.havenbags.datamodels.Data;
 import valorless.havenbags.hooks.CustomRecipes;
 import valorless.havenbags.hooks.CustomRecipes.BagInfo;
 
@@ -109,26 +112,31 @@ public class RecipeManager {
 		return false;
 	}
 
-	ItemStack handleBagCreation(Material bagMaterial, String item) {
-		String bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
-				: "none";
-		boolean canBind = getConfig().isBoolean(item + ".Can-Bind") ? getConfig().getBoolean(item + ".Can-Bind") : true;
-		int bagSize = getConfig().isInt(item + ".Bag-Size") ? getConfig().getInt(item + ".Bag-Size") : 1;
-		int bagCMD = 0;
+	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind,
+			String bagTexture, String item) {
 
-		CustomRecipes havenBags = new CustomRecipes();
-		BagInfo bInfo = havenBags.new BagInfo(null, bagMaterial, bagSize, canBind, bagTexture);
+		if (item != null) {
+			bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
+					: "none";
+			canBind = getConfig().getBoolean(item + ".Can-Bind") ? "null" : "ownerless";
+			bagSize = getConfig().isInt(item + ".Bag-Size") ? getConfig().getInt(item + ".Bag-Size") : 9;
+			bagCMD = 0;
 
-		if (Main.getInstance().serverVersionAtLeast(1, 14) && getConfig().isSet(item + ".Custom-Model-Data")
-				&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
-			bagCMD = getConfig().getInt(item + ".Custom-Model-Data");
+			if (Main.getInstance().serverVersionAtLeast(1, 14) && getConfig().isSet(item + ".Custom-Model-Data")
+					&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
+				bagCMD = getConfig().getInt(item + ".Custom-Model-Data");
+			}
 		}
 
-		bInfo.setModelData(bagCMD);
+        Data bagData = new Data("null", canBind);
+        bagData.setSize(bagSize);
+        bagData.setMaterial(bagMaterial);
+		bagData.setTexture(bagTexture);
+		bagData.setModeldata(bagCMD);
 
-		ItemStack bag = CustomRecipes.CreateBag(bInfo);
-		bag = handleIdentifier(bag, item);
-		return bag;
+		ItemStack bagItem = HavenBagsAPI.generateBagItem(bagData);
+		bagItem = handleIdentifier(bagItem, item);
+		return bagItem;
 	}
 
 	void handleDisabledWorlds(String item, Recipe recipe) {
@@ -1004,8 +1012,7 @@ public class RecipeManager {
 
 			default:
 				recipe = new CraftingRecipeData(item);
-				recipe.setType(
-						getConfig().getBoolean(item + ".Shapeless") ? RecipeType.SHAPELESS : RecipeType.SHAPED);
+				recipe.setType(getConfig().getBoolean(item + ".Shapeless") ? RecipeType.SHAPELESS : RecipeType.SHAPED);
 				handleCraftingData(recipe, item);
 				break;
 			}
@@ -1073,9 +1080,6 @@ public class RecipeManager {
 
 			i = handleDurability(i, resultPath);
 			i.setAmount(amount);
-
-			if (isHavenBag(item))
-				i = handleBagCreation(i.getType(), item);
 
 			recipe.setResult(i);
 			handleIgnoreFlags(item, recipe);
@@ -1253,6 +1257,9 @@ public class RecipeManager {
 		ItemStack i = hasItemDamage(item, type) ? handleItemDamage(item, type) : new ItemStack(type.get().get(), 1);
 		ItemMeta m = i.getItemMeta();
 
+		if (isHavenBag(item))
+			return Optional.of(handleBagCreation(i.getType(), 0, 0, "null", null, item));
+
 		// handle head textures
 		ItemStack texture = handleHeadTexture(path.getString(item + ".Item"));
 		if (texture != null) {
@@ -1307,7 +1314,8 @@ public class RecipeManager {
 				switch (recipe.getType()) {
 				case SHAPELESS:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						shapelessRecipe = Main.getInstance().exactChoice.createShapelessRecipe((CraftingRecipeData) recipe);
+						shapelessRecipe = Main.getInstance().exactChoice
+								.createShapelessRecipe((CraftingRecipeData) recipe);
 						break;
 					}
 

@@ -464,9 +464,10 @@ public class CraftManager implements Listener {
 
 			if (item == null || item.getType() == Material.AIR)
 				continue;
-			if (item.hasItemMeta() && (item.getItemMeta().hasDisplayName() || item.getItemMeta().hasLore()))
+			if (item.hasItemMeta() && (CompatibilityUtil.hasDisplayname(item.getItemMeta()) || item.getItemMeta().hasLore()))
 				return false;
 		}
+		logDebug("[hasVanillaIngredients] Skipping checks.. vanilla recipe detected.", "");
 		return true;
 	}
 
@@ -520,6 +521,8 @@ public class CraftManager implements Listener {
 
 		if (inv.getType() == InventoryType.CRAFTING) {
 			if (!(inv.getRecipe() instanceof ShapelessRecipe)) {
+				logDebug("[handleCrafting] Skipping 4x4 checks.. recipe isn't shapeless.", "");
+				
 				if (getRecipeUtil().getRecipeFromResult(inv.getResult()) != null)
 					inv.setResult(new ItemStack(Material.AIR));
 				return;

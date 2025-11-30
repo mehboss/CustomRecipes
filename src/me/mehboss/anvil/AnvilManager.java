@@ -15,6 +15,7 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -41,9 +42,13 @@ public class AnvilManager implements Listener {
 	 */
 	@EventHandler
 	void onPlace(PrepareAnvilEvent e) {
+		
+		if (Main.getInstance().serverVersionLessThan(1, 9))
+			return;
+		
 		AnvilInventory inv = e.getInventory();
 		Recipe matchedRecipe = null;
-		Player p = (Player) e.getView().getPlayer();
+		Player p = (Player) CompatibilityUtil.getPlayerFromView(CompatibilityUtil.getInventoryView(e));
 
 		HashMap<String, Recipe> anvilRecipes = getRecipeUtil().getRecipesFromType(RecipeType.ANVIL);
 		if (anvilRecipes == null || anvilRecipes.isEmpty())

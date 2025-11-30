@@ -21,8 +21,8 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class ShapelessChecks {
 
-	public boolean handleShapelessRecipe(Inventory inv, Recipe recipe,
-			List<RecipeUtil.Ingredient> recipeIngredients, UUID id) {
+	public boolean handleShapelessRecipe(Inventory inv, Recipe recipe, List<RecipeUtil.Ingredient> recipeIngredients,
+			UUID id) {
 
 		logDebug("[handleShapeless] Handling shapeless checks..!", recipe.getName(), id);
 
@@ -51,7 +51,7 @@ public class ShapelessChecks {
 		for (int i = 0; i < matrix.length; i++) {
 			if (i == 0 && isCrafting)
 				continue;
-			
+
 			ItemStack it = matrix[i];
 
 			if (it == null || it.getType() == Material.AIR || it.getAmount() <= 0) {
@@ -81,7 +81,7 @@ public class ShapelessChecks {
 				continue;
 			}
 
-			slotNames.add(it.getItemMeta().getDisplayName());
+			slotNames.add(CompatibilityUtil.getDisplayname(it.getItemMeta()));
 		}
 
 		// working copy used for consumption while matching

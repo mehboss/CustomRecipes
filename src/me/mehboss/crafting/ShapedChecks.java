@@ -21,109 +21,123 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 public class ShapedChecks {
 
 	public class AlignedResult {
-	    public final ItemStack[] getMatrix;
-	    public final int[] invSlotMap; // maps aligned index → real inventory slot
+		public final ItemStack[] getMatrix;
+		public final int[] invSlotMap; // maps aligned index → real inventory slot
 
-	    public AlignedResult(ItemStack[] alignedGrid, int[] invSlotMap) {
-	        this.getMatrix = alignedGrid;
-	        this.invSlotMap = invSlotMap;
-	    }
+		public AlignedResult(ItemStack[] alignedGrid, int[] invSlotMap) {
+			this.getMatrix = alignedGrid;
+			this.invSlotMap = invSlotMap;
+		}
 	}
 
 	public AlignedResult getAlignedGrid(Inventory inv, List<Ingredient> recipeIngredients) {
-	    boolean isCraftingInventory = inv.getType() == InventoryType.WORKBENCH
-	            || inv.getType() == InventoryType.CRAFTING;
+		boolean isCraftingInventory = inv.getType() == InventoryType.WORKBENCH
+				|| inv.getType() == InventoryType.CRAFTING;
 
-	    ItemStack[] invGrid = new ItemStack[9];
-	    int[] invSlotMap = new int[9]; // map each index to real inventory slot
+		ItemStack[] invGrid = new ItemStack[9];
+		int[] invSlotMap = new int[9]; // map each index to real inventory slot
 
-	    int idx = 0;
-	    for (int slot = 0; slot < inv.getContents().length && idx < 9; slot++) {
-	        if (isCraftingInventory && slot == 0)
-	            continue;
+		if (inv.getType() == InventoryType.CRAFTING) {
+			// 2×2 player crafting grid
+			int[] map = { 1, 2, -1, 3, 4, -1, -1, -1, -1 };
 
-	        ItemStack item = inv.getItem(slot);
-	        invGrid[idx] = (item == null ? new ItemStack(Material.AIR) : item);
-	        invSlotMap[idx] = slot; // << real inventory slot
-	        idx++;
-	    }
+			for (int i = 0; i < 9; i++) {
+				int real = map[i];
+				if (real != -1) {
+					ItemStack item = inv.getItem(real);
+					invGrid[i] = (item == null ? new ItemStack(Material.AIR) : item);
+					invSlotMap[i] = real;
+				}
+			}
+		} else {
+			int idx = 0;
+			for (int slot = 0; slot < inv.getContents().length && idx < 9; slot++) {
+				if (isCraftingInventory && slot == 0)
+					continue;
 
-	    // Build 3×3 recipe grid
-	    ItemStack[] recipeGrid = new ItemStack[9];
-	    for (int i = 0; i < 9; i++) {
-	        Ingredient ing = recipeIngredients.get(i);
-	        if (ing.isEmpty())
-	            recipeGrid[i] = new ItemStack(Material.AIR);
-	        else if (ing.hasIdentifier())
-	            recipeGrid[i] = getRecipeUtil().getResultFromKey(ing.getIdentifier());
-	        else
-	            recipeGrid[i] = new ItemStack(ing.getMaterialChoices().get(0));
-	    }
+				ItemStack item = inv.getItem(slot);
+				invGrid[idx] = (item == null ? new ItemStack(Material.AIR) : item);
+				invSlotMap[idx] = slot; // << real inventory slot
+				idx++;
+			}
+		}
 
-	    // Trim recipe bounding box
-	    int rTop = 3, rBottom = -1, rLeft = 3, rRight = -1;
-	    for (int i = 0; i < 9; i++) {
-	        if (recipeGrid[i].getType() != Material.AIR) {
-	            int r = i / 3;
-	            int c = i % 3;
-	            rTop = Math.min(rTop, r);
-	            rBottom = Math.max(rBottom, r);
-	            rLeft = Math.min(rLeft, c);
-	            rRight = Math.max(rRight, c);
-	        }
-	    }
+		// Build 3×3 recipe grid
+		ItemStack[] recipeGrid = new ItemStack[9];
+		for (int i = 0; i < 9; i++) {
+			Ingredient ing = recipeIngredients.get(i);
+			if (ing.isEmpty())
+				recipeGrid[i] = new ItemStack(Material.AIR);
+			else if (ing.hasIdentifier())
+				recipeGrid[i] = getRecipeUtil().getResultFromKey(ing.getIdentifier());
+			else
+				recipeGrid[i] = new ItemStack(ing.getMaterialChoices().get(0));
+		}
 
-	    int recipeHeight = rBottom - rTop + 1;
-	    int recipeWidth = rRight - rLeft + 1;
+		// Trim recipe bounding box
+		int rTop = 3, rBottom = -1, rLeft = 3, rRight = -1;
+		for (int i = 0; i < 9; i++) {
+			if (recipeGrid[i].getType() != Material.AIR) {
+				int r = i / 3;
+				int c = i % 3;
+				rTop = Math.min(rTop, r);
+				rBottom = Math.max(rBottom, r);
+				rLeft = Math.min(rLeft, c);
+				rRight = Math.max(rRight, c);
+			}
+		}
 
-	    // Try all shifts
-	    for (int shiftRow = 0; shiftRow <= 3 - recipeHeight; shiftRow++) {
-	        for (int shiftCol = 0; shiftCol <= 3 - recipeWidth; shiftCol++) {
+		int recipeHeight = rBottom - rTop + 1;
+		int recipeWidth = rRight - rLeft + 1;
 
-	            boolean match = true;
+		// Try all shifts
+		for (int shiftRow = 0; shiftRow <= 3 - recipeHeight; shiftRow++) {
+			for (int shiftCol = 0; shiftCol <= 3 - recipeWidth; shiftCol++) {
 
-	            for (int rr = 0; rr < recipeHeight && match; rr++) {
-	                for (int rc = 0; rc < recipeWidth && match; rc++) {
+				boolean match = true;
 
-	                    int invIndex = (shiftRow + rr) * 3 + (shiftCol + rc);
-	                    int recIndex = (rTop + rr) * 3 + (rLeft + rc);
+				for (int rr = 0; rr < recipeHeight && match; rr++) {
+					for (int rc = 0; rc < recipeWidth && match; rc++) {
 
-	                    ItemStack invItem = invGrid[invIndex];
-	                    Ingredient ing = recipeIngredients.get(recIndex);
+						int invIndex = (shiftRow + rr) * 3 + (shiftCol + rc);
+						int recIndex = (rTop + rr) * 3 + (rLeft + rc);
 
-	                    if (ing.isEmpty())
-	                        continue;
+						ItemStack invItem = invGrid[invIndex];
+						Ingredient ing = recipeIngredients.get(recIndex);
 
-	                    if (invItem == null || !ing.getMaterialChoices().contains(invItem.getType()))
-	                        match = false;
-	                }
-	            }
+						if (ing.isEmpty())
+							continue;
 
-	            if (match) {
-	                ItemStack[] aligned = new ItemStack[9];
-	                int[] map = new int[9];
+						if (invItem == null || !ing.getMaterialChoices().contains(invItem.getType()))
+							match = false;
+					}
+				}
 
-	                Arrays.fill(aligned, new ItemStack(Material.AIR));
-	                Arrays.fill(map, -1);
+				if (match) {
+					ItemStack[] aligned = new ItemStack[9];
+					int[] map = new int[9];
 
-	                // Copy matched region
-	                for (int rr = 0; rr < recipeHeight; rr++) {
-	                    for (int rc = 0; rc < recipeWidth; rc++) {
+					Arrays.fill(aligned, new ItemStack(Material.AIR));
+					Arrays.fill(map, -1);
 
-	                        int invIndex = (shiftRow + rr) * 3 + (shiftCol + rc);
-	                        int recIndex = (rTop + rr) * 3 + (rLeft + rc);
+					// Copy matched region
+					for (int rr = 0; rr < recipeHeight; rr++) {
+						for (int rc = 0; rc < recipeWidth; rc++) {
 
-	                        aligned[recIndex] = invGrid[invIndex];
-	                        map[recIndex] = invSlotMap[invIndex]; // <<< real inventory slot
-	                    }
-	                }
+							int invIndex = (shiftRow + rr) * 3 + (shiftCol + rc);
+							int recIndex = (rTop + rr) * 3 + (rLeft + rc);
 
-	                return new AlignedResult(aligned, map);
-	            }
-	        }
-	    }
+							aligned[recIndex] = invGrid[invIndex];
+							map[recIndex] = invSlotMap[invIndex]; // <<< real inventory slot
+						}
+					}
 
-	    return null;
+					return new AlignedResult(aligned, map);
+				}
+			}
+		}
+
+		return null;
 	}
 
 	public boolean handleShapedRecipe(InventoryType type, AlignedResult alignedGrid, Recipe recipe,

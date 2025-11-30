@@ -438,10 +438,6 @@ public class CraftManager implements Listener {
 			for (Map.Entry<String, Integer> e : ingCount.entrySet()) {
 				if (invCount.getOrDefault(e.getKey(), 0) < e.getValue()) {
 					logDebug("[hasAllIngredients] Recipe ingredient requirements not met..", recipeName, id);
-					logDebug("IngCount: " + ingCount.keySet(), "");
-					logDebug("IngCount: " + ingCount.values(), "");
-					logDebug("InvCount: " + invCount.keySet(), "");
-					logDebug("InvCount: " + invCount.values(), "");
 					return false;
 				}
 			}
@@ -530,15 +526,15 @@ public class CraftManager implements Listener {
 		if (hasVanillaIngredients(inv, inv.getResult()))
 			return;
 
-		if (inv.getType() == InventoryType.CRAFTING) {
-			if (!(inv.getRecipe() instanceof ShapelessRecipe)) {
-				logDebug("[handleCrafting] Skipping 2x2 checks.. recipe isn't shapeless..", "");
-				
-				if (getRecipeUtil().getRecipeFromResult(inv.getResult()) != null)
-					inv.setResult(new ItemStack(Material.AIR));
-				return;
-			}
-		}
+//		if (inv.getType() == InventoryType.CRAFTING) {
+//			if (!(inv.getRecipe() instanceof ShapelessRecipe)) {
+//				logDebug("[handleCrafting] Skipping 2x2 checks.. recipe isn't shapeless..", "");
+//				
+//				if (getRecipeUtil().getRecipeFromResult(inv.getResult()) != null)
+//					inv.setResult(new ItemStack(Material.AIR));
+//				return;
+//			}
+//		}
 
 		logDebug("[handleCrafting] Fired craft event, beginning checks..", "", p.getUniqueId());
 		handleCraftingChecks(inv, p);

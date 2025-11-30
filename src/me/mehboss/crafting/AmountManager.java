@@ -376,10 +376,15 @@ public class AmountManager implements Listener {
 
 				// since we cancel, we have to retrigger an evaluation manually
 				Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-					PrepareItemCraftEvent fake = new PrepareItemCraftEvent(inv, e.getView(), false);
-					Bukkit.getPluginManager().callEvent(fake);
+					PrepareItemCraftEvent event = new PrepareItemCraftEvent(inv, e.getView(), false);
+					Bukkit.getPluginManager().callEvent(event);
 				});
 			}
+
+			if (itemsToAdd == 1)
+				Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+					inv.setResult(new ItemStack(Material.AIR));
+				});
 			return;
 		}
 

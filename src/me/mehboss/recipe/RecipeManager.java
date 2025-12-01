@@ -19,6 +19,7 @@ import java.net.URL;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,8 +113,8 @@ public class RecipeManager {
 		return false;
 	}
 
-	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind,
-			String bagTexture, String item) {
+	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind, String bagTexture,
+			String item) {
 
 		if (item != null) {
 			bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
@@ -128,9 +129,9 @@ public class RecipeManager {
 			}
 		}
 
-        Data bagData = new Data("null", canBind);
-        bagData.setSize(bagSize);
-        bagData.setMaterial(bagMaterial);
+		Data bagData = new Data("null", canBind);
+		bagData.setSize(bagSize);
+		bagData.setMaterial(bagMaterial);
 		bagData.setTexture(bagTexture);
 		bagData.setModeldata(bagCMD);
 
@@ -947,12 +948,6 @@ public class RecipeManager {
 
 			logDebug("Attempting to add recipe..", item);
 
-			if (!(hasHavenBag()) && isHavenBag(item)) {
-				logError("Error loading recipe..", item);
-				logError("Found a havenbag recipe, but can not find the havenbags plugin. Skipping recipe..", item);
-				continue;
-			}
-
 			if (!getConfig().isConfigurationSection(item + ".Ingredients")) {
 				logError("Error loading recipe..", item);
 				logError("Could not locate the ingredients section. Please double check formatting. Skipping recipe..",
@@ -1017,21 +1012,9 @@ public class RecipeManager {
 				break;
 			}
 
-			if (!Main.getInstance().serverVersionAtLeast(1, 14)
-					&& (recipe.getType() == RecipeType.STONECUTTER || recipe.getType() == RecipeType.BLASTFURNACE
-							|| recipe.getType() == RecipeType.SMOKER || recipe.getType() == RecipeType.CAMPFIRE)) {
-				logError("Error loading recipe..", recipe.getName());
-				logError("Found recipe type  " + converter + ", but your server version is below 1.14.",
-						recipe.getName());
+			// Checks version req. of recipe types
+			if (!isVersionSupported(recipe.getType(), item))
 				continue;
-			}
-
-			if (!Main.getInstance().serverVersionAtLeast(1, 16) && (recipe.getType() == RecipeType.GRINDSTONE)) {
-				logError("Error loading recipe..", recipe.getName());
-				logError("Found recipe type  " + converter + ", but your server version is below 1.16.",
-						recipe.getName());
-				continue;
-			}
 
 			// HavenBag detected, but converter is not SHAPED or SHAPELESS
 			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS) {
@@ -1257,8 +1240,14 @@ public class RecipeManager {
 		ItemStack i = hasItemDamage(item, type) ? handleItemDamage(item, type) : new ItemStack(type.get().get(), 1);
 		ItemMeta m = i.getItemMeta();
 
-		if (isHavenBag(item))
+		if (isHavenBag(item)) {
+			if (!(hasHavenBag())) {
+				logError("Error loading recipe..", item);
+				logError("Found a havenbag recipe, but no havenbags plugin found. Skipping recipe..", item);
+				return Optional.empty();
+			}
 			return Optional.of(handleBagCreation(i.getType(), 0, 0, "null", null, item));
+		}
 
 		// handle head textures
 		ItemStack texture = handleHeadTexture(path.getString(item + ".Item"));
@@ -1267,8 +1256,14 @@ public class RecipeManager {
 		}
 
 		// handle potions
-		if (type.get() == XMaterial.POTION)
+		if (type.get() == XMaterial.POTION) {
+			if (Main.getInstance().serverVersionLessThan(1, 9)) {
+				logError("Error loading recipe..", item);
+				logError("Potions are only supported on > 1.9! Skipping recipe..", item);
+				return Optional.empty();
+			}
 			i = handlePotions(item);
+		}
 
 		i = handleEnchants(i, item);
 		i = handleCustomEnchants(i, item);
@@ -1475,7 +1470,7 @@ public class RecipeManager {
 	}
 
 	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
-		if (type == null || !type.isPresent()) {
+		if (type == null || !type.isPresent() || type.get().get() == null) {
 			if (isCustomItem(materialInput))
 				return false;
 
@@ -1513,6 +1508,23 @@ public class RecipeManager {
 		recipe.setSource(source);
 	}
 
+	boolean isVersionSupported(RecipeType type, String item) {
+		List<RecipeType> v16_Types = Arrays.asList(RecipeType.GRINDSTONE);
+		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS);
+		
+		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type)) {
+			logError("Error loading recipe..", item);
+			logError(">= 1.14 is required for " + type.toString() + " recipes!", item);
+			return false;
+		}
+		if (Main.getInstance().serverVersionLessThan(1, 16) && v16_Types.contains(type)) {
+			logError("Error loading recipe..", item);
+			logError(">= 1.16 is required for " + type.toString() + " recipes!", item);
+			return false;
+		}
+		return true;
+	}
+	
 	boolean isCustomItem(String id) {
 		String[] key = id.split(":");
 		if (key.length < 2)

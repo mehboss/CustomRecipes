@@ -1,100 +1,93 @@
 package me.mehboss.anvil;
 
 import java.util.HashMap;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
 
-/**
- * Handles custom anvil crafting logic for recipes registered via RecipeUtil.
- * <p>
- * This class listens for {@link PrepareAnvilEvent} and attempts to match the
- * anvil's current input items to any custom anvil-type recipe. If a match is
- * found and the player has the required permissions, the output result and
- * repair cost are applied to the anvil.
- */
-public class AnvilManager implements Listener {
+public class AnvilManager_1_8 implements Listener {
 
-	public HashMap<UUID, Integer> runTimes = new HashMap<UUID, Integer>();
-
-	/**
-	 * Handles anvil preparation events and checks if the items inside the anvil
-	 * inputs match any custom ANVIL-type recipe.
-	 *
-	 * @param e The PrepareAnvilEvent fired by Bukkit.
-	 */
 	@EventHandler
-	void onPlace(PrepareAnvilEvent e) {
-		
-		if (Main.getInstance().serverVersionLessThan(1, 9))
-			return;
-		
-		AnvilInventory inv = e.getInventory();
-		Recipe matchedRecipe = null;
-		Player p = (Player) CompatibilityUtil.getPlayerFromView(CompatibilityUtil.getInventoryView(e));
+	void onPlace(InventoryClickEvent e) {
 
-		HashMap<String, Recipe> anvilRecipes = getRecipeUtil().getRecipesFromType(RecipeType.ANVIL);
-		if (anvilRecipes == null || anvilRecipes.isEmpty())
+		// Only run in an anvil
+		if (!(e.getInventory() instanceof AnvilInventory))
 			return;
 
-		for (Recipe recipe : anvilRecipes.values()) {
-			Boolean matchedToRecipe = true;
+		if (Main.getInstance().serverVersionAtLeast(1, 9))
+			return;
 
-			if (recipe.getType() != RecipeType.ANVIL) {
-				logDebug("Skipping " + recipe.getName() + ".. Type is not anvil - " + recipe.getType());
-				continue;
-			}
+		// Only respond to clicks inside the anvil input/result slots
+		if (e.getRawSlot() > 2)
+			return;
 
-			int slot = 0;
-			for (Ingredient ingredient : recipe.getIngredients()) {
-				if (!itemsMatch(recipe.getName(), inv.getItem(slot), ingredient)
-						|| !amountsMatch(recipe.getName(), inv.getItem(slot), ingredient)) {
-					matchedToRecipe = false;
+		Player p = (Player) e.getWhoClicked();
+		AnvilInventory inv = (AnvilInventory) e.getInventory();
+
+		// Delay by 1 tick so the inventory updates like PrepareAnvilEvent would
+		Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+
+			Recipe matchedRecipe = null;
+			HashMap<String, Recipe> anvilRecipes = getRecipeUtil().getRecipesFromType(RecipeType.ANVIL);
+
+			if (anvilRecipes == null || anvilRecipes.isEmpty())
+				return;
+
+			for (Recipe recipe : anvilRecipes.values()) {
+				Boolean matchedToRecipe = true;
+
+				int slot = 0;
+				for (Ingredient ingredient : recipe.getIngredients()) {
+					if (!itemsMatch(recipe.getName(), inv.getItem(slot), ingredient)
+							|| !amountsMatch(recipe.getName(), inv.getItem(slot), ingredient)) {
+						matchedToRecipe = false;
+						break;
+					}
+					slot++;
+				}
+
+				if (matchedToRecipe) {
+					matchedRecipe = recipe;
 					break;
 				}
-				slot++;
+
+				logDebug(recipe.getName() + ": Requirements not met.. Skipping to next recipe");
 			}
 
-			if (matchedToRecipe) {
-				matchedRecipe = recipe;
-				break;
+			if (matchedRecipe != null) {
+				if (!matchedRecipe.isActive()
+						|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))
+						|| matchedRecipe.getDisabledWorlds().contains(p.getWorld().getName())) {
+					sendNoPermsMessage(p, matchedRecipe.getName());
+					inv.setItem(2, null);
+					return;
+				}
+
+				WorkstationRecipeData anvil = (WorkstationRecipeData) matchedRecipe;
+
+				logDebug(anvil.getName() + ": Requirements met.. Successfully set anvil result slot");
+
+				inv.setItem(2, anvil.getResult()); // prepareAnvilEvent#setResult equivalent
+				inv.setRepairCost(anvil.getRepairCost());
+				p.updateInventory();
 			}
-
-			logDebug(recipe.getName() + ": Requirements not met.. Skipping to next recipe");
-		}
-
-		if (matchedRecipe != null) {
-			if (!matchedRecipe.isActive()
-					|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))
-					|| matchedRecipe.getDisabledWorlds().contains(p.getWorld().getName())) {
-				sendNoPermsMessage(p, matchedRecipe.getName());
-				return;
-			}
-
-			WorkstationRecipeData anvil = (WorkstationRecipeData) matchedRecipe;
-
-			logDebug(anvil.getName() + ": Requirements met.. Successfully set anvil result slot");
-			e.setResult(anvil.getResult());
-			inv.setRepairCost(anvil.getRepairCost());
-			p.updateInventory();
-		}
+		});
 	}
-
+	
 	/**
 	 * Checks whether the provided item satisfies the ingredient's required amount.
 	 *

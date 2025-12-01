@@ -278,8 +278,8 @@ public class AmountManager implements Listener {
 		}
 
 		boolean recipeHasContainer = recipe.getAllIngredientTypes().stream()
-				.anyMatch(mat -> mat == Material.DRAGON_BREATH || mat == Material.POTION
-						|| mat == Material.LINGERING_POTION || mat.toString().contains("_BUCKET"));
+				.anyMatch(mat -> mat == XMaterial.DRAGON_BREATH.get()|| mat == XMaterial.POTION.get()
+						|| mat == XMaterial.LINGERING_POTION.get() || mat.toString().contains("_BUCKET"));
 		AtomicBoolean containerCraft = new AtomicBoolean(recipeHasContainer);
 
 		// ============================================================

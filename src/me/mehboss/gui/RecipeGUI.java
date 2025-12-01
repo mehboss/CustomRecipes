@@ -534,8 +534,10 @@ public class RecipeGUI implements Listener {
 			if (recipeName == null || recipeName.isEmpty() || recipeName.equals(" ") || recipeName.equals("null")) {
 				ItemMeta nameItem = e.getInventory().getItem(0).getItemMeta();
 				String newTitle = nameItem.hasLore() ? nameItem.getLore().get(0) : null;
-				if (recipeName == null || !recipeName.equals(newTitle))
-					e.getView().setTitle(ChatColor.GREEN + "EDITING: " + newTitle);
+				if (recipeName == null || !recipeName.equals(newTitle)) {
+					if (Main.getInstance().serverVersionLessThan(1, 12))
+						e.getView().setTitle(ChatColor.GREEN + "EDITING: " + newTitle);
+				}
 				inventoryinstance.put(p.getUniqueId(), p.getOpenInventory().getTopInventory());
 			}
 			if (e.getRawSlot() == 35) {

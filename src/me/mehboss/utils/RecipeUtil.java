@@ -1,6 +1,7 @@
 package me.mehboss.utils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,12 +32,9 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.th0rgal.oraxen.api.OraxenItems;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
-import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.data.CookingRecipeData;
 import net.Indyuce.mmoitems.MMOItems;
-import valorless.havenbags.api.BagCreationObject;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
 
@@ -96,8 +94,8 @@ public class RecipeUtil {
 	private HashMap<String, Recipe> recipes = new HashMap<>();
 	private ArrayList<String> keyList = new ArrayList<>();
 	private HashMap<String, ItemStack> custom_items = new HashMap<>();
-	public List<String> SUPPORTED_PLUGINS = List.of("itemsadder", "mythicmobs", "executableitems", "oraxen", "nexo",
-			"mmoitems", "havenbags");
+	public List<String> SUPPORTED_PLUGINS = Arrays.asList("itemsadder", "mythicmobs", "executableitems", "oraxen",
+			"nexo", "mmoitems", "havenbags");
 
 	/**
 	 * Adds a finished Recipe object to the API
@@ -254,7 +252,7 @@ public class RecipeUtil {
 		String recipe = split.length > 2 ? split[2] : "";
 		String item = namespace + ":" + itemId;
 
-		if (Main.getInstance().serverVersionLessThan(1, 15)) {
+		if (Main.getInstance().serverVersionLessThan(1, 15) && (split.length < 2)) {
 			logError("Issue detected with recipe.. ", recipe);
 			logError("Your server version does not support custom items from other plugins!", recipe);
 			logError("You must be on 1.15 or higher!", recipe);
@@ -427,9 +425,9 @@ public class RecipeUtil {
 				String texture = bagData.getTexture();
 				int modelData = bagData.getModeldata();
 				int size = bagData.getSize();
-				
+
 				// havenbags:size:material:customModelData:texture
-				return "havenbags:" + size + material + modelData + texture; 
+				return "havenbags:" + size + material + modelData + texture;
 			}
 		}
 		return null;
@@ -1195,6 +1193,9 @@ public class RecipeUtil {
 		 * @param permission the permission required
 		 */
 		public void setPerm(String permission) {
+			if (permission.equalsIgnoreCase("none"))
+				permission = null;
+			
 			this.permission = permission;
 		}
 

@@ -15,6 +15,7 @@ package me.mehboss.crafting;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -399,7 +400,8 @@ public class CraftManager implements Listener {
 			invMaterials.add(material);
 		}
 
-		if (inv.getType() == InventoryType.WORKBENCH || inv.getType() == InventoryType.CRAFTER) {
+		List<String> types = Arrays.asList("WORKBENCH", "CRAFTER");
+		if (types.contains(inv.getType().toString())) {
 
 			if (invMaterials.size() != 9 || ingMaterials.size() != 9) {
 				logDebug("[hasAllIngredients] Ingredients size is " + ingMaterials.size() + ", Inventory size is "

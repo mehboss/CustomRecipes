@@ -46,8 +46,9 @@ import me.mehboss.crafting.CraftManager;
 import me.mehboss.crafting.CrafterManager;
 import me.mehboss.crafting.ShapedChecks;
 import me.mehboss.crafting.ShapelessChecks;
-import me.mehboss.gui.RecipeGUI;
 import me.mehboss.gui.RecipeTypeGUI;
+import me.mehboss.gui.framework.GuiListener;
+import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.gui.BookGUI;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
@@ -74,7 +75,7 @@ public class Main extends JavaPlugin implements Listener {
 	public RecipeUtil recipeUtil;
 	public ExactChoice exactChoice;
 
-	RecipeGUI editItem;
+	public RecipeGUI editItem;
 
 	public Map<UUID, Long> debounceMap = new HashMap<>();
 	public ArrayList<UUID> inInventory = new ArrayList<UUID>();
@@ -333,11 +334,11 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}, 40L);
 
-		editItem = new RecipeGUI(this, null);
+		editItem = new RecipeGUI();
 		recipes = new BookGUI(this);
 		typeGUI = new RecipeTypeGUI();
 
-		Bukkit.getPluginManager().registerEvents(editItem, this);
+		Bukkit.getPluginManager().registerEvents(new GuiListener(), this);
 		Bukkit.getPluginManager().registerEvents(recipes, this);
 		Bukkit.getPluginManager().registerEvents(typeGUI, this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
@@ -395,9 +396,9 @@ public class Main extends JavaPlugin implements Listener {
 		// Reset managers
 		recipeUtil = new RecipeUtil();
 		recipeManager = new RecipeManager();
+		editItem = new RecipeGUI();
 		recipes = new BookGUI(this);
 		typeGUI = new RecipeTypeGUI();
-		editItem = new RecipeGUI(this, null);
 
 		// Remove old recipes
 		removeCustomRecipes();

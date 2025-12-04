@@ -12,9 +12,9 @@ import org.bukkit.event.inventory.InventoryEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.json.JSONObject;
-
 import com.cryptomorin.xseries.XMaterial;
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
 
 import me.mehboss.recipe.Main;
 
@@ -143,15 +143,16 @@ public class CompatibilityUtil {
      * @return The texture URL inside the JSON.
      */
 	public static String extractUrlFromBase64(String base64Texture) {
-		// Decode the Base64 string back into the original JSON string
-		byte[] decodedBytes = Base64.getDecoder().decode(base64Texture);
-		String json = new String(decodedBytes);
+	    byte[] decodedBytes = Base64.getDecoder().decode(base64Texture);
+	    String json = new String(decodedBytes);
 
-		// Parse the JSON string to extract the texture URL
-		JSONObject jsonObj = new JSONObject(json);
-		String textureUrl = jsonObj.getJSONObject("textures").getJSONObject("SKIN").getString("url");
+	    JsonObject obj = Json.parse(json).asObject();
 
-		return textureUrl;
+	    return obj.get("textures")
+	              .asObject()
+	              .get("SKIN")
+	              .asObject()
+	              .getString("url", null);
 	}
 
     /**

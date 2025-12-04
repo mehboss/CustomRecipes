@@ -710,7 +710,7 @@ public class RecipeUtil {
 		private String key;
 		private String permission;
 
-		private boolean exactChoice = false;
+		private boolean exactChoice = true;
 		private boolean placeable = true;
 		private boolean active = true;
 		private boolean ignoreData = false;
@@ -1274,6 +1274,24 @@ public class RecipeUtil {
 		 */
 		public List<String> getCommand() {
 			return commands;
+		}
+		
+		/**
+		 * Sets the effects that a recipe gives
+		 *
+		 * @param effects a list of potion effects
+		 */
+		public void setEffects(List<String> effects) {
+		}
+
+		/**
+		 * Gets the effects that a recipe gives
+		 *
+		 * @return a string list of potion effects
+		 */
+		public List<String> getEffects() {
+			return null;
+			
 		}
 	}
 

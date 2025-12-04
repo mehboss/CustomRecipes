@@ -23,118 +23,132 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
-import me.mehboss.commands.CommandRemove;
+import me.mehboss.gui.framework.GuiButton;
+import me.mehboss.gui.framework.GuiButton.GuiStringButton;
+import me.mehboss.gui.framework.GuiButton.GuiToggleButton;
+import me.mehboss.gui.framework.GuiView;
+import me.mehboss.gui.framework.RecipeLayout;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
+import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 
 public class RecipeSaver {
 
-	// GUI slot constants
-	private static final int SLOT_IDENTIFIER = 9;
-	private static final int SLOT_PLACEABLE_TOGGLE = 8;
-	private static final int SLOT_RESULT = 24;
-	private static final int SLOT_PERMISSION = 26;
-	private static final int SLOT_ENABLED_TOGGLE = 53;
-	private static final int SLOT_GROUP = 51;
-	private static final int SLOT_SHAPELESS_TOGGLE = 52;
-	private static final int SLOT_EXACTCHOICE_TOGGLE = 18;
-	private static final int SLOT_CONVERTER = 17;
+	/**
+	 * Saves the contents of a recipe GUI to its YAML file.
+	 *
+	 * @param view   The active GuiView (editing view)
+	 * @param player The player who clicked "Update"
+	 * @param recipe The logical recipe being edited/created
+	 */
+	public void saveRecipe(GuiView view, Player player, Recipe recipe) {
 
-	// Crafting grid slots (keep the same as before)
-	private static final int[] CRAFT_SLOTS = { 11, 12, 13, 20, 21, 22, 29, 30, 31 };
-	private static final int[] COOKING_SLOTS = { 11, 29 };
-	private static final int[] OTHER_SLOTS = { 20, 22 };
-	private static int[] CONTROL_SLOTS = CRAFT_SLOTS;
+		Inventory inv = view.getInventory();
+		RecipeType type = recipe.getType();
 
-	// Save the recipe map to the configuration file
-	public void saveRecipe(Inventory inv, Player p, String coloredName) {
-
-		String recipeName = ChatColor.stripColor(coloredName).replace("EDITING:", "").trim().replace(" ", "_");
-		File recipesFolder = new File(Main.getInstance().getDataFolder(), "recipes");
-		if (!recipesFolder.exists()) {
-			recipesFolder.mkdirs();
-		}
-
-		if (recipeName == null || recipeName.isEmpty() || recipeName.equals("null") || recipeName.equals(" "))
+		if (type == null) {
+			player.sendMessage(ChatColor.RED + "Recipe has no type set; cannot save.");
 			return;
-
-		String rawConverter = readLoreTag(inv);
-		RecipeType type = rawConverter.equals("none") ? RecipeType.SHAPED : RecipeType.valueOf(rawConverter);
-		boolean showShapeless = (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS);
-		boolean isCooking = (type == RecipeType.FURNACE || type == RecipeType.BLASTFURNACE || type == RecipeType.SMOKER
-				|| type == RecipeType.CAMPFIRE);
-
-		if (!showShapeless) {
-			CONTROL_SLOTS = OTHER_SLOTS;
-			if (isCooking)
-				CONTROL_SLOTS = COOKING_SLOTS;
 		}
 
+		RecipeLayout layout = RecipeLayout.forType(type);
+		int[] ingredientSlots = layout.getIngredientSlots();
+		int resultSlot = layout.getResultSlot();
+
+		String recipeName = recipe.getName();
+		if (recipeName == null || recipeName.trim().isEmpty()) {
+			player.sendMessage(ChatColor.RED + "Recipe name is empty; cannot save.");
+			return;
+		}
+
+		// Ensure there is at least one ingredient and a result
 		boolean matrixEmpty = true;
-		boolean slotEmpty = inv.getItem(SLOT_RESULT) == null || inv.getItem(SLOT_RESULT).getType() == Material.AIR;
-		for (int slot : CONTROL_SLOTS) {
-			if (inv.getItem(slot) != null && inv.getItem(slot).getType() != Material.AIR) {
+		for (int slot : ingredientSlots) {
+			if (!isEmpty(inv, slot)) {
 				matrixEmpty = false;
 				break;
 			}
 		}
 
-		if (matrixEmpty || slotEmpty) {
+		if (matrixEmpty || isEmpty(inv, resultSlot)) {
+			player.sendMessage(ChatColor.RED + "Recipe matrix or result is empty; nothing to save.");
 			return;
+		}
+
+		// Prepare recipes folder
+		File recipesFolder = new File(Main.getInstance().getDataFolder(), "recipes");
+		if (!recipesFolder.exists()) {
+			recipesFolder.mkdirs();
 		}
 
 		File recipeFile = new File(recipesFolder, recipeName + ".yml");
 		FileConfiguration recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
 
-		Map<String, Object> recipeData = convertToRecipeConfig(inv, recipeName);
+		Map<String, Object> recipeData = convertToRecipeConfig(view, inv, recipe, type, layout);
 		recipeConfig.set(recipeName, recipeData);
 
 		try {
 			recipeConfig.save(recipeFile);
-			p.sendMessage(ChatColor.GREEN + "Recipe saved successfully to " + recipeFile.getName() + "!");
+			player.sendMessage(ChatColor.GREEN + "Recipe saved successfully to " + recipeFile.getName() + "!");
 		} catch (IOException e) {
 			e.printStackTrace();
-			p.sendMessage(ChatColor.RED + "Failed to save the recipe to " + recipeFile.getName() + ".");
+			player.sendMessage(ChatColor.RED + "Failed to save the recipe to " + recipeFile.getName() + ".");
 		}
 
 		Main.getInstance().recipeManager.addRecipes(recipeName);
-		p.closeInventory();
+		player.closeInventory();
 	}
 
-	public Map<String, Object> convertToRecipeConfig(Inventory inventory, String recipeName) {
-		// Use LinkedHashMap so YAML preserves our field order (matching your example)
+	private Map<String, Object> convertToRecipeConfig(GuiView view, Inventory inventory, Recipe recipe, RecipeType type,
+			RecipeLayout layout) {
+
 		LinkedHashMap<String, Object> cfg = new LinkedHashMap<>();
 
+		int[] ingredientSlots = layout.getIngredientSlots();
+		int resultSlot = layout.getResultSlot();
+
 		// ====== Result item ======
-		ItemStack resultItem = safeGet(inventory, SLOT_RESULT);
+		ItemStack resultItem = safeGet(inventory, resultSlot);
 		int resultAmount = (resultItem != null && resultItem.getAmount() > 0) ? resultItem.getAmount() : 1;
 
-		// ====== Read GUI toggles and text ======
-		AtomicBoolean resultHasID = new AtomicBoolean(false);
-		boolean enabled = readEnabledToggle(inventory);
-		boolean shapeless = readBooleanToggle(inventory, SLOT_SHAPELESS_TOGGLE);
-		boolean exactchoice = readBooleanToggle(inventory, SLOT_EXACTCHOICE_TOGGLE);
-		boolean placeable = readBooleanToggle(inventory, SLOT_PLACEABLE_TOGGLE);
-		String identifier = readIdentifier(inventory, resultItem, recipeName);
-		String permission = readPermission(inventory, identifier);
-		String displayNameColored = readNameColored(inventory);
-		String group = readFirstLoreOrNameStripped(inventory, SLOT_GROUP);
-		String rawConverterType = readLoreTag(inventory);
-		String converterType = rawConverterType.equals("SHAPED") || rawConverterType.equals("SHAPELESS") ? "none"
-				: rawConverterType;
+		// ====== High-level flags ======
+		boolean enabled = readEnabledToggle(view);
+		boolean shapeless = readBooleanToggle(view, "Shapeless", false);
+		boolean exactChoice = readBooleanToggle(view, "Exact-Choice", true);
+		boolean placeable = readBooleanToggle(view, "Placeable", false);
+
+		// ====== Textual fields ======
+		String identifier = readIdentifier(view, recipe.getName());
+		String permission = readStringField(view, "Permission", "none");
+		String group = readStringField(view, "Group", "none");
+		if ("none".equalsIgnoreCase(group))
+			group = "";
+
+		String displayNameColored = readNameColored(resultItem);
+
+		// ====== Effects (currently unused, keep as empty list) ======
+		List<String> effects = new ArrayList<>(); // or from button "Effects" later
+
+		// ====== Enchantments & lore ======
 		List<String> enchantList = readEnchantList(resultItem);
-		Map<ItemStack, String> letters = setItemLetters(inventory);
-		List<String> itemCrafting = generateItemCrafting(letters, inventory);
+		AtomicBoolean resultHasID = new AtomicBoolean(false);
 		List<String> lore = getItemLoreList(resultItem);
 		if (lore == null)
 			lore = new ArrayList<>();
 
-		LinkedHashMap<String, Object> ingredients = buildIngredientsFromLetters(inventory, letters);
+		// ====== Ingredient mapping / pattern ======
+		Map<ItemStack, String> letters = setItemLetters(inventory, ingredientSlots);
+		List<String> itemCrafting = generateItemCrafting(letters, inventory, ingredientSlots);
+		LinkedHashMap<String, Object> ingredients = buildIngredientsFromLetters(inventory, letters, ingredientSlots);
 
+		// ====== Base fields (mostly unchanged from original) ======
 		cfg.put("Enabled", enabled);
 		cfg.put("Shapeless", shapeless);
-		cfg.put("Group", group);
+
+		if (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS || type == RecipeType.STONECUTTER)
+			cfg.put("Group", group);
+
 		cfg.put("Cooldown", -1);
 
 		cfg.put("Item", getItemValue(resultItem, identifier, resultHasID));
@@ -142,32 +156,30 @@ public class RecipeSaver {
 		cfg.put("Amount", resultAmount);
 
 		cfg.put("Placeable", placeable);
-		cfg.put("Exact-Choice", exactchoice);
+		cfg.put("Exact-Choice", exactChoice);
 		cfg.put("Custom-Tagged", false);
-		cfg.put("Durability", resultItem.getDurability());
+		cfg.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
 
 		cfg.put("Identifier", identifier);
-		cfg.put("Converter", converterType);
-		cfg.put("Permission", permission);
 
+		// Converter: use recipe type; crafting types use "none" like before
+		String converterType = (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS) ? "none" : type.toString();
+		cfg.put("Converter", converterType);
+
+		cfg.put("Permission", permission);
 		cfg.put("Auto-Discover-Recipe", true);
 		cfg.put("Book-Category", "MISC");
 
 		if (resultHasID.get()) {
 			cfg.put("Name", "none");
 			cfg.put("Lore", new ArrayList<>());
-
 		} else {
-			if (displayNameColored != null && !displayNameColored.isEmpty()) {
-				cfg.put("Name", displayNameColored);
-			} else {
-				cfg.put("Name", "none");
-			}
-
+			cfg.put("Name",
+					(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored : "none");
 			cfg.put("Lore", lore);
 		}
 
-		cfg.put("Effects", new ArrayList<>());
+		cfg.put("Effects", effects);
 		cfg.put("Hide-Enchants", true);
 		cfg.put("Enchantments", enchantList);
 
@@ -192,31 +204,224 @@ public class RecipeSaver {
 		cfg.put("Custom-Model-Data", "none");
 		cfg.put("Disabled-Worlds", new ArrayList<>());
 
+		boolean isCooking = type == RecipeType.FURNACE || type == RecipeType.BLASTFURNACE || type == RecipeType.SMOKER
+				|| type == RecipeType.CAMPFIRE;
+
+		boolean hasRepairCost = type == RecipeType.GRINDSTONE || type == RecipeType.ANVIL;
+
+		boolean isBrewing = type == RecipeType.BREWING_STAND;
+
+		// ---- Cooking: Cook-Time & Experience ----
+		if (isCooking) {
+			Integer cookTime = readIntField(view, "Cook-Time");
+			if (cookTime != null) {
+				cfg.put("Cook-Time", cookTime);
+			}
+		}
+
+		if (isCooking || type == RecipeType.GRINDSTONE) {
+			Double exp = readDoubleField(view, "Experience");
+			if (exp != null) {
+				cfg.put("Experience", exp);
+			}
+		}
+
+		// ---- Workstation: Repair-Cost ----
+		if (hasRepairCost) {
+			Integer repairCost = readIntField(view, "Repair-Cost");
+			if (repairCost != null) {
+				cfg.put("Repair-Cost", repairCost);
+			}
+		}
+
+		// ---- Brewing: Required-Items, Fuel-Set, Fuel-Charge ----
+		if (isBrewing) {
+			boolean requiresItems = readBooleanToggle(view, "Required-Items", false);
+			cfg.put("Brew-Required-Items", requiresItems);
+
+			Integer fuelSet = readIntField(view, "Fuel-Set");
+			if (fuelSet != null) {
+				cfg.put("Brew-Fuel-Set", fuelSet);
+			}
+
+			Integer fuelCharge = readIntField(view, "Fuel-Charge");
+			if (fuelCharge != null) {
+				cfg.put("Brew-Fuel-Charge", fuelCharge);
+			}
+		}
+
 		return cfg;
 	}
 
-	private String getItemValue(ItemStack item, String id, AtomicBoolean hasID) {
-		if (item == null || item.getType() == Material.AIR)
-			return "AIR"; // fallback for empty slots
-
-		// Try custom key from RecipeUtil (for plugin-based custom items)
-		String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
-		if (key != null && !key.isEmpty() && !key.equals(id)) {
-			hasID.set(true);
-			return key;
+	private GuiStringButton getStringButton(GuiView view, String fieldName) {
+		Inventory inv = view.getInventory();
+		int size = inv.getSize();
+		for (int slot = 0; slot < size; slot++) {
+			GuiButton b = view.getButton(slot);
+			GuiStringButton sb = b instanceof GuiStringButton ? (GuiStringButton) b : null;
+			if (sb != null && sb.getFieldName().equalsIgnoreCase(fieldName)) {
+				return sb;
+			}
 		}
-
-		// Fallback to Material name
-		return item.getType().toString();
+		return null;
 	}
 
-	private LinkedHashMap<String, Object> buildIngredientsFromLetters(Inventory inv, Map<ItemStack, String> letters) {
-		LinkedHashMap<String, Object> out = new LinkedHashMap<>();
+	private GuiToggleButton getToggleButton(GuiView view, String fieldName) {
+		Inventory inv = view.getInventory();
+		int size = inv.getSize();
+		for (int slot = 0; slot < size; slot++) {
+			GuiButton b = view.getButton(slot);
+			GuiToggleButton tb = b instanceof GuiToggleButton ? (GuiToggleButton) b : null;
+			if (tb != null && tb.getFieldName().equalsIgnoreCase(fieldName)) {
+				return tb;
+			}
+		}
+		return null;
+	}
 
+	private boolean readEnabledToggle(GuiView view) {
+		// Enabled uses field name "Enabled" and a SLIME_BALL/SNOWBALL icon
+		GuiToggleButton btn = getToggleButton(view, "Enabled");
+		if (btn == null) {
+			return true; // default to enabled
+		}
+		ItemStack icon = btn.getIcon();
+		if (icon == null || !icon.hasItemMeta()) {
+			return true;
+		}
+		String name = ChatColor.stripColor(icon.getItemMeta().getDisplayName());
+		if (name == null)
+			return true;
+		String lc = name.toLowerCase();
+		if (lc.contains("disabled"))
+			return false;
+		if (lc.contains("enabled"))
+			return true;
+		return true;
+	}
+
+	private boolean readBooleanToggle(GuiView view, String fieldName, boolean defaultVal) {
+		GuiToggleButton btn = getToggleButton(view, fieldName);
+		if (btn == null)
+			return defaultVal;
+		ItemStack icon = btn.getIcon();
+		if (icon == null || !icon.hasItemMeta())
+			return defaultVal;
+		String name = ChatColor.stripColor(icon.getItemMeta().getDisplayName());
+		if (name == null)
+			return defaultVal;
+		String lc = name.toLowerCase();
+		if (lc.contains("true"))
+			return true;
+		if (lc.contains("false"))
+			return false;
+		return defaultVal;
+	}
+
+	private String readIdentifier(GuiView view, String fallbackName) {
+		String id = readStringField(view, "Identifier", null);
+		if (id != null && !id.isEmpty() && !id.equalsIgnoreCase("null") && !id.equalsIgnoreCase("none"))
+			return id;
+		return fallbackName;
+	}
+
+	private String readStringField(GuiView view, String fieldName, String defaultVal) {
+		GuiStringButton btn = getStringButton(view, fieldName);
+		if (btn == null)
+			return defaultVal;
+
+		ItemStack icon = btn.getIcon();
+		if (icon == null || !icon.hasItemMeta())
+			return defaultVal;
+		ItemMeta im = icon.getItemMeta();
+
+		if (im.hasLore() && im.getLore() != null && !im.getLore().isEmpty()) {
+			return ChatColor.stripColor(im.getLore().get(0));
+		}
+		if (im.hasDisplayName()) {
+			return ChatColor.stripColor(im.getDisplayName());
+		}
+		return defaultVal;
+	}
+
+	private Integer readIntField(GuiView view, String fieldName) {
+		GuiStringButton btn = getStringButton(view, fieldName);
+		if (btn == null)
+			return null;
+		ItemStack icon = btn.getIcon();
+		if (icon == null || !icon.hasItemMeta())
+			return null;
+		ItemMeta im = icon.getItemMeta();
+		String src = null;
+
+		if (im.hasLore() && im.getLore() != null && !im.getLore().isEmpty()) {
+			src = ChatColor.stripColor(im.getLore().get(0));
+		} else if (im.hasDisplayName()) {
+			src = ChatColor.stripColor(im.getDisplayName());
+		}
+
+		if (src == null)
+			return null;
+
+		src = src.replaceAll("[^0-9-]", ""); // strip non-digits
+		if (src.isEmpty())
+			return null;
+
+		try {
+			return Integer.parseInt(src);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	private Double readDoubleField(GuiView view, String fieldName) {
+		GuiStringButton btn = getStringButton(view, fieldName);
+		if (btn == null)
+			return null;
+		ItemStack icon = btn.getIcon();
+		if (icon == null || !icon.hasItemMeta())
+			return null;
+		ItemMeta im = icon.getItemMeta();
+		String src = null;
+
+		if (im.hasLore() && im.getLore() != null && !im.getLore().isEmpty()) {
+			src = ChatColor.stripColor(im.getLore().get(0));
+		} else if (im.hasDisplayName()) {
+			src = ChatColor.stripColor(im.getDisplayName());
+		}
+
+		if (src == null)
+			return null;
+
+		src = src.replaceAll("[^0-9+\\-\\.]", "");
+		if (src.isEmpty())
+			return null;
+
+		try {
+			return Double.parseDouble(src);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+
+	private String readNameColored(ItemStack item) {
+		if (item == null || item.getType() == Material.AIR || item.getItemMeta() == null)
+			return null;
+		ItemMeta im = item.getItemMeta();
+		String customName = CompatibilityUtil.hasDisplayname(im) ? CompatibilityUtil.getDisplayname(im) : "none";
+		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
+
+		return (displayName != null && !"none".equals(displayName)) ? displayName : customName;
+	}
+
+	private LinkedHashMap<String, Object> buildIngredientsFromLetters(Inventory inv, Map<ItemStack, String> letters,
+			int[] ingredientSlots) {
+		LinkedHashMap<String, Object> out = new LinkedHashMap<>();
 		Set<String> seen = new HashSet<>();
 
-		for (int i = 0; i < CONTROL_SLOTS.length; i++) {
-			ItemStack stack = inv.getItem(CONTROL_SLOTS[i]);
+		for (int i = 0; i < ingredientSlots.length; i++) {
+			int slotIndex = ingredientSlots[i];
+			ItemStack stack = inv.getItem(slotIndex);
 			if (stack == null || stack.getType() == Material.AIR)
 				continue;
 
@@ -237,13 +442,12 @@ public class RecipeSaver {
 		return out;
 	}
 
-	private Map<ItemStack, String> setItemLetters(Inventory inventory) {
-		int[] ingredientSlots = CONTROL_SLOTS;
+	private Map<ItemStack, String> setItemLetters(Inventory inventory, int[] ingredientSlots) {
 		Map<ItemStack, String> itemToLetterMap = new HashMap<>();
 		Set<String> usedLetters = new HashSet<>();
 
-		for (int i = 0; i < ingredientSlots.length; i++) {
-			ItemStack current = inventory.getItem(ingredientSlots[i]);
+		for (int slotIndex : ingredientSlots) {
+			ItemStack current = inventory.getItem(slotIndex);
 
 			if (current != null && current.getType() != Material.AIR) {
 				ItemStack matchingItem = null;
@@ -276,11 +480,9 @@ public class RecipeSaver {
 		return "X";
 	}
 
-	public List<String> generateItemCrafting(Map<ItemStack, String> ingredients, Inventory inv) {
+	public List<String> generateItemCrafting(Map<ItemStack, String> ingredients, Inventory inv, int[] ingredientSlots) {
 		List<String> itemCrafting = new ArrayList<>(Arrays.asList("XXX", "XXX", "XXX"));
-		int[] ingredientSlots = CONTROL_SLOTS;
 
-		// Update the crafting pattern with the ingredient letters
 		for (int i = 0; i < ingredientSlots.length; i++) {
 			int slot = ingredientSlots[i];
 			ItemStack stack = inv.getItem(slot);
@@ -302,81 +504,9 @@ public class RecipeSaver {
 		return itemCrafting;
 	}
 
-	private boolean readEnabledToggle(Inventory inv) {
-		ItemStack toggle = safeGet(inv, SLOT_ENABLED_TOGGLE);
-		if (toggle == null || toggle.getType() == Material.AIR || !toggle.hasItemMeta()) {
-			return true; // default to enabled
-		}
-		String name = ChatColor.stripColor(toggle.getItemMeta().getDisplayName());
-		return name != null && name.toLowerCase().contains("enabled") && !name.toLowerCase().contains("disabled");
-	}
-
-	private String readLoreTag(Inventory inv) {
-		ItemStack converterItem = safeGet(inv, SLOT_CONVERTER);
-		if (converterItem == null || converterItem.getType() == Material.AIR || !converterItem.hasItemMeta()
-				|| !converterItem.getItemMeta().hasLore()) {
-			return "none"; // default to enabled
-		}
-		String name = ChatColor.stripColor(converterItem.getItemMeta().getLore().get(0));
-		return name;
-	}
-
-	private boolean readBooleanToggle(Inventory inv, int slot) {
-		ItemStack toggle = safeGet(inv, slot);
-		if (toggle == null || toggle.getType() == Material.AIR || !toggle.hasItemMeta()) {
-			return false;
-		}
-		String name = ChatColor.stripColor(toggle.getItemMeta().getDisplayName());
-		if (name != null) {
-			String lc = name.toLowerCase();
-			if (lc.contains("true"))
-				return true;
-			if (lc.contains("false"))
-				return false;
-		}
-		return false;
-	}
-
-	private String readIdentifier(Inventory inv, ItemStack result, String fallbackName) {
-		// Prefer slot 7 lore first line or display name, STRIPPED
-		String id = readFirstLoreOrNameStripped(inv, SLOT_IDENTIFIER);
-		if (id != null && !id.isEmpty() && !id.equals("null") && !id.equals("none"))
-			return id;
-
-		return fallbackName;
-	}
-
-	private String readPermission(Inventory inv, String identifier) {
-		String perm = readFirstLoreOrNameStripped(inv, SLOT_PERMISSION);
-		if (perm == null || perm.isEmpty() || "none".equalsIgnoreCase(perm)) {
-			perm = "none";
-		}
-		return perm;
-	}
-
-	// KEEP colors for Name
-	private String readNameColored(Inventory inv) {
-		ItemStack item = safeGet(inv, SLOT_RESULT);
-		if (item == null || item.getType() == Material.AIR || item.getItemMeta() == null)
-			return null;
-		ItemMeta im = item.getItemMeta();
-		String customName = CompatibilityUtil.hasDisplayname(im) ? CompatibilityUtil.getDisplayname(im) : "none";
-		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
-
-		// returns displayname if exists, otherwise returns item name or null.
-		return displayName != null && !displayName.equals("none") ? displayName : customName;
-	}
-
-	// STRIP colors helper for IDs / permissions
-	private String readFirstLoreOrNameStripped(Inventory inv, int slot) {
-		ItemStack item = safeGet(inv, slot);
-		if (item == null || item.getType() == Material.AIR || item.getItemMeta() == null)
-			return null;
-		ItemMeta im = item.getItemMeta();
-		if (im.hasLore() && im.getLore() != null && !im.getLore().isEmpty()) {
-			return ChatColor.stripColor(im.getLore().get(0));
-		}
-		return "none";
+	private boolean isEmpty(Inventory inv, int slot) {
+		ItemStack it = safeGet(inv, slot);
+		return it == null || it.getType() == Material.AIR;
 	}
 
 	private ItemStack safeGet(Inventory inv, int slot) {
@@ -385,6 +515,21 @@ public class RecipeSaver {
 		} catch (Exception ex) {
 			return null;
 		}
+	}
+
+	private String getItemValue(ItemStack item, String id, AtomicBoolean hasID) {
+		if (item == null || item.getType() == Material.AIR)
+			return "AIR"; // fallback for empty slots
+
+		// Try custom key from RecipeUtil (for plugin-based custom items)
+		String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
+		if (key != null && !key.isEmpty() && !key.equals(id)) {
+			hasID.set(true);
+			return key;
+		}
+
+		// Fallback to Material name
+		return item.getType().toString();
 	}
 
 	// KEEP colors: result item lore list (or null)
@@ -419,8 +564,7 @@ public class RecipeSaver {
 		String customName = CompatibilityUtil.hasDisplayname(im) ? CompatibilityUtil.getDisplayname(im) : "none";
 		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
 
-		// returns displayname if exists, otherwise returns item name or null.
-		return displayName != null && !displayName.equals("none") ? displayName : customName;
+		return (displayName != null && !"none".equals(displayName)) ? displayName : customName;
 	}
 
 	public String getCustomIdentifier(ItemStack itemStack) {

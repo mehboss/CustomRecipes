@@ -11,7 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.NBTItem;
-import me.mehboss.gui.RecipeGUI;
+import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.recipe.Main;
 
 public class CommandEditItem {
@@ -164,8 +164,6 @@ public class CommandEditItem {
 		}
 
 		if (command.args.length == 2 && command.args[1].equalsIgnoreCase("lore")) {
-			RecipeGUI.getInstance().sendLoremsg(p);
-			RecipeGUI.getInstance().editmeta.put(p.getUniqueId(), "Lore");
 			return false;
 		}
 

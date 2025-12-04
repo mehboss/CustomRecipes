@@ -12,6 +12,10 @@ import java.util.stream.Collectors;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.BrewingRecipeData;
+import me.mehboss.utils.data.CookingRecipeData;
+import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.data.WorkstationRecipeData;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -30,6 +34,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import com.cryptomorin.xseries.XMaterial;
+
+import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
 
@@ -134,23 +140,50 @@ public class BookGUI implements Listener {
 		return RecipeType.fromString(name);
 	}
 
-	public void showCreationMenu(Inventory inv, ItemStack item, Player p, String recipeName, String perm,
-			Boolean creating, Boolean viewing, RecipeType type) {
-		Inventory cInv = null;
+	public void showCreationMenu(Player player, Recipe rawRecipe, boolean creating, boolean viewing) {
 
-		if (!(Main.getInstance().recipeBook.contains(p.getUniqueId()))) {
-			cInv = Bukkit.getServer().createInventory(null, 54,
-					ChatColor.translateAlternateColorCodes('&', "&cEDITING: " + recipeName));
-		} else {
-			cInv = Bukkit.getServer().createInventory(null, 54,
-					ChatColor.translateAlternateColorCodes('&', "&cVIEWING: " + recipeName));
+		RecipeGUI gui = Main.getInstance().editItem;
+		Recipe recipe = rawRecipe;
+
+		if (creating) {
+			RecipeType type = rawRecipe.getType();
+			String id = rawRecipe.getName();
+			switch (type) {
+
+			case SHAPED:
+			case SHAPELESS:
+				recipe = new CraftingRecipeData(id);
+				break;
+
+			case FURNACE:
+			case BLASTFURNACE:
+			case SMOKER:
+			case CAMPFIRE:
+				recipe = new CookingRecipeData(id);
+				break;
+
+			case STONECUTTER:
+			case GRINDSTONE:
+			case ANVIL:
+				recipe = new WorkstationRecipeData(id);
+				break;
+
+			case BREWING_STAND:
+				recipe = new BrewingRecipeData(id);
+				break;
+
+			default:
+				throw new IllegalArgumentException("Unsupported recipe type: " + type);
+			}
 		}
 
-		RecipeGUI.getInstance().setItems(creating, viewing, cInv, recipeName, perm, item, p, type);
-		p.openInventory(cInv);
+		recipe.setType(rawRecipe.getType());
 
-		if (inv != null)
-			Main.getInstance().saveInventory.put(p.getUniqueId(), inv);
+		if (viewing) {
+			gui.openViewing(player, recipe);
+		} else {
+			gui.openEditing(player, recipe);
+		}
 	}
 
 	@EventHandler
@@ -178,29 +211,28 @@ public class BookGUI implements Listener {
 				if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 					return;
 
-				// --- Create button
+				/*
+				 * ========================================================== CREATE NEW RECIPE
+				 * ==========================================================
+				 */
 				if (e.getCurrentItem().getType() != XMaterial.BLACK_STAINED_GLASS_PANE.parseMaterial()
 						&& (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
-					showCreationMenu(e.getInventory(), null, p, "", null, true, false, type);
+					Recipe recipe = new Recipe("New Recipe");
+					recipe.setType(type);
+					showCreationMenu(p, recipe, true, false);
 					return;
 				}
 
-				// --- Main menu button
 				if (e.getRawSlot() == 49) {
-					if (Main.getInstance().saveInventory.containsKey(p.getUniqueId())) {
-						p.openInventory(Main.getInstance().saveInventory.get(p.getUniqueId()));
-						Main.getInstance().saveInventory.remove(p.getUniqueId());
-					} else {
-						Main.getInstance().typeGUI.open(p);
-					}
+					Main.getInstance().typeGUI.open(p);
 					return;
 				}
 
-				// --- Paging (Prev 48 / Next 50) ---
 				if (e.getRawSlot() == 48 || e.getRawSlot() == 50) {
-					String original = CompatibilityUtil.getTitle(e);
+
+					String original = title;
 					String[] cp = original.split("Page ");
-					int currentpage = Integer.valueOf(cp[1]);
+					int currentpage = Integer.parseInt(cp[1]);
 					int newpage = currentpage;
 
 					List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
@@ -222,6 +254,7 @@ public class BookGUI implements Listener {
 							original.replace(String.valueOf(currentpage), String.valueOf(newpage)));
 
 					Inventory newp = Bukkit.getServer().createInventory(null, 54, newname);
+
 					ItemStack header = (type == null) ? createTypeHeader(null) : createTypeHeader(type);
 
 					items(p, newp, newpage - 1, recipes, header);
@@ -241,19 +274,13 @@ public class BookGUI implements Listener {
 					}
 				}
 
-				logDebug("[RecipeBooklet][" + p.getName() + "] Triggered open recipe matrix.. " + recipeName);
-
 				if (recipeName != null) {
-					Boolean viewing = false;
-					if (Main.getInstance().recipeBook.contains(p.getUniqueId()))
-						viewing = true;
+					boolean viewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
+					Recipe recipe = Main.getInstance().recipeUtil.getRecipe(recipeName);
 
-					logDebug("[RecipeBooklet][" + p.getName() + "] Opening recipe matrix.. " + recipeName);
-					Main.getInstance().saveInventory.put(p.getUniqueId(), e.getInventory());
-					showCreationMenu(e.getInventory(), e.getCurrentItem(), p, recipeName, null, false, viewing, null);
+					showCreationMenu(p, recipe, false, viewing);
 				}
 			}
-			return;
 		}
 	}
 
@@ -361,8 +388,14 @@ public class BookGUI implements Listener {
 
 	public void openType(Player p, RecipeType type, Inventory inv) {
 		List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
+		boolean viewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
+
 		if (recipes.isEmpty()) {
-			showCreationMenu(inv, null, p, "", null, true, false, type);
+			if (!viewing) {
+				Recipe recipe = new Recipe("Blank");
+				recipe.setType(type);
+				showCreationMenu(p, recipe, true, false);
+			}
 			return;
 		}
 

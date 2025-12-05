@@ -30,10 +30,6 @@ public class ChatEditManager {
 	private ChatEditManager() {
 	}
 
-	/*
-	 * ========================= STRING EDITING =========================
-	 */
-
 	public void beginStringEdit(Player player, GuiView view, GuiStringButton button) {
 		ChatEditSession session = new ChatEditSession(player, view, button);
 		sessions.put(player.getUniqueId(), session);
@@ -44,10 +40,6 @@ public class ChatEditManager {
 		player.sendMessage("Type " + ChatColor.GREEN + "DONE " + ChatColor.WHITE + "when finished.");
 		player.sendMessage(ChatColor.DARK_GRAY + "---------------------------------------------");
 	}
-
-	/*
-	 * ========================= LORE EDITING =========================
-	 */
 
 	public void beginLoreEdit(Player player, GuiView view, GuiLoreButton button) {
 		List<String> currentLore = null;
@@ -87,10 +79,6 @@ public class ChatEditManager {
 		p.sendMessage(ChatColor.DARK_GRAY + "---------------------------------------------");
 	}
 
-	/*
-	 * ========================= CHAT EVENT HANDLING =========================
-	 */
-
 	public boolean hasSession(UUID uuid) {
 		return sessions.containsKey(uuid);
 	}
@@ -125,10 +113,6 @@ public class ChatEditManager {
 			break;
 		}
 	}
-
-	/*
-	 * ========================= STRING CHAT LOGIC =========================
-	 */
 
 	private void handleStringChat(AsyncPlayerChatEvent e, ChatEditSession session) {
 		Player p = session.getPlayer();
@@ -176,10 +160,6 @@ public class ChatEditManager {
 		GuiStringButton b = session.getStringButton();
 		return b != null ? b.getFieldName().toLowerCase() : "value";
 	}
-
-	/*
-	 * ========================= LORE CHAT LOGIC =========================
-	 */
 
 	private void handleLoreChat(AsyncPlayerChatEvent e, ChatEditSession session) {
 		Player p = session.getPlayer();

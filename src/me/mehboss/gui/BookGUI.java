@@ -392,7 +392,7 @@ public class BookGUI implements Listener {
 
 		if (recipes.isEmpty()) {
 			if (!viewing) {
-				Recipe recipe = new Recipe("Blank");
+				Recipe recipe = new Recipe("New Recipe");
 				recipe.setType(type);
 				showCreationMenu(p, recipe, true, false);
 			}

@@ -639,7 +639,7 @@ public class RecipeManager {
 		if (!getConfig().isSet(item + ".Identifier"))
 			return i;
 
-		String identifier = getConfig().getString(item + ".Identifier");
+		String identifier = getConfig().getString(item.replaceAll(".Result", "") + ".Identifier");
 
 		if (getConfig().getBoolean(item + ".Custom-Tagged"))
 			i = NBTEditor.set(i, identifier, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
@@ -955,56 +955,56 @@ public class RecipeManager {
 				continue;
 			}
 
-			switch (converter) {
-			case "stonecutter":
+			RecipeType type = RecipeType.fromString(converter);
+			switch (type) {
+			case STONECUTTER:
 				recipe = new WorkstationRecipeData(item);
-				recipe.setType(RecipeType.STONECUTTER);
+				recipe.setType(type);
 				handleStonecutterData(recipe, item);
 				amountRequirement = 1;
 				break;
-			case "furnace":
+			case FURNACE:
 				recipe = new CookingRecipeData(item);
-				recipe.setType(RecipeType.FURNACE);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "blastfurnace":
+			case BLASTFURNACE:
 				recipe = new CookingRecipeData(item);
-				recipe.setType(RecipeType.BLASTFURNACE);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "smoker":
+			case SMOKER:
 				recipe = new CookingRecipeData(item);
-				recipe.setType(RecipeType.SMOKER);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "campfire":
+			case CAMPFIRE:
 				recipe = new CookingRecipeData(item);
-				recipe.setType(RecipeType.CAMPFIRE);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 1;
 				break;
-			case "anvil":
+			case ANVIL:
 				recipe = new WorkstationRecipeData(item);
-				recipe.setType(RecipeType.ANVIL);
+				recipe.setType(type);
 				handleAnvilData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "grindstone":
+			case GRINDSTONE:
 				recipe = new WorkstationRecipeData(item);
-				recipe.setType(RecipeType.GRINDSTONE);
+				recipe.setType(type);
 				handleGrindstoneData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "brewing":
+			case BREWING_STAND:
 				recipe = new BrewingRecipeData(item);
-				recipe.setType(RecipeType.BREWING_STAND);
+				recipe.setType(type);
 				handleBrewingData(recipe, item);
 				amountRequirement = 2;
 				break;
-
 			default:
 				recipe = new CraftingRecipeData(item);
 				recipe.setType(getConfig().getBoolean(item + ".Shapeless") ? RecipeType.SHAPELESS : RecipeType.SHAPED);

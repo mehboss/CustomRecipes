@@ -11,8 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -21,6 +23,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionData;
+import org.bukkit.potion.PotionEffect;
+
+import com.cryptomorin.xseries.XMaterial;
+import com.cryptomorin.xseries.XPotion;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.gui.framework.GuiButton;
@@ -126,13 +134,13 @@ public class RecipeSaver {
 			group = "";
 
 		String displayNameColored = readNameColored(resultItem);
-
 		// ====== Effects (currently unused, keep as empty list) ======
 		List<String> effects = new ArrayList<>(); // or from button "Effects" later
 
 		// ====== Enchantments & lore ======
 		List<String> enchantList = readEnchantList(resultItem);
 		AtomicBoolean resultHasID = new AtomicBoolean(false);
+		String material = getItemValue(resultItem, identifier, resultHasID);
 		List<String> lore = getItemLoreList(resultItem);
 		if (lore == null)
 			lore = new ArrayList<>();
@@ -142,74 +150,29 @@ public class RecipeSaver {
 		List<String> itemCrafting = generateItemCrafting(letters, inventory, ingredientSlots);
 		LinkedHashMap<String, Object> ingredients = buildIngredientsFromLetters(inventory, letters, ingredientSlots);
 
-		// ====== Base fields (mostly unchanged from original) ======
-		cfg.put("Enabled", enabled);
-		cfg.put("Shapeless", shapeless);
-
-		if (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS || type == RecipeType.STONECUTTER)
-			cfg.put("Group", group);
-
-		cfg.put("Cooldown", -1);
-
-		cfg.put("Item", getItemValue(resultItem, identifier, resultHasID));
-		cfg.put("Item-Damage", "none");
-		cfg.put("Amount", resultAmount);
-
-		cfg.put("Placeable", placeable);
-		cfg.put("Exact-Choice", exactChoice);
-		cfg.put("Custom-Tagged", false);
-		cfg.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
-
-		cfg.put("Identifier", identifier);
-
-		// Converter: use recipe type; crafting types use "none" like before
 		String converterType = (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS) ? "none" : type.toString();
-		cfg.put("Converter", converterType);
-
-		cfg.put("Permission", permission);
-		cfg.put("Auto-Discover-Recipe", true);
-		cfg.put("Book-Category", "MISC");
-
-		if (resultHasID.get()) {
-			cfg.put("Name", "none");
-			cfg.put("Lore", new ArrayList<>());
-		} else {
-			cfg.put("Name",
-					(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored : "none");
-			cfg.put("Lore", lore);
-		}
-
-		cfg.put("Effects", effects);
-		cfg.put("Hide-Enchants", true);
-		cfg.put("Enchantments", enchantList);
-
-		cfg.put("Commands.Give-Item", true);
-		cfg.put("Commands.Run-Commands", new ArrayList<>());
-
-		cfg.put("ItemCrafting", itemCrafting);
-		cfg.put("Ingredients", ingredients);
-
-		cfg.put("ItemsLeftover", new ArrayList<>());
-
-		cfg.put("Flags.Ignore-Data", false);
-		cfg.put("Flags.Ignore-Model-Data", false);
-		cfg.put("Flags.Ignore-Name", false);
-
-		cfg.put("Use-Conditions", false);
-		cfg.put("Conditions_All", new ArrayList<>());
-
-		cfg.put("Custom-Tags", new ArrayList<>());
-		cfg.put("Item-Flags", new ArrayList<>());
-		cfg.put("Attribute", new ArrayList<>());
-		cfg.put("Custom-Model-Data", "none");
-		cfg.put("Disabled-Worlds", new ArrayList<>());
 
 		boolean isCooking = type == RecipeType.FURNACE || type == RecipeType.BLASTFURNACE || type == RecipeType.SMOKER
 				|| type == RecipeType.CAMPFIRE;
-
 		boolean hasRepairCost = type == RecipeType.GRINDSTONE || type == RecipeType.ANVIL;
-
 		boolean isBrewing = type == RecipeType.BREWING_STAND;
+		boolean isCrafting = type == RecipeType.SHAPED || type == RecipeType.SHAPELESS;
+
+		// ====== Base fields (mostly unchanged from original) ======
+		cfg.put("Enabled", enabled);
+
+		if (isCrafting)
+			cfg.put("Shapeless", shapeless);
+		if (isCrafting || type == RecipeType.STONECUTTER)
+			cfg.put("Group", group);
+
+		cfg.put("Cooldown", -1);
+		cfg.put("Placeable", placeable);
+		cfg.put("Exact-Choice", exactChoice);
+		cfg.put("Identifier", identifier);
+
+		// Converter: use recipe type; crafting types use "none" like before
+		cfg.put("Converter", converterType);
 
 		// ---- Cooking: Cook-Time & Experience ----
 		if (isCooking) {
@@ -236,21 +199,144 @@ public class RecipeSaver {
 
 		// ---- Brewing: Required-Items, Fuel-Set, Fuel-Charge ----
 		if (isBrewing) {
-			boolean requiresItems = readBooleanToggle(view, "Required-Items", false);
-			cfg.put("Brew-Required-Items", requiresItems);
-
 			Integer fuelSet = readIntField(view, "Fuel-Set");
 			if (fuelSet != null) {
-				cfg.put("Brew-Fuel-Set", fuelSet);
+				cfg.put("FuelSet", fuelSet);
 			}
 
 			Integer fuelCharge = readIntField(view, "Fuel-Charge");
 			if (fuelCharge != null) {
-				cfg.put("Brew-Fuel-Charge", fuelCharge);
+				cfg.put("FuelCharge", fuelCharge);
 			}
+
+			boolean requiresItems = readBooleanToggle(view, "Required-Items", false);
+			cfg.put("Required-Items", requiresItems);
 		}
 
+		cfg.put("Permission", permission);
+		cfg.put("Auto-Discover-Recipe", true);
+		cfg.put("Book-Category", "MISC");
+
+		boolean isPotion = material == XMaterial.POTION.get().toString()
+				|| material == XMaterial.SPLASH_POTION.get().toString()
+				|| material == XMaterial.LINGERING_POTION.get().toString();
+
+		// handles "result" configuration section
+		Map<String, Object> result = new LinkedHashMap<>();
+		if (!isPotion && !resultHasID.get()) {
+			result.put("Item", material);
+			result.put("Item-Damage", "none");
+			result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
+			result.put("Amount", resultAmount);
+
+			if (resultHasID.get()) {
+				result.put("Name", "none");
+				result.put("Lore", new ArrayList<>());
+			} else {
+				result.put("Name",
+						(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored : "none");
+				result.put("Lore", lore);
+			}
+
+			result.put("Hide-Enchants", true);
+			result.put("Enchantments", enchantList);
+			result.put("Custom-Tagged", false);
+			result.put("Custom-Model-Data", "none");
+			result.put("Item-Flags", new ArrayList<>());
+			result.put("Attribute", new ArrayList<>());
+			result.put("Custom-Tags", new ArrayList<>());
+		} else if (isPotion) {
+			savePotionToConfig(resultItem, result);
+		}
+		// adds the section back to parent
+		cfg.put("Result", result);
+
+		if (!isBrewing) {
+			cfg.put("Effects", effects);
+
+			Map<String, Object> commands = new LinkedHashMap<>();
+			commands.put("Give-Item", true);
+			commands.put("Run-Commands", new ArrayList<>());
+			cfg.put("Commands", commands);
+		}
+
+		cfg.put("ItemCrafting", itemCrafting);
+		cfg.put("Ingredients", ingredients);
+
+		cfg.put("ItemsLeftover", new ArrayList<>());
+
+		Map<String, Object> flags = new LinkedHashMap<>();
+		flags.put("Ignore-Data", false);
+		flags.put("Ignore-Model-Data", false);
+		flags.put("Ignore-Name", false);
+		cfg.put("Flags", flags);
+
+		cfg.put("Use-Conditions", false);
+		cfg.put("Conditions_All", new ArrayList<>());
+		cfg.put("Disabled-Worlds", new ArrayList<>());
+
 		return cfg;
+	}
+
+	public void savePotionToConfig(ItemStack item, Map<String, Object> configValues) {
+		Map<String, Object> cfg = configValues;
+
+		// --- Material ---
+		cfg.put("Item", item.getType().name());
+
+		if (!(item.getItemMeta() instanceof PotionMeta)) {
+			return;
+		}
+
+		PotionMeta meta = (PotionMeta) item.getItemMeta();
+
+		// --- Name ---
+		if (meta.hasDisplayName())
+			cfg.put("Name", meta.getDisplayName());
+
+		// --- Color ---
+		if (meta.hasColor()) {
+			Color c = meta.getColor();
+			cfg.put("Color", c.getRed() + "," + c.getGreen() + "," + c.getBlue());
+		} // Try to detect vanilla vs custom
+		boolean vanilla = meta.hasCustomEffects() && meta.getBasePotionData() != null;
+
+		// =====================================================
+		// Case 1: VANILLA POTION (BasePotionData)
+		// =====================================================
+		if (meta.getBasePotionData() != null && vanilla) {
+			PotionData pd = meta.getBasePotionData();
+
+			// XPotion reverse lookup
+			XPotion xp = XPotion.matchXPotion(pd.getType());
+
+			cfg.put("PotionType", xp.getPotionType().name());
+			cfg.put("Amplifier", pd.isUpgraded() ? 1 : 0);
+			cfg.put("Duration", pd.isExtended() ? 3600 : 1800); // approx
+
+			return;
+		}
+
+		// =====================================================
+		// Case 2: CUSTOM EFFECTS
+		// =====================================================
+		if (meta.getCustomEffects().isEmpty()) {
+			return;
+		}
+
+		List<Map<String, Object>> list = new ArrayList<>();
+
+		for (PotionEffect eff : meta.getCustomEffects()) {
+			Map<String, Object> m = new LinkedHashMap<>();
+			m.put("Type", XPotion.of(eff.getType()).get().getName());
+			m.put("Duration", eff.getDuration() / 20);
+			m.put("Amplifier", eff.getAmplifier());
+			list.add(m);
+		}
+
+		cfg.put("Effects", list);
+		cfg.put("UseVanillaType", vanilla);
+		cfg.put("Amount", item.getAmount());
 	}
 
 	private GuiStringButton getStringButton(GuiView view, String fieldName) {

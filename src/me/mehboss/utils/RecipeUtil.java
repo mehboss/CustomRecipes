@@ -742,12 +742,12 @@ public class RecipeUtil {
 
 			public static RecipeType fromString(String name) {
 				if (name == null)
-					return null;
+					return SHAPED;
 				String key = name.toUpperCase().replace(" ", "_");
 				for (RecipeType type : values())
 					if (type.aliases.contains(key))
 						return type;
-				return null;
+				return SHAPED;
 			}
 		}
 

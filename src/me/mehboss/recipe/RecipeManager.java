@@ -28,7 +28,6 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -59,7 +58,6 @@ import org.bukkit.material.MaterialData;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
@@ -83,11 +81,8 @@ import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
 import net.advancedplugins.ae.api.AEAPI;
-import valorless.havenbags.api.BagCreationObject;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
-import valorless.havenbags.hooks.CustomRecipes;
-import valorless.havenbags.hooks.CustomRecipes.BagInfo;
 
 public class RecipeManager {
 
@@ -497,7 +492,7 @@ public class RecipeManager {
 					return potion;
 				} else if (path.get(0).equalsIgnoreCase("Enchantments")) {
 					// Check if it's an enchantment book
-					if (item.getType() == Material.ENCHANTED_BOOK) {
+					if (item.getType() == XMaterial.ENCHANTED_BOOK.get()) {
 						Map<String, Integer> enchants = (Map<String, Integer>) value;
 
 						// Get the EnchantmentMeta to apply enchantments to the enchanted book
@@ -518,7 +513,7 @@ public class RecipeManager {
 						// Apply the modified enchantment meta to the item
 						item.setItemMeta(meta);
 					}
-				} else if ((item.getType() == Material.ITEM_FRAME || item.getType() == Material.GLOW_ITEM_FRAME)
+				} else if ((item.getType() == XMaterial.ITEM_FRAME.get() || item.getType() == XMaterial.GLOW_ITEM_FRAME.get())
 						&& path.get(0).equalsIgnoreCase("EntityTag")) {
 
 					try {

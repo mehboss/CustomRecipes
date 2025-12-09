@@ -36,7 +36,6 @@ import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import com.cryptomorin.xseries.XMaterial;
 import io.github.bananapuncher714.nbteditor.NBTEditor;
@@ -208,6 +207,9 @@ public class CraftManager implements Listener {
 
 			if (type == RecipeType.SHAPED) {
 
+				if (alignedGrid == null)
+					return false;
+				
 				int slot = ingredient.getSlot();
 				ItemStack invSlot = alignedGrid.getMatrix[slot - 1];
 

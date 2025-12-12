@@ -19,6 +19,7 @@ import java.net.URL;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -56,12 +57,14 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.material.MaterialData;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionData;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionType;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
 
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
+import com.cryptomorin.xseries.XPotion;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 
@@ -73,9 +76,13 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.BrewingRecipeData;
+import me.mehboss.utils.data.CookingRecipeData;
+import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.data.WorkstationRecipeData;
 import net.advancedplugins.ae.api.AEAPI;
-import valorless.havenbags.hooks.CustomRecipes;
-import valorless.havenbags.hooks.CustomRecipes.BagInfo;
+import valorless.havenbags.api.HavenBagsAPI;
+import valorless.havenbags.datamodels.Data;
 
 public class RecipeManager {
 
@@ -101,20 +108,38 @@ public class RecipeManager {
 		return false;
 	}
 
+	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind, String bagTexture,
+			String item) {
+
+		if (item != null) {
+			bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
+					: "none";
+			canBind = getConfig().getBoolean(item + ".Can-Bind") ? "null" : "ownerless";
+			bagSize = getConfig().isInt(item + ".Bag-Size") ? getConfig().getInt(item + ".Bag-Size") : 9;
+			bagCMD = 0;
+
+			if (Main.getInstance().serverVersionAtLeast(1, 14) && getConfig().isSet(item + ".Custom-Model-Data")
+					&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
+				bagCMD = getConfig().getInt(item + ".Custom-Model-Data");
+			}
+		}
+
+		Data bagData = new Data("null", canBind);
+		bagData.setSize(bagSize);
+		bagData.setMaterial(bagMaterial);
+		bagData.setTexture(bagTexture);
+		bagData.setModeldata(bagCMD);
+
+		ItemStack bagItem = HavenBagsAPI.generateBagItem(bagData);
+		bagItem = handleIdentifier(bagItem, item);
+		return bagItem;
+	}
+
 	void handleDisabledWorlds(String item, Recipe recipe) {
 		if (getConfig().isSet(item + ".Disabled-Worlds")) {
 			for (String world : getConfig().getStringList(item + ".Disabled-Worlds"))
 				recipe.addDisabledWorld(world);
 		}
-	}
-
-	void handleLeftovers(Material material, String item, Recipe recipe) {
-		if (getConfig().isSet(item + ".ItemsLeftover"))
-			for (String leftOver : getConfig().getStringList(item + ".ItemsLeftover")) {
-				if (leftOver.equalsIgnoreCase("none"))
-					return;
-				recipe.addLeftoverItem(leftOver);
-			}
 	}
 
 	void handlePlaceable(String item, Recipe recipe) {
@@ -142,35 +167,215 @@ public class RecipeManager {
 		}
 	}
 
-	void handleFurnaceData(Recipe recipe, String configPath) {
-		if (getConfig().isInt(configPath + ".Cooktime"))
-			recipe.setCookTime(getConfig().getInt(configPath + ".Cooktime"));
+	void handleCraftingData(Recipe recipe, String configPath) {
+		CraftingRecipeData workbench = (CraftingRecipeData) recipe;
+		if (getConfig().getBoolean(configPath + ".Use-Conditions")) {
+			ConfigurationSection rSec = getConfig().getConfigurationSection(configPath);
+			workbench.setConditionSet(RecipeConditions.parseConditionSet(rSec));
+		}
 
+		if (getConfig().isSet(configPath + ".ItemsLeftover"))
+			for (String leftOver : getConfig().getStringList(configPath + ".ItemsLeftover")) {
+				if (leftOver.equalsIgnoreCase("none"))
+					return;
+				workbench.addLeftoverItem(leftOver);
+			}
+
+		if (Main.getInstance().serverVersionAtLeast(1, 13))
+			if (getConfig().isSet(configPath + ".Group")
+					&& !getConfig().getString(configPath + ".Group").equalsIgnoreCase("none")) {
+				try {
+					workbench.setGroup(getConfig().getString(configPath + ".Group"));
+				} catch (NoClassDefFoundError e) {
+				}
+			}
+	}
+
+	void handleFurnaceData(Recipe recipe, String configPath) {
+		CookingRecipeData furnace = (CookingRecipeData) recipe;
+		if (getConfig().isInt(configPath + ".Cooktime"))
+			furnace.setCookTime(getConfig().getInt(configPath + ".Cooktime"));
 		if (getConfig().isInt(configPath + ".Experience"))
-			recipe.setExperience(getConfig().getInt(configPath + ".Experience"));
+			furnace.setExperience(getConfig().getInt(configPath + ".Experience"));
 	}
 
 	void handleAnvilData(Recipe recipe, String configPath) {
+		WorkstationRecipeData anvil = (WorkstationRecipeData) recipe;
 		if (getConfig().isInt(configPath + ".Repair-Cost"))
-			recipe.setRepairCost(getConfig().getInt(configPath + ".Repair-Cost"));
+			anvil.setRepairCost(getConfig().getInt(configPath + ".Repair-Cost"));
 	}
 
 	void handleGrindstoneData(Recipe recipe, String configPath) {
+		WorkstationRecipeData grindstone = (WorkstationRecipeData) recipe;
 		if (getConfig().isInt(configPath + ".Experience"))
-			recipe.setExperience(getConfig().getInt(configPath + ".Experience"));
+			grindstone.setExperience(getConfig().getInt(configPath + ".Experience"));
 	}
 
 	void handleStonecutterData(Recipe recipe, String configPath) {
+		WorkstationRecipeData stonecutter = (WorkstationRecipeData) recipe;
 		if (getConfig().isSet(configPath + ".Group")
 				&& !getConfig().getString(configPath + ".Group").equalsIgnoreCase("none"))
-			recipe.setGroup(getConfig().getString(configPath + ".Group"));
+			stonecutter.setGroup(getConfig().getString(configPath + ".Group"));
 	}
 
-	void handleConditions(Recipe recipe, String configPath) {
-		if (getConfig().getBoolean(configPath + ".Use-Conditions")) {
-			ConfigurationSection rSec = getConfig().getConfigurationSection(configPath);
-			recipe.setConditionSet(RecipeConditions.parseConditionSet(rSec));
+	void handleBrewingData(Recipe recipe, String configPath) {
+		BrewingRecipeData brew = (BrewingRecipeData) recipe;
+		String newPath = (configPath + ".Required-Item");
+
+		if (getConfig().getBoolean(configPath + ".Requires-Items")
+				&& getConfig().getConfigurationSection(configPath + ".Required-Item") != null) {
+			ItemStack potionItem = handlePotions(newPath);
+			brew.setRequiredBottleType(potionItem.getType());
+			brew.setRequiresBottles(true);
 		}
+
+		brew.setBrewPerfect(getConfig().getBoolean(configPath + ".Exact-Choice", true));
+
+		if (getConfig().isSet(configPath + ".FuelSet")) {
+			brew.setBrewFuelSet(getConfig().getInt(configPath + ".FuelSet"));
+		}
+
+		if (getConfig().isSet(configPath + ".FuelCharge")) {
+			brew.setBrewFuelCharge(getConfig().getInt(configPath + ".FuelCharge"));
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	ItemStack handlePotions(String configPath) {
+		// Material
+		String matName = getConfig().getString(configPath + ".Material", getConfig().getString(configPath + ".Item"));
+		Material matType = XMaterial.matchXMaterial(matName).isPresent() ? XMaterial.matchXMaterial(matName).get().get()
+				: XMaterial.POTION.get();
+
+		boolean vanilla = getConfig().getBoolean(configPath + ".UseVanillaType", false);
+		Color color = parseColor(getConfig().getString(configPath + ".Color"));
+
+		List<Map<?, ?>> list = getConfig().getMapList(configPath + ".Effects");
+		List<PotionEffect> effects = new ArrayList<>();
+
+		if (!list.isEmpty()) {
+			for (Map<?, ?> entry : list) {
+				String typeName = String.valueOf(entry.get("Type"));
+				int dur = entry.containsKey("Duration") ? Integer.parseInt(String.valueOf(entry.get("Duration"))) : 200;
+				int amp = entry.containsKey("Amplifier") ? Integer.parseInt(String.valueOf(entry.get("Amplifier"))) : 0;
+
+				// XPotion lookup ONLY
+				Optional<XPotion> xp = XPotion.of(typeName);
+				if (!xp.isPresent() || xp.get().getPotionEffectType() == null)
+					continue;
+
+				PotionEffect pe = xp.get().buildPotionEffect(dur * 20, amp + 1);
+				if (pe != null)
+					effects.add(pe);
+			}
+		} else {
+			String potionName = getConfig().getString(configPath + ".PotionType", "NONE");
+			int durationSeconds = getConfig().getInt(configPath + ".Duration", 3600);
+			int amplifier = getConfig().getInt(configPath + ".Amplifier", 0);
+
+			Optional<XPotion> match = XPotion.of(potionName);
+			if (!match.isPresent() || match.get().getPotionEffectType() == null)
+				return new ItemStack(Material.POTION);
+
+			PotionEffect effect = match.get().buildPotionEffect(durationSeconds * 20, amplifier + 1);
+			if (effect != null)
+				effects.add(effect);
+		}
+
+		if (effects.isEmpty())
+			return new ItemStack(Material.POTION);
+
+		if (vanilla) {
+			PotionEffect effect = effects.get(0);
+			XPotion xp = XPotion.of(effect.getType());
+
+			PotionType base = normalize(xp.getPotionType());
+			if (base == null) {
+				Bukkit.getLogger().warning("[DEBUG] Invalid vanilla potion type '" + xp + "'. Falling back to custom.");
+				return XPotion.buildItemWithEffects(matType, color, effects.toArray(new PotionEffect[0]));
+			}
+
+			ItemStack item = new ItemStack(matType);
+			PotionMeta meta = (PotionMeta) item.getItemMeta();
+
+			boolean isExtended = effect.getDuration() > (3600 * 20);
+			boolean isUpgraded = effect.getAmplifier() > 0;
+
+			try {
+				meta.setBasePotionData(new PotionData(base, isExtended, isUpgraded));
+			} catch (Throwable ignored) {
+			}
+
+			if (color != null)
+				meta.setColor(color);
+
+			item.setItemMeta(meta);
+			return item;
+		}
+		return XPotion.buildItemWithEffects(matType, color, effects.toArray(new PotionEffect[0]));
+	}
+
+	private PotionType normalize(PotionType type) {
+		if (type == null)
+			return null;
+		if (!Main.getInstance().serverVersionAtLeast(1, 20))
+			return type;
+		// New API since 1.20.5 only accepts base types.
+		try {
+			return PotionType.valueOf(type.name().replace("LONG_", "").replace("STRONG_", ""));
+		} catch (IllegalArgumentException ex) {
+			return null;
+		}
+	}
+
+	/**
+	 * Parses a color string like "RED", "BLUE", or "255,0,0" to a Bukkit Color.
+	 */
+	private Color parseColor(String input) {
+		if (input == null)
+			return null;
+
+		try {
+			// Try named colors first (RED, BLUE, GREEN, etc.)
+			switch (input.toUpperCase()) {
+			case "RED":
+				return Color.RED;
+			case "BLUE":
+				return Color.BLUE;
+			case "GREEN":
+				return Color.GREEN;
+			case "YELLOW":
+				return Color.YELLOW;
+			case "PURPLE":
+				return Color.PURPLE;
+			case "AQUA":
+				return Color.AQUA;
+			case "WHITE":
+				return Color.WHITE;
+			case "BLACK":
+				return Color.BLACK;
+			case "FUCHSIA":
+				return Color.FUCHSIA;
+			case "ORANGE":
+				return Color.ORANGE;
+			case "GRAY":
+				return Color.GRAY;
+			}
+
+			// Otherwise, try parsing RGB manually (e.g., "255,0,0")
+			if (input.contains(",")) {
+				String[] parts = input.split(",");
+				if (parts.length == 3) {
+					int r = Integer.parseInt(parts[0].trim());
+					int g = Integer.parseInt(parts[1].trim());
+					int b = Integer.parseInt(parts[2].trim());
+					return Color.fromRGB(r, g, b);
+				}
+			}
+		} catch (Exception ignored) {
+		}
+
+		return null;
 	}
 
 	ItemStack handleHeadTexture(String material) {
@@ -287,7 +492,7 @@ public class RecipeManager {
 					return potion;
 				} else if (path.get(0).equalsIgnoreCase("Enchantments")) {
 					// Check if it's an enchantment book
-					if (item.getType() == Material.ENCHANTED_BOOK) {
+					if (item.getType() == XMaterial.ENCHANTED_BOOK.get()) {
 						Map<String, Integer> enchants = (Map<String, Integer>) value;
 
 						// Get the EnchantmentMeta to apply enchantments to the enchanted book
@@ -308,7 +513,7 @@ public class RecipeManager {
 						// Apply the modified enchantment meta to the item
 						item.setItemMeta(meta);
 					}
-				} else if ((item.getType() == Material.ITEM_FRAME || item.getType() == Material.GLOW_ITEM_FRAME)
+				} else if ((item.getType() == XMaterial.ITEM_FRAME.get() || item.getType() == XMaterial.GLOW_ITEM_FRAME.get())
 						&& path.get(0).equalsIgnoreCase("EntityTag")) {
 
 					try {
@@ -425,32 +630,11 @@ public class RecipeManager {
 		return castedList;
 	}
 
-	ItemStack handleBagCreation(Material bagMaterial, String item) {
-		String bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
-				: "none";
-		boolean canBind = getConfig().isBoolean(item + ".Can-Bind") ? getConfig().getBoolean(item + ".Can-Bind") : true;
-		int bagSize = getConfig().isInt(item + ".Bag-Size") ? getConfig().getInt(item + ".Bag-Size") : 1;
-		int bagCMD = 0;
-
-		CustomRecipes havenBags = new CustomRecipes();
-		BagInfo bInfo = havenBags.new BagInfo(null, bagMaterial, bagSize, canBind, bagTexture);
-
-		if (Main.getInstance().serverVersionAtLeast(1, 14) && getConfig().isSet(item + ".Custom-Model-Data")
-				&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
-			bagCMD = getConfig().getInt(item + ".Custom-Model-Data");
-		}
-
-		bInfo.setModelData(bagCMD);
-
-		ItemStack bag = CustomRecipes.CreateBag(bInfo);
-		return bag;
-	}
-
 	ItemStack handleIdentifier(ItemStack i, String item) {
 		if (!getConfig().isSet(item + ".Identifier"))
 			return i;
 
-		String identifier = getConfig().getString(item + ".Identifier");
+		String identifier = getConfig().getString(item.replaceAll(".Result", "") + ".Identifier");
 
 		if (getConfig().getBoolean(item + ".Custom-Tagged"))
 			i = NBTEditor.set(i, identifier, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
@@ -467,7 +651,8 @@ public class RecipeManager {
 	public ItemStack handleDurability(ItemStack i, String item) {
 		if (getConfig().isSet(item + ".Durability")) {
 			String durability = getConfig().getString(item + ".Durability");
-			if (!durability.equals("100") && !durability.equals("0"))
+			if (!durability.isEmpty() && !durability.equals("100") && !durability.equals("0")
+					&& !durability.equals("none"))
 				i.setDurability(Short.valueOf(getConfig().getString(item + ".Durability")));
 		}
 		return i;
@@ -572,7 +757,7 @@ public class RecipeManager {
 			logDebug("Applying displayname..", item);
 			logDebug("Displayname: " + name, item);
 
-			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+			itemMeta = CompatibilityUtil.setDisplayname(recipe, name);
 		}
 		return itemMeta;
 	}
@@ -674,16 +859,38 @@ public class RecipeManager {
 		logDebug("Successfully set commands: " + commands, item);
 	}
 
-	private void checkIdentifiers() {
+	void handleMaterialChoice(Recipe recipe, Ingredient ingredient, String path) {
+		List<String> list = getConfig().getStringList(path + ".Materials");
+		if (list == null || list.isEmpty())
+			return;
+		for (String material : list) {
+			Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
+			if (!validMaterial(recipe.getName(), material, rawMaterial))
+				continue;
+			ingredient.addMaterialChoice(rawMaterial.get().get());
+		}
+	}
+
+	void checkIdentifiers() {
 		for (Recipe recipe : new ArrayList<>(getRecipeUtil().getAllRecipes().values())) {
 			for (Ingredient ingredient : recipe.getIngredients()) {
-				if (ingredient.hasIdentifier()
-						&& getRecipeUtil().getResultFromKey(ingredient.getIdentifier() + ":" + recipe.getName()) == null) {
+				if (!ingredient.hasIdentifier())
+					continue;
+
+				// recipe name hyphen-argument is strictly for debugging, and is needed for
+				// attaching a recipe during getResultFromKey()
+				ItemStack matchedItem = getRecipeUtil()
+						.getResultFromKey(ingredient.getIdentifier() + ":" + recipe.getName());
+				if (matchedItem == null) {
 					logError("Please double check the IDs of the ingredients matches that of a custom item or recipe.",
 							recipe.getName());
 					logError("Skipping recipe..", recipe.getName());
 					getRecipeUtil().removeRecipe(recipe.getName());
 					break;
+				} else {
+					if (ingredient.getMaterial() != matchedItem.getType()) {
+						ingredient.setMaterial(matchedItem.getType());
+					}
 				}
 			}
 		}
@@ -702,6 +909,10 @@ public class RecipeManager {
 		}
 
 		if (name != null) {
+			if (!name.endsWith(".yml")) {
+				name = name + ".yml";
+			}
+
 			File single = new File(recipeFolder, name);
 			if (single.exists() && single.isFile()) {
 				recipeFiles = new File[] { single };
@@ -722,7 +933,7 @@ public class RecipeManager {
 				continue;
 			}
 
-			Recipe recipe = new Recipe(item);
+			Recipe recipe;
 
 			List<String> gridRows = getConfig().getStringList(item + ".ItemCrafting");
 			String converter = getConfig().isString(item + ".Converter")
@@ -730,84 +941,75 @@ public class RecipeManager {
 					: "converterNotDefined";
 			int amountRequirement = 9;
 
-			logDebug("Attempting to add recipe..", recipe.getName());
-
-			if (!(hasHavenBag()) && isHavenBag(item)) {
-				logError("Error loading recipe..", recipe.getName());
-				logError("Found a havenbag recipe, but can not find the havenbags plugin. Skipping recipe..",
-						recipe.getName());
-				continue;
-			}
+			logDebug("Attempting to add recipe..", item);
 
 			if (!getConfig().isConfigurationSection(item + ".Ingredients")) {
-				logError("Error loading recipe..", recipe.getName());
+				logError("Error loading recipe..", item);
 				logError("Could not locate the ingredients section. Please double check formatting. Skipping recipe..",
-						recipe.getName());
+						item);
 				continue;
 			}
 
-			switch (converter) {
-			case "stonecutter":
-				recipe.setType(RecipeType.STONECUTTER);
+			RecipeType type = RecipeType.fromString(converter);
+			switch (type) {
+			case STONECUTTER:
+				recipe = new WorkstationRecipeData(item);
+				recipe.setType(type);
 				handleStonecutterData(recipe, item);
 				amountRequirement = 1;
 				break;
-			case "furnace":
-				recipe.setType(RecipeType.FURNACE);
+			case FURNACE:
+				recipe = new CookingRecipeData(item);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "blastfurnace":
-				recipe.setType(RecipeType.BLASTFURNACE);
+			case BLASTFURNACE:
+				recipe = new CookingRecipeData(item);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "smoker":
-				recipe.setType(RecipeType.SMOKER);
+			case SMOKER:
+				recipe = new CookingRecipeData(item);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "campfire":
-				recipe.setType(RecipeType.CAMPFIRE);
+			case CAMPFIRE:
+				recipe = new CookingRecipeData(item);
+				recipe.setType(type);
 				handleFurnaceData(recipe, item);
 				amountRequirement = 1;
 				break;
-			case "anvil":
-				recipe.setType(RecipeType.ANVIL);
+			case ANVIL:
+				recipe = new WorkstationRecipeData(item);
+				recipe.setType(type);
 				handleAnvilData(recipe, item);
 				amountRequirement = 2;
 				break;
-			case "grindstone":
-				recipe.setType(RecipeType.GRINDSTONE);
+			case GRINDSTONE:
+				recipe = new WorkstationRecipeData(item);
+				recipe.setType(type);
 				handleGrindstoneData(recipe, item);
 				amountRequirement = 2;
 				break;
-
+			case BREWING_STAND:
+				recipe = new BrewingRecipeData(item);
+				recipe.setType(type);
+				handleBrewingData(recipe, item);
+				amountRequirement = 2;
+				break;
 			default:
-				if (getConfig().isBoolean(item + ".Shapeless") && getConfig().getBoolean(item + ".Shapeless")) {
-					recipe.setType(RecipeType.SHAPELESS);
-					break;
-				} else {
-					recipe.setType(RecipeType.SHAPED);
-					break;
-				}
+				recipe = new CraftingRecipeData(item);
+				recipe.setType(getConfig().getBoolean(item + ".Shapeless") ? RecipeType.SHAPELESS : RecipeType.SHAPED);
+				handleCraftingData(recipe, item);
+				break;
 			}
 
-			if (!Main.getInstance().serverVersionAtLeast(1, 14)
-					&& (recipe.getType() == RecipeType.STONECUTTER || recipe.getType() == RecipeType.BLASTFURNACE
-							|| recipe.getType() == RecipeType.SMOKER || recipe.getType() == RecipeType.CAMPFIRE)) {
-				logError("Error loading recipe..", recipe.getName());
-				logError("Found recipe type  " + converter + ", but your server version is below 1.14.",
-						recipe.getName());
+			// Checks version req. of recipe types
+			if (!isVersionSupported(recipe.getType(), item))
 				continue;
-			}
-
-			if (!Main.getInstance().serverVersionAtLeast(1, 16) && (recipe.getType() == RecipeType.GRINDSTONE)) {
-				logError("Error loading recipe..", recipe.getName());
-				logError("Found recipe type  " + converter + ", but your server version is below 1.16.",
-						recipe.getName());
-				continue;
-			}
 
 			// HavenBag detected, but converter is not SHAPED or SHAPELESS
 			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS) {
@@ -819,18 +1021,21 @@ public class RecipeManager {
 				}
 
 				if (name == null) {
-					delayedRecipes.add(recipeFile.getName());
+					delayedRecipes.add(item);
 					continue;
 				}
 			}
 
-			int amount = getConfig().isInt(item + ".Amount") ? getConfig().getInt(item + ".Amount") : 1;
+			String resultPath = getConfig().isConfigurationSection(item + ".Result") ? item + ".Result" : item;
+			int amount = getConfig().isInt(resultPath + ".Amount") ? getConfig().getInt(resultPath + ".Amount") : 1;
 			String identifier = getConfig().getString(item + ".Identifier");
 			recipe.setKey(identifier);
 
 			// Checks for a custom item and attempts to set it
-			String rawItem = getConfig().getString(item + ".Item") != null ? getConfig().getString(item + ".Item")
+			String rawItem = getConfig().getString(resultPath + ".Item") != null
+					? getConfig().getString(resultPath + ".Item")
 					: null;
+			// Attach recipe name ONLY for debug purposes
 			ItemStack i = getRecipeUtil().getResultFromKey(rawItem + ":" + recipe.getName());
 
 			// handle custom item stacks
@@ -838,12 +1043,12 @@ public class RecipeManager {
 				recipe.setCustomItem(rawItem);
 
 			if (i == null) {
-				if (getConfig().getItemStack(item + ".Item") != null) {
+				if (getConfig().getItemStack(resultPath + ".Item") != null) {
 					// handle itemstack checks
-					i = getConfig().getItemStack(item + ".Item");
+					i = getConfig().getItemStack(resultPath + ".Item");
 				} else {
 					// handle material checks
-					Optional<ItemStack> built = buildItem(item, getConfig());
+					Optional<ItemStack> built = buildItem(resultPath, getConfig());
 					if (!built.isPresent())
 						continue;
 
@@ -851,20 +1056,15 @@ public class RecipeManager {
 				}
 			}
 
-			i = handleDurability(i, item);
+			i = handleDurability(i, resultPath);
 			i.setAmount(amount);
-
-			if (isHavenBag(item))
-				i = handleBagCreation(i.getType(), item);
 
 			recipe.setResult(i);
 			handleIgnoreFlags(item, recipe);
 			handleCooldown(item, recipe);
 			handlePlaceable(item, recipe);
 			handleCommand(item, recipe);
-			handleLeftovers(i.getType(), item, recipe);
 			handleDisabledWorlds(item, recipe);
-			handleConditions(recipe, item);
 
 			if (getConfig().getBoolean(item + ".Custom-Tagged"))
 				recipe.setTagged(true);
@@ -910,13 +1110,14 @@ public class RecipeManager {
 
 				count++;
 				String configPath = item + ".Ingredients." + abbreviation;
-				String material = getConfig().getString(configPath + ".Material");
+				List<String> list = getConfig().getStringList(configPath + ".Materials");
+				String material = !list.isEmpty() ? list.get(0) : getConfig().getString(configPath + ".Material");
 				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
 				if (!validMaterial(recipe.getName(), material, rawMaterial)) {
 					continue recipeLoop;
 				}
 
-				Material ingredientMaterial = rawMaterial.get().parseMaterial();
+				Material ingredientMaterial = rawMaterial.get().get();
 				if (count > amountRequirement) {
 					logError("Error loading recipe..", recipe.getName());
 					logError(
@@ -935,8 +1136,8 @@ public class RecipeManager {
 				int ingredientAmount = getConfig().isInt(configPath + ".Amount")
 						? getConfig().getInt(configPath + ".Amount")
 						: 1;
-				int ingredientCMD = getConfig().isInt(configPath + ".CustomModelData")
-						? getConfig().getInt(configPath + ".CustomModelData")
+				int ingredientCMD = getConfig().isInt(configPath + ".Custom-Model-Data")
+						? getConfig().getInt(configPath + ".Custom-Model-Data")
 						: -1;
 
 				logDebug("Ingredient Name: " + ingredientName, recipe.getName());
@@ -950,6 +1151,9 @@ public class RecipeManager {
 				recipeIngredient.setIdentifier(ingredientIdentifier);
 				recipeIngredient.setAmount(ingredientAmount);
 				recipeIngredient.setSlot(slot);
+
+				// handles material choice inputs for ingredients
+				handleMaterialChoice(recipe, recipeIngredient, configPath);
 
 				if (rawMaterial.get().getData() != 0) {
 					logDebug("[LegacyID] Found legacy ID - " + ingredientMaterial + ", with a short value of "
@@ -973,17 +1177,22 @@ public class RecipeManager {
 				recipe.setPerm(getConfig().getString(item + ".Permission"));
 
 			getRecipeUtil().createRecipe(recipe);
+			if (delayedRecipes.isEmpty() && name != null) {
+				getRecipeUtil().registerRecipe(recipe);
+				return;
+			}
 		}
 
-		if (name == null && !delayedRecipes.isEmpty()) {
+		if (!delayedRecipes.isEmpty() && name == null) {
 			for (String recipe : delayedRecipes)
 				addRecipes(recipe);
 
 			delayedRecipes.clear();
 		}
 
-		if (delayedRecipes.isEmpty())
+		if (delayedRecipes.isEmpty()) {
 			getRecipeUtil().reloadRecipes();
+		}
 	}
 
 	boolean hasItemDamage(String item, Optional<XMaterial> type) {
@@ -1023,13 +1232,33 @@ public class RecipeManager {
 		if (!(validMaterial(item, path.getString(item + ".Item"), type)))
 			return Optional.empty();
 
-		ItemStack i = hasItemDamage(item, type) ? handleItemDamage(item, type)
-				: new ItemStack(type.get().parseMaterial(), 1);
+		ItemStack i = hasItemDamage(item, type) ? handleItemDamage(item, type) : new ItemStack(type.get().get(), 1);
 		ItemMeta m = i.getItemMeta();
 
+		if (isHavenBag(item)) {
+			if (!(hasHavenBag())) {
+				logError("Error loading recipe..", item);
+				logError("Found a havenbag recipe, but no havenbags plugin found. Skipping recipe..", item);
+				return Optional.empty();
+			}
+			return Optional.of(handleBagCreation(i.getType(), 0, 0, "null", null, item));
+		}
+
 		// handle head textures
-		if (handleHeadTexture(path.getString(item + ".Item")) != null)
-			i = handleHeadTexture(path.getString(item + ".Item"));
+		ItemStack texture = handleHeadTexture(path.getString(item + ".Item"));
+		if (texture != null) {
+			i = texture;
+		}
+
+		// handle potions
+		if (type.get() == XMaterial.POTION) {
+			if (Main.getInstance().serverVersionLessThan(1, 9)) {
+				logError("Error loading recipe..", item);
+				logError("Potions are only supported on > 1.9! Skipping recipe..", item);
+				return Optional.empty();
+			}
+			i = handlePotions(item);
+		}
 
 		i = handleEnchants(i, item);
 		i = handleCustomEnchants(i, item);
@@ -1049,15 +1278,15 @@ public class RecipeManager {
 
 	public void addRecipesFromAPI(Recipe specificRecipe) {
 		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
-		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes();
+		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes() == null ? null
+				: new HashMap<>(recipeUtil.getAllRecipes());
 
-		if (recipeList == null) {
+		if (recipeList == null || recipeList.isEmpty()) {
 			logError("No recipes were found to load..", "");
 			return;
 		}
 		if (specificRecipe != null) {
-			if (recipeList.containsKey(specificRecipe.getName()))
-				recipeList.remove(specificRecipe.getName());
+			recipeList.clear();
 			recipeList.put(specificRecipe.getName(), specificRecipe);
 		}
 
@@ -1075,55 +1304,62 @@ public class RecipeManager {
 				switch (recipe.getType()) {
 				case SHAPELESS:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						shapelessRecipe = Main.getInstance().exactChoice.createShapelessRecipe(recipe);
+						shapelessRecipe = Main.getInstance().exactChoice
+								.createShapelessRecipe((CraftingRecipeData) recipe);
 						break;
 					}
 
-					shapelessRecipe = createShapelessRecipe(recipe);
+					shapelessRecipe = createShapelessRecipe((CraftingRecipeData) recipe);
 					break;
 
 				case SHAPED:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						shapedRecipe = Main.getInstance().exactChoice.createShapedRecipe(recipe);
+						shapedRecipe = Main.getInstance().exactChoice.createShapedRecipe((CraftingRecipeData) recipe);
 						break;
 					}
 
-					shapedRecipe = createShapedRecipe(recipe);
+					shapedRecipe = createShapedRecipe((CraftingRecipeData) recipe);
 					break;
 
 				case FURNACE:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						furnaceRecipe = Main.getInstance().exactChoice.createFurnaceRecipe(recipe);
+						furnaceRecipe = Main.getInstance().exactChoice.createFurnaceRecipe((CookingRecipeData) recipe);
 						break;
 					}
 
-					furnaceRecipe = createFurnaceRecipe(recipe);
+					furnaceRecipe = createFurnaceRecipe((CookingRecipeData) recipe);
 					break;
 
 				case BLASTFURNACE:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						blastRecipe = Main.getInstance().exactChoice.createBlastFurnaceRecipe(recipe);
+						blastRecipe = Main.getInstance().exactChoice
+								.createBlastFurnaceRecipe((CookingRecipeData) recipe);
 					}
 					break;
 
 				case SMOKER:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						smokerRecipe = Main.getInstance().exactChoice.createSmokerRecipe(recipe);
+						smokerRecipe = Main.getInstance().exactChoice.createSmokerRecipe((CookingRecipeData) recipe);
 					}
 					break;
 
 				case STONECUTTER:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						sCutterRecipe = Main.getInstance().exactChoice.createStonecuttingRecipe(recipe);
+						sCutterRecipe = Main.getInstance().exactChoice
+								.createStonecuttingRecipe((WorkstationRecipeData) recipe);
 					}
 					break;
 
 				case CAMPFIRE:
 					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
-						campfireRecipe = Main.getInstance().exactChoice.createCampfireRecipe(recipe);
+						campfireRecipe = Main.getInstance().exactChoice
+								.createCampfireRecipe((CookingRecipeData) recipe);
 					}
 					break;
 
+				case BREWING_STAND:
+					setBrewingItems((BrewingRecipeData) recipe);
+					break;
 				default:
 					break;
 				}
@@ -1153,7 +1389,7 @@ public class RecipeManager {
 	}
 
 	@SuppressWarnings("deprecation")
-	private ShapelessRecipe createShapelessRecipe(Recipe recipe) {
+	private ShapelessRecipe createShapelessRecipe(CraftingRecipeData recipe) {
 		ShapelessRecipe shapelessRecipe;
 
 		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
@@ -1178,7 +1414,7 @@ public class RecipeManager {
 	}
 
 	@SuppressWarnings("deprecation")
-	private ShapedRecipe createShapedRecipe(Recipe recipe) {
+	private ShapedRecipe createShapedRecipe(CraftingRecipeData recipe) {
 		ShapedRecipe shapedRecipe;
 
 		ArrayList<String> ingredients = new ArrayList<String>();
@@ -1209,7 +1445,7 @@ public class RecipeManager {
 	}
 
 	@SuppressWarnings("deprecation")
-	private FurnaceRecipe createFurnaceRecipe(Recipe recipe) {
+	private FurnaceRecipe createFurnaceRecipe(CookingRecipeData recipe) {
 
 		FurnaceRecipe furnaceRecipe;
 
@@ -1229,7 +1465,7 @@ public class RecipeManager {
 	}
 
 	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
-		if (type == null || !type.isPresent()) {
+		if (type == null || !type.isPresent() || type.get().get() == null) {
 			if (isCustomItem(materialInput))
 				return false;
 
@@ -1242,7 +1478,12 @@ public class RecipeManager {
 		return true;
 	}
 
-	void setFurnaceSource(Recipe recipe) {
+	void setBrewingItems(BrewingRecipeData recipe) {
+		recipe.setBrewIngredient(recipe.getSlot(1));
+		recipe.setBrewFuel(recipe.getSlot(2));
+	}
+
+	void setFurnaceSource(CookingRecipeData recipe) {
 		Ingredient sourceItem = recipe.getSlot(1);
 		ItemStack source = null;
 
@@ -1259,9 +1500,26 @@ public class RecipeManager {
 				source.getItemMeta().setCustomModelData(sourceItem.getCustomModelData());
 		}
 
-		recipe.setFurnaceSource(source);
+		recipe.setSource(source);
 	}
 
+	boolean isVersionSupported(RecipeType type, String item) {
+		List<RecipeType> v16_Types = Arrays.asList(RecipeType.GRINDSTONE);
+		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS);
+		
+		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type)) {
+			logError("Error loading recipe..", item);
+			logError(">= 1.14 is required for " + type.toString() + " recipes!", item);
+			return false;
+		}
+		if (Main.getInstance().serverVersionLessThan(1, 16) && v16_Types.contains(type)) {
+			logError("Error loading recipe..", item);
+			logError(">= 1.16 is required for " + type.toString() + " recipes!", item);
+			return false;
+		}
+		return true;
+	}
+	
 	boolean isCustomItem(String id) {
 		String[] key = id.split(":");
 		if (key.length < 2)
@@ -1294,7 +1552,7 @@ public class RecipeManager {
 	private void logDebug(String st, String recipe) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING,
-					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
+					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe.replaceAll(".Result", "") + "] " + st);
 	}
 
 	private FileConfiguration getConfig() {

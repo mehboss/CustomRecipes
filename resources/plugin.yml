@@ -9,12 +9,11 @@ commands:
   crecipe:
     description: Displays the custom recipe help page.
     aliases: [crecipes, customrecipe, customrecipes, customr, cr]
-    permissions:
-      crecipe.*:
-        default: op
   edititem:
     description: NBT Editor for items!
     aliases: [ei, edit]
-    permissions:
-      crecipe.*:
-        default: op
+    permission: crecipe.edititem
+  recipes:
+    description: Opens the recipe booklet!
+    aliases: [recipe]
+    permission: crecipe.book

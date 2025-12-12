@@ -8,11 +8,15 @@ import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.BrewingRecipeData;
+import me.mehboss.utils.data.CookingRecipeData;
+import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.data.WorkstationRecipeData;
 
 public class CommandRecipe {
 
 	static RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
 
 	// Keep the method header as requested
@@ -32,11 +36,11 @@ public class CommandRecipe {
 		String typeRaw = args[1];
 		RecipeType type;
 		try {
-			type = RecipeType.valueOf(typeRaw.toUpperCase());
+			type = RecipeType.fromString(typeRaw.toUpperCase());
 		} catch (IllegalArgumentException ex) {
 			sender.sendMessage(ChatColor.RED + "[CustomRecipes] Invalid recipe type: " + typeRaw);
 			sender.sendMessage(ChatColor.GRAY
-					+ "Valid types: SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE, BREWING_STAND");
+					+ "Valid types: SHAPELESS, SHAPED, STONECUTTER, FURNACE, ANVIL, BLASTFURNACE, SMOKER, CAMPFIRE, GRINDSTONE, BREWING");
 			return true;
 		}
 
@@ -61,11 +65,43 @@ public class CommandRecipe {
 		// Optional permission
 		String permission = (args.length >= 4) ? args[3] : "none";
 
+		Recipe recipe;
+		switch (type) {
+
+		case SHAPED:
+		case SHAPELESS:
+			recipe = new CraftingRecipeData(id);
+			break;
+
+		case FURNACE:
+		case BLASTFURNACE:
+		case SMOKER:
+		case CAMPFIRE:
+			recipe = new CookingRecipeData(id);
+			break;
+
+		case STONECUTTER:
+		case GRINDSTONE:
+		case ANVIL:
+			recipe = new WorkstationRecipeData(id);
+			break;
+
+		case BREWING_STAND:
+			recipe = new BrewingRecipeData(id);
+			break;
+
+		default:
+			throw new IllegalArgumentException("Unsupported recipe type: " + type);
+		}
+
+		recipe.setType(type);
+		recipe.setPerm(permission);
+		
 		sender.sendMessage(
 				ChatColor.translateAlternateColorCodes('&', "&c[CustomRecipes] &fPreparing to create recipe:&r "));
 		sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&fType= &a" + type.toString() + " &fID= &a" + id + " &fPermission= &a" + permission));
-		Main.getInstance().recipes.showCreationMenu(null, null, (Player) sender, id, permission, true, false, type);
+		Main.getInstance().recipes.showCreationMenu((Player) sender, recipe, true, false);
 		return true;
 	}
 }

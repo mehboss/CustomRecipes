@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>CustomRecipes</groupId>
   <artifactId>CustomRecipes</artifactId>
-  <version>2.0.5.1</version>
+  <version>2.0.5.6</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
@@ -14,6 +14,22 @@
       </resource>
     </resources>
     <plugins>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>javadoc</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <failOnError>false</failOnError>
+          <quiet>true</quiet>
+          <excludePackageNames>me.mehboss.recipe.*</excludePackageNames>
+        </configuration>
+      </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
@@ -34,23 +50,24 @@
           </execution>
         </executions>
         <configuration>
+          <minimizeJar>true</minimizeJar>
           <filters>
             <filter>
               <artifact>*:*</artifact>
-              <excludes>
-                <exclude>com/cryptomorin/xseries/XBiome*</exclude>
-                <exclude>com/cryptomorin/xseries/XBlock*</exclude>
-                <exclude>com/cryptomorin/xseries/XEntity*</exclude>
-                <exclude>com/cryptomorin/xseries/XEntityType*</exclude>
-                <exclude>com/cryptomorin/xseries/XItemStack*</exclude>
-                <exclude>com/cryptomorin/xseries/XWorldBorder*</exclude>
-                <exclude>com/cryptomorin/xseries/XTag*</exclude>
-                <exclude>com/cryptomorin/xseries/NMSExtras*</exclude>
-                <exclude>com/cryptomorin/xseries/NoteBlockMusic*</exclude>
-                <exclude>com/cryptomorin/xseries/SkullCacheListener*</exclude>
-              </excludes>
             </filter>
           </filters>
+          <relocations>
+            <relocation>
+              <pattern>de.tr7zw.changeme.nbtapi</pattern>
+              <shadedPattern>me.mehboss.utils.nbtapi</shadedPattern>
+            </relocation>
+            <relocation>
+              <pattern>com.cryptomorin.xseries</pattern>
+              <shadedPattern>me.mehboss.shaded.xseries</shadedPattern>
+            </relocation>
+          </relocations>
+          <finalName>${project.artifactId}-${project.version}</finalName>
+          <shadedArtifactAttached>false</shadedArtifactAttached>
         </configuration>
       </plugin>
     </plugins>
@@ -205,6 +222,12 @@
       <groupId>com.mojang</groupId>
       <artifactId>authlib</artifactId>
       <version>6.0.54</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.Valorless</groupId>
+      <artifactId>HavenBags</artifactId>
+      <version>156279014a</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

@@ -2,13 +2,14 @@ WheatSand:
   Enabled: true
   Exact-Choice: true
   Auto-Discover-Recipe: true
-  Book-Category: 'MISC'
-  Item: SAND
-  Amount: 1
   Identifier: WHEATSAND
   Converter: FURNACE
+  Book-Category: 'MISC'
   Cooktime: 20 # In ticks - 20 ticks per second
   Experience: 1
+  Result:
+    Item: SAND
+    Amount: 1
   ItemCrafting:
   - WXX
   - XXX
@@ -18,7 +19,4 @@ WheatSand:
       Material: WHEAT_SEEDS
       Identifier: none
       Amount: 1
-  Item-Flags: []
-  Attribute: []
   Disabled-Worlds: []
-  Custom-Tags: []

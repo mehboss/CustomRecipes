@@ -11,7 +11,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 public class CommandShow {
 
 	static RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().recipeUtil;
 	}
 
 	public static boolean Run(CRCommand command) {
@@ -22,7 +22,7 @@ public class CommandShow {
 			sender.sendMessage(ChatColor.RED + "[CustomRecipes] Usage: /crecipe show <id>");
 			return true;
 		}
-		
+
 		String id = args[1].toLowerCase();
 		// Check if recipe already exists
 		Recipe existing = getRecipeUtil().getRecipeFromKey(id);
@@ -33,8 +33,7 @@ public class CommandShow {
 
 		Player p = (Player) sender;
 		sender.sendMessage(ChatColor.RED + "[CustomRecipes] Showing recipe with ID '" + id + "'..");
-		Main.getInstance().recipes.showCreationMenu(null, existing.getResult(), p, existing.getName(), null, false,
-				false, null);
+		Main.getInstance().recipes.showCreationMenu(p, existing, false, false);
 		return true;
 	}
 }

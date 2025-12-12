@@ -1,10 +1,8 @@
 CursedSword: 
   Enabled: true
   Shapeless: true
+  Group: ''
   Cooldown: -1
-  Item: 'DIAMOND_SWORD'
-  Item-Damage: 'none'
-  Amount: 1
   Placeable: true
   Exact-Choice: false
   Custom-Tagged: true
@@ -13,14 +11,23 @@ CursedSword:
   Permission: 'crecipe.recipe.cursedsword'
   Auto-Discover-Recipe: true
   Book-Category: 'MISC'
-  Name: '&eCursed Sword'
-  Lore:
-   - '&fThe Cursed Sword'
+  Result:
+    Item: 'DIAMOND_SWORD'
+    Item-Damage: 'none'
+    Durability: '100'
+    Amount: 1
+    Name: '&eCursed Sword'
+    Lore:
+     - '&fThe Cursed Sword'
+    Enchantments:
+     - 'DURABILITY:255'
+    Hide-Enchants: true
+    Custom-Model-Data: none
+    Item-Flags: []
+    Attribute: []
+    Custom-Tags: []
   Effects:
    - 'POISON:20:2'
-  Hide-Enchants: true
-  Enchantments:
-   - 'DURABILITY:255'
   Commands:
     Give-Item: true
     Run-Commands: []
@@ -50,9 +57,5 @@ CursedSword:
     Ignore-Name: false
   Use-Conditions: false
   Conditions_All: []
-  Custom-Tags: []
-  Item-Flags: []
-  Attribute: []
-  Custom-Model-Data: none
   Disabled-Worlds: []
    

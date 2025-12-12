@@ -4,17 +4,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType.SlotType;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapelessRecipe;
@@ -23,10 +29,13 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CooldownManager.Cooldown;
+import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.data.CraftingRecipeData;
 
 public class AmountManager implements Listener {
 
@@ -41,8 +50,16 @@ public class AmountManager implements Listener {
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
 	}
 
+	CooldownManager getCooldownManager() {
+		return Main.getInstance().cooldownManager;
+	}
+
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
+	}
+
+	ShapedChecks shapedChecks() {
+		return Main.getInstance().shapedChecks;
 	}
 
 	private boolean hasAllIngredients(CraftingInventory inv, String recipes, List<Ingredient> recipeIngredients,
@@ -56,8 +73,9 @@ public class AmountManager implements Listener {
 	}
 
 	// Helper method for the handleShiftClick method
-	void handlesItemRemoval(CraftItemEvent e, CraftingInventory inv, Recipe recipe, ItemStack item,
-			RecipeUtil.Ingredient ingredient, int slot, int itemsToRemove, int itemsToAdd, int requiredAmount) {
+	void handlesItemRemoval(CraftItemEvent e, CraftingInventory inv, CraftingRecipeData recipe, ItemStack item,
+			RecipeUtil.Ingredient ingredient, int slot, int itemsToRemove, int itemsToAdd, int requiredAmount,
+			AtomicBoolean containerCraft) {
 
 		String recipeName = recipe.getName();
 		logDebug("[handleShiftClicks] Checking slot " + slot + " for the recipe " + recipeName);
@@ -90,12 +108,36 @@ public class AmountManager implements Listener {
 			}
 
 			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-				if ((item.getAmount() + 1) - requiredAmount == 0)
-					inv.setItem(slot, null);
-				else
+				if (item.getAmount() == 1 && !containerCraft.get())
+					return;
+
+				if (((item.getAmount()) - requiredAmount == 0)) {
+					if (containerCraft.get() && !recipe.isLeftover(id)) {
+						Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+							inv.setItem(slot, null);
+						});
+						return;
+					}
+					// set to 1, not 0, since we don't cancel the event. Vanilla will handle the
+					// leftover.
+					item.setAmount(1);
+				} else {
+					if (containerCraft.get()) {
+						// remove exact, since containers are cancelled, normal vanilla deduction does
+						// not happen.
+						item.setAmount((item.getAmount()) - requiredAmount);
+						return;
+					}
 					item.setAmount((item.getAmount() + 1) - requiredAmount);
+				}
 			} else {
 				if ((item.getAmount() - itemsToRemove) <= 0) {
+					if (containerCraft.get() && !recipe.isLeftover(id)) {
+						Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+							inv.setItem(slot, null);
+						});
+						return;
+					}
 					inv.setItem(slot, null);
 					return;
 				}
@@ -112,11 +154,10 @@ public class AmountManager implements Listener {
 		ItemStack customItem = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
 				: null;
 
-		return (customItem != null && item.isSimilar(customItem))
-				|| (craftManager.tagsMatch(ingredient, item)
-						|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
-						|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
-								ingredient.getIdentifier(), hasIdentifier, false)));
+		return (customItem != null && item.isSimilar(customItem)) || (craftManager.tagsMatch(ingredient, item)
+				|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
+				|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
+						ingredient.getIdentifier(), hasIdentifier, false)));
 	}
 
 	boolean isCraftingRecipe(RecipeType type) {
@@ -133,222 +174,261 @@ public class AmountManager implements Listener {
 		if (inv.getResult() == null || inv.getResult().getType() == Material.AIR)
 			return;
 
-		// added debounce mechanism, which will automatically remove after 75ms to
-		// greatly improve server performance on large amounts of crafts (such as
-		// concrete power)
+		// debounce
+		logDebug("[handleShiftClicks] Fired #1");
+
+		Recipe matched = getRecipeUtil().getRecipeFromResult(inv.getResult());
 		Main.getInstance().debounceMap.put(id, System.currentTimeMillis());
-		if (getRecipeUtil().getRecipeFromResult(inv.getResult()) == null)
+		if (matched == null)
 			return;
 
-		logDebug("[handleShiftClicks] Fired amount checking mechanics..");
+		logDebug("[handleShiftClicks] Fired #2");
 
 		if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 			return;
 
-		String findName = getRecipeUtil().getRecipeFromResult(inv.getResult()) != null
-				? getRecipeUtil().getRecipeFromResult(inv.getResult()).getName()
-				: null;
+		ItemStack cursor = e.getCursor();
+		ItemStack result = inv.getResult();
+		String findName = matched.getName();
+		boolean isShapeless = e.getRecipe() instanceof ShapelessRecipe;
 
-		final ItemStack result = inv.getResult();
-		boolean isShapeless = e.getRecipe() instanceof ShapelessRecipe ? true : false;
 		HashMap<String, Recipe> types = isShapeless ? getRecipeUtil().getRecipesFromType(RecipeType.SHAPELESS)
 				: getRecipeUtil().getRecipesFromType(RecipeType.SHAPED);
 
-		logDebug("[handleShiftClicks] Initial recipe found recipe '" + findName + "' to handle..");
-
 		if (NBTEditor.contains(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
 			String foundID = NBTEditor.getString(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
-
-			if (getRecipeUtil().getRecipeFromKey(foundID) != null) {
-				findName = getRecipeUtil().getRecipeFromKey(foundID).getName();
-			}
+			Recipe keyedRecipe = getRecipeUtil().getRecipeFromKey(foundID);
+			if (keyedRecipe != null)
+				findName = keyedRecipe.getName();
 		}
 
-		// safe guard check to prevent matches to other recipes types
-		if (types != null && !types.isEmpty())
-			for (Recipe recipe : types.values()) {
-				ItemStack item = recipe.getResult();
-				if (hasAllIngredients(inv, recipe.getName(), recipe.getIngredients(), id)
-						&& (result.equals(item) || result.isSimilar(item))) {
-					findName = recipe.getName();
+		// safeguard: match correct custom recipe result
+		if (types != null)
+			for (Recipe r : types.values()) {
+				ItemStack itm = r.getResult();
+				if ((result.equals(itm) || result.isSimilar(itm))
+						&& hasAllIngredients(inv, r.getName(), r.getIngredients(), id)) {
+					findName = r.getName();
 					break;
 				}
 			}
 
-		logDebug("[handleShiftClicks] Actual found recipe '" + findName + "' to handle..");
+		logDebug("[handleShiftClicks] Final recipe = " + findName);
 
-		if (findName == null)
+		CraftingRecipeData recipe = (CraftingRecipeData) getRecipeUtil().getRecipe(findName);
+		if (recipe == null)
 			return;
 
-		logDebug("[handleShiftClicks] Paired it to a custom recipe. Running crafting amount calculations..");
-
-		final String recipeName = findName;
-		if (e.isCancelled()) {
-			logDebug("Couldn't complete craftItemEvent for recipe " + recipeName
-					+ ", the event was unexpectedly cancelled.");
-			logDebug("Please seek support or open a ticket https://github.com/mehboss/CustomRecipes/issues");
-			return;
+		if (!recipe.isGrantItem()) {
+			if (e.getAction() == InventoryAction.DROP_ONE_SLOT || e.getAction() == InventoryAction.DROP_ALL_SLOT) {
+				logDebug("[handleShiftClicks] Denying craft due to drop request on an ungrantable item..");
+				e.setCancelled(true);
+				return;
+			}
 		}
 
-		Recipe recipe = getRecipeUtil().getRecipe(recipeName);
-		ArrayList<String> handledIngredients = new ArrayList<String>();
+		// prevents "ghost crafts" where the item isn't supposed to craft, but
+		// CraftItemEvent still fires.
+		if (cursor != null && cursor.getType() != Material.AIR) {
+			boolean canStackWithResult = cursor.isSimilar(result)
+					&& cursor.getAmount() + result.getAmount() <= cursor.getMaxStackSize();
 
-		// =========================
-		// PASS 1: compute itemsToAdd
-		// bottleneck across ingredients based on required amounts
-		// =========================
+			if (!canStackWithResult) {
+				e.setCancelled(true);
+				return;
+			}
+		}
+
+		RecipeType type = recipe.getType();
+		ArrayList<String> handledIngredients = new ArrayList<>();
+
+		// ============================================================
+		// PASS 1 — ITEMS TO ADD
+		// ============================================================
 		int itemsToAdd = Integer.MAX_VALUE;
 		int itemsToRemove = 0;
 
-		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
-			if (ingredient.isEmpty())
-				continue;
+		ShapedChecks.AlignedResult aligned = null;
 
-			final int requiredAmount = Math.max(1, ingredient.getAmount());
-			int totalAvailable = 0;
+		if (type == RecipeType.SHAPED) {
 
-			if (recipe.getType() == RecipeType.SHAPELESS) {
-				// Sum across ALL crafting grid slots (1..9) that match THIS ingredient
+			aligned = shapedChecks().getAlignedGrid(inv, recipe.getIngredients());
+			if (aligned == null) {
+				// cannot craft at all
+				itemsToAdd = 0;
+			} else {
+
+				for (int i = 0; i < recipe.getIngredients().size(); i++) {
+
+					Ingredient ing = recipe.getIngredients().get(i);
+					if (ing.isEmpty())
+						continue;
+
+					ItemStack stack = aligned.getMatrix[i];
+					if (stack == null || stack.getType() == Material.AIR) {
+						itemsToAdd = 0;
+						break;
+					}
+
+					int requiredAmount = Math.max(1, ing.getAmount());
+					int possible = stack.getAmount() / requiredAmount;
+					itemsToAdd = Math.min(itemsToAdd, possible);
+				}
+			}
+
+		} else {
+			// shapeless
+			for (Ingredient ing : recipe.getIngredients()) {
+				if (ing.isEmpty())
+					continue;
+				int req = Math.max(1, ing.getAmount());
+
 				for (int i = 1; i < 10; i++) {
 					ItemStack slot = inv.getItem(i);
 					if (slot == null || slot.getType() == Material.AIR)
 						continue;
 
-					if (matchesIngredient(slot, recipeName, ingredient, ingredient.getMaterial(),
-							ingredient.getDisplayName(), ingredient.hasIdentifier())) {
-						totalAvailable += slot.getAmount();
-					}
-				}
-			} else {
-				// SHAPED / fixed-slot types: only the ingredient's slot counts
-				int fixed = ingredient.getSlot();
-				ItemStack slot = inv.getItem(fixed);
-				if (slot != null && slot.getType() != Material.AIR && matchesIngredient(slot, recipeName, ingredient,
-						ingredient.getMaterial(), ingredient.getDisplayName(), ingredient.hasIdentifier())) {
-					totalAvailable = slot.getAmount();
+					if (!matchesIngredient(slot, findName, ing, ing.getMaterial(), ing.getDisplayName(),
+							ing.hasIdentifier()))
+						continue;
+
+					int possible = slot.getAmount() / req;
+					itemsToAdd = Math.min(itemsToAdd, possible);
 				}
 			}
-
-			int possibleForThisIngredient = totalAvailable / requiredAmount; // floor
-			itemsToAdd = Math.min(itemsToAdd, possibleForThisIngredient);
 		}
 
-		// If nothing craftable, bail before removal logic
 		if (itemsToAdd <= 0 || itemsToAdd == Integer.MAX_VALUE) {
-			logDebug("[handleShiftClicks][" + findName
-					+ "] An issue has been detected whilest calculating amount deductions..");
-			logDebug("Please reach out for support to report this.. this shouldn't happen.");
+			logDebug("[handleShiftClicks][" + findName + "] No possible crafts.");
 			e.setCancelled(true);
 			return;
 		}
 
-		// =========================
-		// PASS 2:
-		// =========================
-		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
-			if (ingredient.isEmpty())
-				continue;
+		boolean recipeHasContainer = recipe.getAllIngredientTypes().stream()
+				.anyMatch(mat -> mat == XMaterial.DRAGON_BREATH.get() || mat == XMaterial.POTION.get()
+						|| mat == XMaterial.LINGERING_POTION.get() || mat.toString().contains("_BUCKET"));
+		AtomicBoolean containerCraft = new AtomicBoolean(recipeHasContainer);
 
-			final Material material = ingredient.getMaterial();
-			final String displayName = ingredient.getDisplayName();
-			final int requiredAmount = Math.max(1, ingredient.getAmount());
-			final boolean hasIdentifier = ingredient.hasIdentifier();
+		// ============================================================
+		// PASS 2 — REMOVE ITEMS
+		// ============================================================
+		if (type == RecipeType.SHAPED) {
 
-			if (recipe.getType() == RecipeType.SHAPELESS) {
-				logDebug("[handleShiftClicks] Found shapeless recipe to handle..");
+			for (int i = 0; i < recipe.getIngredients().size(); i++) {
+
+				Ingredient ing = recipe.getIngredients().get(i);
+				if (ing.isEmpty())
+					continue;
+
+				int realInvSlot = aligned.invSlotMap[i];
+				ItemStack stack = inv.getItem(realInvSlot);
+				if (stack == null || stack.getType() == Material.AIR)
+					continue;
+
+				int requiredAmount = Math.max(1, ing.getAmount());
+
+				handlesItemRemoval(e, inv, recipe, stack, ing, realInvSlot, itemsToRemove, itemsToAdd, requiredAmount,
+						containerCraft);
+			}
+
+		} else {
+			// shapeless
+			for (Ingredient ing : recipe.getIngredients()) {
+				if (ing.isEmpty())
+					continue;
+
+				final Material mat = ing.getMaterial();
+				final String name = ing.getDisplayName();
+				final boolean hasID = ing.hasIdentifier();
+				int req = Math.max(1, ing.getAmount());
 
 				for (int i = 1; i < 10; i++) {
-					ItemStack item = inv.getItem(i);
-					int slot = i;
-
-					if (item == null || item.getType() == Material.AIR)
+					ItemStack stack = inv.getItem(i);
+					if (stack == null || stack.getType() == Material.AIR)
 						continue;
 
-					if (!matchesIngredient(item, recipeName, ingredient, material, displayName, hasIdentifier))
+					if (!matchesIngredient(stack, findName, ing, mat, name, hasID))
 						continue;
 
-					if (!handledIngredients.contains(ingredient.getAbbreviation())) {
-						handlesItemRemoval(e, inv, recipe, item, ingredient, slot, itemsToRemove, itemsToAdd,
-								requiredAmount);
+					if (!handledIngredients.contains(ing.getAbbreviation())) {
+						handlesItemRemoval(e, inv, recipe, stack, ing, i, itemsToRemove, itemsToAdd, req,
+								containerCraft);
 					}
 				}
 
-				if (!handledIngredients.contains(ingredient.getAbbreviation()))
-					handledIngredients.add(ingredient.getAbbreviation());
-
-			} else {
-				logDebug("[handleShiftClicks] Found other recipe type to handle..");
-
-				ItemStack item = inv.getItem(ingredient.getSlot());
-				int slot = ingredient.getSlot();
-
-				if (item == null || item.getType() == Material.AIR)
-					continue;
-
-				handlesItemRemoval(e, inv, recipe, item, ingredient, slot, itemsToRemove, itemsToAdd, requiredAmount);
+				handledIngredients.add(ing.getAbbreviation());
 			}
 		}
 
+		// ============================================================
+		// COMMANDS + OUTPUT
+		// ============================================================
 		Player player = (Player) e.getWhoClicked();
-		Main.getInstance().cooldownManager.setCooldown(player.getUniqueId(), recipe.getKey(),
-				System.currentTimeMillis());
+		Cooldown cooldown = new Cooldown(recipe.getKey(), recipe.getCooldown());
+		getCooldownManager().addCooldown(player.getUniqueId(), cooldown);
 
-		// Delayed task to prevent debug spam
+		// debug suppression window
 		Main.getInstance().inInventory.add(id);
-		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-			Main.getInstance().inInventory.remove(id);
-		}, 2L);
+		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Main.getInstance().inInventory.remove(id), 2L);
 
-		// Handles the commands portion
 		if (recipe.hasCommands()) {
-			logDebug("[ExecuteCMD] Found commands to run for recipe " + recipeName);
-
 			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY)
 				itemsToAdd = 1;
 
-			for (int n = 0; n < itemsToAdd; n++) {
-				for (String command : recipe.getCommand()) {
-					String parsed = command.replace("%crafter%", player.getName());
-					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
-				}
-			}
+			for (int n = 0; n < itemsToAdd; n++)
+				for (String cmd : recipe.getCommand())
+					Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%crafter%", player.getName()));
 
 			if (!recipe.isGrantItem()) {
-				logDebug("[ExecuteCMD] Cancelling craft of " + recipeName
-						+ " because a command to perform was found instead.");
-				Bukkit.getScheduler().runTaskLater(Main.getInstance(), new Runnable() {
-					@Override
-					public void run() {
-						e.getWhoClicked().setItemOnCursor(null);
-					}
-				}, 2L);
-
+				Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> e.getWhoClicked().setItemOnCursor(null),
+						2L);
 				return;
 			}
 		}
 
-		// Add the result items to the player's inventory
 		if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-			logDebug("[handleShiftClicks] Didn't detect shift click from inventory.. Ignoring..");
+			logDebug("[handleShiftClicks] Normal click, no mass-add");
 
-		} else {
-			e.setCancelled(true);
+			if (containerCraft.get()) {
+				e.setCancelled(true);
 
-			if (recipe.hasCommands() && !recipe.isGrantItem())
-				return;
+				logDebug("[handleShiftClicks] Manual handle of container, since vanilla mechanics replace.");
+				if (cursor == null || cursor.getType() == Material.AIR)
+					player.setItemOnCursor(result.clone());
+				else if (cursor.isSimilar(result))
+					cursor.setAmount(cursor.getAmount() + result.getAmount());
+				else
+					return;
 
-			inv.setResult(new ItemStack(Material.AIR));
-
-			for (int i = 0; i < itemsToAdd; i++) {
-				if (player.getInventory().firstEmpty() == -1) {
-					player.getLocation().getWorld().dropItem(player.getLocation(), result);
-					continue;
-				}
-				player.getInventory().addItem(result);
+				// since we cancel, we have to retrigger an evaluation manually
+				Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+					PrepareItemCraftEvent event = new PrepareItemCraftEvent(inv, e.getView(), false);
+					Bukkit.getPluginManager().callEvent(event);
+				});
 			}
 
-			logDebug("[handleShiftClicks] Shift click detected. Adding " + itemsToAdd + " to inventory.");
-			logDebug("[handleShiftClicks] Added " + itemsToAdd + " items and removed items from table.");
+			if (itemsToAdd == 1)
+				Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+					inv.setResult(new ItemStack(Material.AIR));
+				});
+			return;
 		}
+
+		// SHIFT CLICK OUTPUT
+		e.setCancelled(true);
+
+		if (recipe.hasCommands() && !recipe.isGrantItem())
+			return;
+
+		inv.setResult(new ItemStack(Material.AIR));
+
+		for (int i = 0; i < itemsToAdd; i++) {
+			if (player.getInventory().firstEmpty() == -1)
+				player.getWorld().dropItem(player.getLocation(), result.clone());
+			else
+				player.getInventory().addItem(result.clone());
+		}
+
+		logDebug("[handleShiftClicks] Added x" + itemsToAdd);
 	}
 }

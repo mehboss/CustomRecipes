@@ -19,7 +19,7 @@ public class CommandGive {
 
 	public static boolean Run(CRCommand command) {
 
-		Recipe recipe = Main.getInstance().getRecipeUtil().getRecipe(command.args[2]);
+		Recipe recipe = Main.getInstance().getRecipeUtil().getRecipeFromKey(command.args[2]);
 		CommandSender p = command.sender;
 		int amount = 1;
 
@@ -56,7 +56,7 @@ public class CommandGive {
 
 		// recipe id
 		if (recipe != null)
-			item = new ItemStack(Main.getInstance().getRecipeUtil().getRecipe(command.args[2]).getResult());
+			item = new ItemStack(recipe.getResult());
 		// custom item id
 		else
 			item = new ItemStack(ItemBuilder.get(command.args[2]));

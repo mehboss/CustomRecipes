@@ -19,6 +19,7 @@ import me.mehboss.commands.CommandItems;
 import me.mehboss.commands.CommandList;
 import me.mehboss.commands.CommandRecipe;
 import me.mehboss.commands.CommandReload;
+import me.mehboss.commands.CommandRemove;
 import me.mehboss.commands.CommandShow;
 
 public class CommandListener implements CommandExecutor {
@@ -46,6 +47,10 @@ public class CommandListener implements CommandExecutor {
 					return true;
 				}
 
+				if (args[0].equalsIgnoreCase("remove")) {
+					return CommandRemove.Run(cmd);
+				}
+				
 				if (args[0].equalsIgnoreCase("help")) {
 					return CommandHelp.Run(cmd);
 				}
@@ -74,6 +79,7 @@ public class CommandListener implements CommandExecutor {
 					return CommandCrafterDebug.Run(cmd);
 				}
 
+				// anything after this must require sender to be a player
 				if (!(sender instanceof Player)) {
 					sender.sendMessage("You must be a player in order to use this command!");
 					return true;

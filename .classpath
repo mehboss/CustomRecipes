@@ -11,8 +11,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/GreatLifeSteal.v2.0-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/BungeeCord.jar"/>
 	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/AdvancedEnchantments-8.7.4.jar"/>
 	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
 		<attributes>
@@ -25,7 +23,7 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/Users/timot/Downloads/new-plugins/HavenBags-1.25.0.1589.jar"/>
-	<classpathentry kind="lib" path="C:/Users/timot/Downloads/SCore-5.25.3.30.jar"/>
+	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/GreatLifeSteal.v1.7.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/timot/Documents/Minecraft Related/Plugins/SCore-5.25.11.26.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

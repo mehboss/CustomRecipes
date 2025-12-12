@@ -19,14 +19,34 @@ import org.bukkit.entity.Player;
 
 import me.mehboss.recipe.Main;
 
+/**
+ * Represents all optional conditions that may be required for a recipe
+ * to be considered valid before crafting/smelting/brewing/etc.
+ * <p>
+ * This container focuses on external world/state conditions such as
+ * time-of-day, biome, weather, world allow/deny lists, and more.
+ * <p>
+ * Each category of conditions is grouped into sub-objects. If a category
+ * contains no values, that category is ignored.
+ */
 public final class RecipeConditions {
 
+    /**
+     * Conditions related to the world or block environment in which
+     * the recipe is executed.
+     */
 	public static final class Block {
 		// World gating
 		public Set<String> allowWorlds = Collections.emptySet(); // lowercase
 		public Set<String> denyWorlds = Collections.emptySet(); // lowercase
 
-		// Time gating: one or more ranges like "13000-23000"
+		/**
+		 * Represents a range of valid in-game times for recipe conditions.
+		 * <p>
+		 * A range may be normal (e.g., {@code 0–12000}) or wrap around the
+		 * midnight boundary (e.g., {@code 23000–2000}). The {@link #contains(int)}
+		 * method automatically supports both.
+		 */
 		public static final class TimeRange {
 			public final int min; // inclusive
 			public final int max; // inclusive
@@ -234,6 +254,28 @@ public final class RecipeConditions {
 		}
 	}
 
+	/**
+	 * Calculates the current moon phase for the given world.
+	 * <p>
+	 * Minecraft cycles the moon every 8 in-game days.  
+	 * This method determines the phase by taking the world's total time
+	 * and converting it into a day index, then modulo 8.
+	 * <p>
+	 * Moon phases (0–7):
+	 * <ul>
+	 *   <li>0 – Full Moon</li>
+	 *   <li>1 – Waning Gibbous</li>
+	 *   <li>2 – Last Quarter</li>
+	 *   <li>3 – Waning Crescent</li>
+	 *   <li>4 – New Moon</li>
+	 *   <li>5 – Waxing Crescent</li>
+	 *   <li>6 – First Quarter</li>
+	 *   <li>7 – Waxing Gibbous</li>
+	 * </ul>
+	 *
+	 * @param world the world to read time information from
+	 * @return an integer 0–7 representing the current moon phase
+	 */
 	public static int getMoonPhase(World world) {
 		long day = world.getFullTime() / 24000L; // Get the in-game day
 		return (int) (day % 8); // Calculate the moon phase (0-7)

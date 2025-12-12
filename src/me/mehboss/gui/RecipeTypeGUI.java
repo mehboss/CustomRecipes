@@ -107,14 +107,12 @@ public class RecipeTypeGUI implements Listener {
 
 		Player p = (Player) e.getWhoClicked();
 		String name = ChatColor.stripColor(e.getCurrentItem().getItemMeta().getDisplayName());
-		if (name == null)
+		RecipeType type = name == null || name.split(" ").length < 1 ? null
+				: RecipeType.fromString(name.split(" ")[0].toUpperCase());
+		if (name == null || type == null)
 			return;
 
-		try {
-			RecipeType type = RecipeType.valueOf(name.split(" ")[0].toUpperCase());
-			BookGUI.openType(p, type); // send to BookGUI to show recipes of this type
-		} catch (Exception ignored) {
-		}
+		BookGUI.openType(p, type); // send to BookGUI to show recipes of this type
 	}
 
 	BookGUI BookGUI = Main.getInstance().recipes;

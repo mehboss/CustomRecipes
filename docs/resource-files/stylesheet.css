@@ -310,10 +310,10 @@ ol.sub-nav-list a.current-selection {
     margin:10px 0;
 }
 .sub-title {
-    margin:5px 0 0 0;
+    margin:5px 0 0;
 }
 ul.contents-list {
-    margin: 0 0 15px 0;
+    margin: 0 0 15px;
     padding: 0;
     list-style: none;
 }
@@ -368,7 +368,7 @@ dl.notes > dt {
     font-family: var(--body-font-family);
     font-size:0.856em;
     font-weight:bold;
-    margin:10px 0 0 0;
+    margin:10px 0 0;
     color:var(--body-text-color);
 }
 dl.notes > dd {
@@ -529,7 +529,7 @@ ul.block-list,
 ul.details-list,
 ul.member-list,
 ul.summary-list {
-    margin:4px 0 10px 0;
+    margin:4px 0 10px;
     padding:0;
 }
 ul.block-list > li,
@@ -601,7 +601,7 @@ ul.preview-feature-list {
 .caption span {
     font-weight:bold;
     white-space:nowrap;
-    padding:5px 12px 7px 12px;
+    padding:5px 12px 7px;
     display:inline-block;
     float:left;
     background-color:var(--selected-background-color);
@@ -615,7 +615,7 @@ div.table-tabs {
 div.table-tabs > button {
     border: none;
     cursor: pointer;
-    padding: 5px 12px 7px 12px;
+    padding: 5px 12px 7px;
     font-weight: bold;
     margin-right: 8px;
 }
@@ -782,7 +782,7 @@ div.block {
 .member-signature {
     font-family:var(--code-font-family);
     font-size:1em;
-    margin:8px 0 14px 0;
+    margin:8px 0 14px;
     white-space: pre-wrap;
 }
 .module-signature,
@@ -1016,7 +1016,7 @@ div.table-tabs > button.table-tab {
     color: var(--navbar-text-color);
 }
 .page-search-header {
-    padding: 5px 12px 7px 12px;
+    padding: 5px 12px 7px;
     font-weight: bold;
     margin-right: 3px;
     background-color:var(--navbar-background-color);
@@ -1040,7 +1040,7 @@ span#page-search-link {
     z-index: 5;
 }
 .inherited-list {
-    margin: 10px 0 10px 0;
+    margin: 10px 0;
 }
 .horizontal-scroll {
     overflow: auto hidden;

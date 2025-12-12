@@ -129,7 +129,7 @@ public class CrafterManager implements Listener {
 
 		Location location = crafter.getBlock().getLocation();
 		if (!recipe.isActive() || recipe.getDisabledWorlds().contains(location.getWorld().getName())
-				|| Main.getInstance().disabledrecipe.contains(recipe.getKey())) {
+				|| Main.getInstance().disabledrecipe.contains(recipe.getKey()) || recipe.hasCommands()) {
 
 			logDebug(" Attempt to craft recipe was detected, but recipe is disabled!", recipe.getName());
 			return new ItemStack(Material.AIR);
@@ -229,6 +229,15 @@ public class CrafterManager implements Listener {
 		int availableItems = item.getAmount();
 		if (availableItems < requiredAmount)
 			return;
+
+		logDebug("[handleShiftClicks] Handling recipe " + recipeName, "");
+		logDebug("[handleShiftClicks] ItemsToRemove: " + (itemsToRemove + 1) + " - ItemsToAdd: " + itemsToAdd, "");
+		logDebug("[handleShiftClicks] ItemAmount: " + availableItems, "");
+		logDebug("[handleShiftClicks] RequiredAmount: " + requiredAmount, "");
+		logDebug("[handleShiftClicks] Identifier: " + ingredient.getIdentifier() + " - HasIdentifier: "
+				+ ingredient.hasIdentifier(), "");
+		logDebug("[handleShiftClicks] Material: " + ingredient.getMaterial().toString(), "");
+		logDebug("[handleShiftClicks] Displayname: " + ingredient.getDisplayName(), "");
 
 		String id = ingredient.hasIdentifier() ? ingredient.getIdentifier() : item.getType().toString();
 		if (recipe.isLeftover(id)) {

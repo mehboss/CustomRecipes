@@ -112,7 +112,7 @@ public class RecipeTypeGUI implements Listener {
 		if (name == null || type == null)
 			return;
 
-		BookGUI.openType(p, type, e.getInventory()); // send to BookGUI to show recipes of this type
+		BookGUI.openType(p, type); // send to BookGUI to show recipes of this type
 	}
 
 	BookGUI BookGUI = Main.getInstance().recipes;

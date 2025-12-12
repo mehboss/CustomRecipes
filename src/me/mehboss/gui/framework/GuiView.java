@@ -10,6 +10,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 
+import me.mehboss.recipe.Main;
+
 /**
  * Represents a GUI view (inventory window) with registered buttons.
  */
@@ -58,6 +60,18 @@ public class GuiView {
         }
     }
     
+    /**
+     * Forwards recipe-click handling to the global RecipeGUI.
+     * Returns true if the click opened another recipe.
+     */
+    public void handleRecipeClick(Player player, InventoryClickEvent e) {
+        Main.getInstance().editItem.handleRecipeLinkClick(player, e.getCurrentItem());
+    }
+    
+    public boolean onRawClick(Player player, InventoryClickEvent e) {
+        return false; // Default: no raw click handling
+    }
+    
     public void setEditing(boolean editing) {
         this.editing = editing;
     }
@@ -74,6 +88,7 @@ public class GuiView {
 
         /** All active GUI views keyed by player UUID */
         private static final Map<UUID, GuiView> ACTIVE = new HashMap<>();
+        private static final Map<UUID, GuiView> ROOT_VIEW = new HashMap<>();
 
         /** Register a view as currently open for a player */
         public static void register(UUID uuid, GuiView view) {
@@ -90,6 +105,23 @@ public class GuiView {
             return ACTIVE.get(uuid);
         }
 
+
+        public static void setRootView(UUID uuid, GuiView view) {
+            ROOT_VIEW.put(uuid, view);
+        }
+        
+        public static GuiView getRootView(UUID uuid) {
+            return ROOT_VIEW.get(uuid);
+        }
+
+        public static boolean hasRootView(UUID uuid) {
+            return ROOT_VIEW.get(uuid) != null;
+        }
+        
+        public static void clearRootView(UUID uuid) {
+            ROOT_VIEW.remove(uuid);
+        }
+        
         /**
          * Returns an immutable map of all active GUI views.
          * Key = player UUID  

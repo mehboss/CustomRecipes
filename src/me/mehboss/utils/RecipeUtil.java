@@ -18,6 +18,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.recipe.CookingBookCategory;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
 import org.bukkit.material.MaterialData;
@@ -374,7 +375,7 @@ public class RecipeUtil {
 
 		// Then, try for a custom item
 		String customID = ItemBuilder.get(item);
-		if (customID != null && !recipe.isCustomItem())
+		if (customID != null)
 			return customID;
 
 		if (Main.getInstance().hasCustomPlugin("itemsadder")) {
@@ -485,10 +486,44 @@ public class RecipeUtil {
 
 			if (result.equals(item) || result.isSimilar(item))
 				return recipe;
+
+			// hacky fix for 1.8.8 issue of ItemMeta lazy population
+			if (Main.getInstance().serverVersionLessThan(1, 12)) {
+				ItemMeta recipeMeta = result.getItemMeta();
+				ItemMeta itemMeta = item.getItemMeta();
+
+				if (recipeMeta == null || itemMeta == null)
+					continue;
+
+				boolean typeMatches = recipe.getResult().getType() == item.getType();
+				String iName = itemMeta.hasDisplayName() ? itemMeta.getDisplayName() : "none";
+				String rName = recipeMeta.hasDisplayName() ? recipeMeta.getDisplayName() : "none";
+				List<String> rLore = recipeMeta.hasLore() ? normalizeList(recipeMeta.getLore()) : Collections.emptyList();
+				List<String> iLore = itemMeta.hasLore() ? normalizeList(itemMeta.getLore()) : Collections.emptyList();
+
+				if (rName.equals(iName) && rLore.equals(iLore) && typeMatches)
+					return recipe;
+			}
 		}
 		return null;
 	}
 
+	private List<String> normalizeList(List<String> lore) {
+	    return lore.stream()
+	            .map(line -> ChatColor.translateAlternateColorCodes('&', line))
+	            .map(String::trim)
+	            .collect(Collectors.toList());
+	}
+
+	/**
+	 * Getter for all recipes keys/identifiers
+	 * 
+	 * @return an ArrayList of Keys, can be Empty.
+	 */
+	public ArrayList<String> getAllKeys() {
+		return keyList.isEmpty() ? new ArrayList<String>() : keyList;
+	}
+	
 	/**
 	 * Getter for all recipes registered
 	 * 
@@ -1195,7 +1230,7 @@ public class RecipeUtil {
 		public void setPerm(String permission) {
 			if (permission.equalsIgnoreCase("none"))
 				permission = null;
-			
+
 			this.permission = permission;
 		}
 
@@ -1275,7 +1310,7 @@ public class RecipeUtil {
 		public List<String> getCommand() {
 			return commands;
 		}
-		
+
 		/**
 		 * Sets the effects that a recipe gives
 		 *
@@ -1291,7 +1326,7 @@ public class RecipeUtil {
 		 */
 		public List<String> getEffects() {
 			return null;
-			
+
 		}
 	}
 

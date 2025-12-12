@@ -1,11 +1,11 @@
 package me.mehboss.gui.framework;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 import me.mehboss.gui.framework.GuiView.GuiRegistry;
@@ -33,12 +33,16 @@ public class GuiListener implements Listener {
 		if (!e.getClickedInventory().equals(view.getInventory()))
 			return;
 
+		GuiButton btn = view.getButton(e.getRawSlot());
+
 		// Cancel ALL clicks for booklet
 		if (!view.isEditing()) {
 			e.setCancelled(true);
-		}
 
-		GuiButton btn = view.getButton(e.getRawSlot());
+			if (btn == null) {
+				view.handleRecipeClick(player, e);
+			}
+		}
 		if (btn == null)
 			return;
 
@@ -53,17 +57,18 @@ public class GuiListener implements Listener {
 		if (!(e.getPlayer() instanceof Player))
 			return;
 
+		if (e.getInventory() == null || e.getInventory().getType() != InventoryType.CHEST)
+			return;
+
 		Player player = (Player) e.getPlayer();
 
 		GuiView view = GuiRegistry.get(player.getUniqueId());
 		boolean viewMatches = view != null && e.getInventory().equals(view.getInventory());
 		boolean hasChatSession = ChatEditManager.get().hasSession(player.getUniqueId());
-
+		
 		// Only unregister if the *closed* top inventory is the one our view is using
-		if (viewMatches && !hasChatSession) {
+		if (viewMatches && !hasChatSession)
 			GuiRegistry.unregister(player.getUniqueId());
-			Bukkit.getLogger().info("[DEBUG] Unregistered view!");
-		}
 	}
 
 	@EventHandler

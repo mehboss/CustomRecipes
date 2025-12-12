@@ -2,7 +2,9 @@ package me.mehboss.commands;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -11,6 +13,8 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
+
+import me.mehboss.utils.ItemBuilder;
 
 import me.mehboss.recipe.Main;
 
@@ -30,6 +34,8 @@ public class TabCompletion implements TabCompleter {
 			}
 			if (sender.hasPermission("crecipe.list"))
 				subCommands.add("list");
+			if (sender.hasPermission("crecipe.items"))
+				subCommands.add("items");
 			if (sender.hasPermission("crecipe.give"))
 				subCommands.add("give");
 			if (sender.hasPermission("crecipe.reload"))
@@ -57,7 +63,7 @@ public class TabCompletion implements TabCompleter {
 
 		} else if (args[0].equalsIgnoreCase("give") && args.length == 3 && sender.hasPermission("crecipe.give")) {
 			// /customrecipes give <player> <recipe>
-			StringUtil.copyPartialMatches(args[2], getRecipes(), completions);
+			StringUtil.copyPartialMatches(args[2], getAllKeys(), completions);
 
 		} else if (args[0].equalsIgnoreCase("edititem") && sender.hasPermission("crecipe.edititem")) {
 			// /customrecipes edititem ...
@@ -161,7 +167,14 @@ public class TabCompletion implements TabCompleter {
 		return playerNames;
 	}
 
+	private Collection<String> getAllKeys() {
+		Set<String> combined = new HashSet<>();
+		combined.addAll(ItemBuilder.getAllItems());
+		combined.addAll(Main.getInstance().recipeUtil.getAllKeys());
+		return combined;
+	}
+
 	private Collection<String> getRecipes() {
-		return Main.getInstance().recipeUtil.getAllRecipes().keySet();
+		return Main.getInstance().recipeUtil.getAllKeys();
 	}
 }

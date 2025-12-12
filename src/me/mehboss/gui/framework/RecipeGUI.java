@@ -1,8 +1,10 @@
 package me.mehboss.gui.framework;
 
 import java.io.File;
+import java.util.List;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -11,6 +13,7 @@ import com.cryptomorin.xseries.XMaterial;
 import me.mehboss.commands.CommandRemove;
 import me.mehboss.gui.RecipeSaver;
 import me.mehboss.gui.RecipeViewBuilder;
+import me.mehboss.gui.framework.GuiView.GuiRegistry;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Recipe;
 
@@ -27,19 +30,54 @@ public class RecipeGUI {
 	}
 
 	/**
+	 * Called when the user clicks an item inside VIEW mode (booklet or GUI) and we
+	 * want to open the recipe that produces that item.
+	 *
+	 * @return true if click was handled (a recipe was opened)
+	 */
+	public void handleRecipeLinkClick(Player player, ItemStack clickedItem) {
+
+		if (clickedItem == null || clickedItem.getType() == Material.AIR)
+			return;
+
+		// Look up recipe from the API
+		Recipe linked = Main.getInstance().recipeUtil.getRecipeFromResult(clickedItem);
+		if (linked == null)
+			return; // not a recipe result, ignore
+
+		// OPEN the linked recipe in viewing mode
+		openViewing(player, linked);
+		return;
+	}
+
+	/**
 	 * Opens the VIEWING GUI for a recipe.
 	 */
 	public void openViewing(Player player, Recipe recipe) {
 		GuiView view = builder.buildViewing(recipe);
+		if (!GuiRegistry.hasRootView(player.getUniqueId()))
+			GuiRegistry.setRootView(player.getUniqueId(), view);
 
 		// Back buttons (48, 49, 50) -> close and open type GUI
 		for (int slot : new int[] { 48, 49, 50 }) {
 			overrideOn(view, slot, (p, v, e) -> {
 				p.closeInventory();
-				Main.getInstance().typeGUI.open(p);
+
+				GuiView root = GuiRegistry.getRootView(player.getUniqueId());
+				if (root != null && root != view) {
+					root.open(player);
+				} else {
+					List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType());
+					if (types == null || types.isEmpty()) {
+						Main.getInstance().typeGUI.open(p);
+					} else {
+						Main.getInstance().recipes.openType(p, recipe.getType());
+					}
+
+					GuiRegistry.clearRootView(player.getUniqueId());
+				}
 			});
 		}
-
 		view.open(player);
 	}
 
@@ -48,7 +86,6 @@ public class RecipeGUI {
 	 */
 	public void openEditing(Player player, Recipe recipe) {
 		GuiView view = builder.buildEditing(recipe, player);
-
 		attachEditingHandlers(view, recipe);
 
 		view.open(player);
@@ -74,7 +111,12 @@ public class RecipeGUI {
 		/* -------- Main Menu (slot 49) -------- */
 		overrideOn(view, 49, (p, v, e) -> {
 			p.closeInventory();
-			Main.getInstance().typeGUI.open(p);
+			List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType());
+			if (types == null || types.isEmpty()) {
+				Main.getInstance().typeGUI.open(p);
+			} else {
+				Main.getInstance().recipes.openType(p, recipe.getType());
+			}
 		});
 	}
 
@@ -85,6 +127,9 @@ public class RecipeGUI {
 			if (btn == null || btn.getIcon() == null || !btn.getIcon().hasItemMeta()) {
 				return;
 			}
+
+			if (!recipe.hasKey())
+				return;
 
 			String title = ChatColor.stripColor(btn.getIcon().getItemMeta().getDisplayName());
 

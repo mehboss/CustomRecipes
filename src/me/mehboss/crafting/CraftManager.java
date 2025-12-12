@@ -209,7 +209,7 @@ public class CraftManager implements Listener {
 
 				if (alignedGrid == null)
 					return false;
-				
+
 				int slot = ingredient.getSlot();
 				ItemStack invSlot = alignedGrid.getMatrix[slot - 1];
 
@@ -345,7 +345,7 @@ public class CraftManager implements Listener {
 		boolean isCraftingInventory = inv.getType() == InventoryType.WORKBENCH
 				|| inv.getType() == InventoryType.CRAFTING;
 		int slot = 0;
-		
+
 		if (inv.getType() == InventoryType.CRAFTING) {
 			// Since ingredients is always 9, add 5 to the 2x2 slot for the inventory check.
 			Collections.addAll(invMaterials, "null", "null", "null", "null", "null");
@@ -475,7 +475,8 @@ public class CraftManager implements Listener {
 
 			if (item == null || item.getType() == Material.AIR)
 				continue;
-			if (item.hasItemMeta() && (CompatibilityUtil.hasDisplayname(item.getItemMeta()) || item.getItemMeta().hasLore()))
+			if (item.hasItemMeta()
+					&& (CompatibilityUtil.hasDisplayname(item.getItemMeta()) || item.getItemMeta().hasLore()))
 				return false;
 		}
 		logDebug("[hasVanillaIngredients] Skipping checks.. vanilla recipe detected.", "");
@@ -483,14 +484,15 @@ public class CraftManager implements Listener {
 	}
 
 	boolean tagsMatch(RecipeUtil.Ingredient ingredient, ItemStack item) {
-		String invID = getRecipeUtil().getKeyFromResult(item);
+		String key = getRecipeUtil().getKeyFromResult(item);
+		String invID = key != null ? key.toLowerCase() : "none";
 		String ingID = ingredient.hasIdentifier() ? ingredient.getIdentifier().toLowerCase() : "none";
 
-		logDebug("[tagsMatch] invID === " + invID, "");
-		logDebug("[tagsMatch] ingID === " + ingID, "");
-		if (invID == null && ingID.equals("none"))
+		logDebug("[tagsMatch] Inventory Tag: " + invID, "");
+		logDebug("[tagsMatch] Ingredient Tag: " + ingID, "");
+		if (invID.equals("none") && ingID.equals("none"))
 			return true;
-		if (invID != null && invID.toLowerCase().equals(ingID))
+		if (!invID.equals("none") && invID.equals(ingID))
 			return true;
 
 		return false;

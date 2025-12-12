@@ -36,6 +36,7 @@ import org.bukkit.plugin.Plugin;
 import com.cryptomorin.xseries.XMaterial;
 
 import me.mehboss.gui.framework.RecipeGUI;
+import me.mehboss.gui.framework.GuiView.GuiRegistry;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
 
@@ -59,7 +60,7 @@ public class BookGUI implements Listener {
 				getConfig().getString("gui.Displayname").replace("%page%", "1")));
 	}
 
-	private List<RecipeUtil.Recipe> buildRecipesFor(Player p, RecipeType type) {
+	public List<RecipeUtil.Recipe> buildRecipesFor(Player p, RecipeType type) {
 		HashMap<String, RecipeUtil.Recipe> recipesMap = (type != null)
 				? Main.getInstance().recipeUtil.getRecipesFromType(type)
 				: Main.getInstance().recipeUtil.getAllRecipes();
@@ -211,11 +212,8 @@ public class BookGUI implements Listener {
 				if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 					return;
 
-				/*
-				 * ========================================================== CREATE NEW RECIPE
-				 * ==========================================================
-				 */
-				if (e.getCurrentItem().getType() != XMaterial.BLACK_STAINED_GLASS_PANE.parseMaterial()
+				ItemStack stained = createItem("stainedG", XMaterial.BLACK_STAINED_GLASS_PANE, " ");
+				if (!e.getCurrentItem().equals(stained)
 						&& (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
 					Recipe recipe = new Recipe("New Recipe");
 					recipe.setType(type);
@@ -386,7 +384,7 @@ public class BookGUI implements Listener {
 		return item;
 	}
 
-	public void openType(Player p, RecipeType type, Inventory inv) {
+	public void openType(Player p, RecipeType type) {
 		List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
 		boolean viewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
 
@@ -398,6 +396,10 @@ public class BookGUI implements Listener {
 			}
 			return;
 		}
+
+		boolean hasRoot = GuiRegistry.hasRootView(p.getUniqueId());
+		if (hasRoot)
+			GuiRegistry.clearRootView(p.getUniqueId());
 
 		String title = ChatColor.translateAlternateColorCodes('&',
 				Main.getInstance().getConfig().getString("gui.Displayname").replace("%page%", "1"));

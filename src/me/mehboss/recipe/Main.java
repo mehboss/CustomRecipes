@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Keyed;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
@@ -26,7 +25,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.FurnaceRecipe;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
@@ -80,7 +78,6 @@ public class Main extends JavaPlugin implements Listener {
 	public Map<UUID, Long> debounceMap = new HashMap<>();
 	public ArrayList<UUID> inInventory = new ArrayList<UUID>();
 	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
-	public HashMap<UUID, Inventory> saveInventory = new HashMap<UUID, Inventory>();
 	public ArrayList<String> disabledrecipe = new ArrayList<String>();
 
 	// add three more shapelessname, amount, and ID specifically for config.
@@ -371,8 +368,6 @@ public class Main extends JavaPlugin implements Listener {
 		// Clear internal state
 		if (recipeBook != null)
 			recipeBook.clear();
-		if (saveInventory != null)
-			saveInventory.clear();
 		if (disabledrecipe != null)
 			disabledrecipe.clear();
 

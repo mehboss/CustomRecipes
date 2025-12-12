@@ -1,9 +1,12 @@
 package me.mehboss.gui;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -87,7 +90,7 @@ public class RecipeViewBuilder {
 			if (blocked[slot]) {
 				view.addButton(new GuiButton(slot, pane) {
 					@Override
-					public void onClick(Player p, GuiView v, org.bukkit.event.inventory.InventoryClickEvent e) {
+					public void onClick(Player p, GuiView v, InventoryClickEvent e) {
 					}
 				});
 			}
@@ -189,7 +192,7 @@ public class RecipeViewBuilder {
 		for (int slot : new int[] { 48, 49, 50 }) {
 			view.addButton(new GuiButton(slot, back) {
 				@Override
-				public void onClick(Player p, GuiView v, org.bukkit.event.inventory.InventoryClickEvent e) {
+				public void onClick(Player p, GuiView v, InventoryClickEvent e) {
 					p.closeInventory();
 				}
 			});
@@ -222,7 +225,7 @@ public class RecipeViewBuilder {
 		ItemStack resultItem = recipe.getResult();
 		List<String> lore = (resultItem != null && resultItem.hasItemMeta() && resultItem.getItemMeta().hasLore())
 				? resultItem.getItemMeta().getLore()
-				: List.of();
+				: new ArrayList<>();
 
 		view.addButton(new GuiLoreButton(44, RecipeItemFactory.button(XMaterial.BOOK, "&fLore", lore)) {
 
@@ -250,7 +253,7 @@ public class RecipeViewBuilder {
 		 * Effects (slot 7)
 		 */
 		view.addButton(new GuiStringButton(8, "Effects", RecipeItemFactory.button(XMaterial.GHAST_TEAR, "&fEffects",
-				recipe.getEffects() != null ? recipe.getEffects() : List.of("None"))) {
+				recipe.getEffects() != null ? recipe.getEffects() : Arrays.asList("None"))) {
 
 			@Override
 			public void onStringChange(Player player, String newValue) {
@@ -404,7 +407,7 @@ public class RecipeViewBuilder {
 						double d = Double.parseDouble(nv);
 						ItemStack i = getIcon();
 						ItemMeta m = i.getItemMeta();
-						m.setLore(List.of(ChatColor.GRAY + String.valueOf(d)));
+						m.setLore(Arrays.asList(ChatColor.GRAY + String.valueOf(d)));
 						i.setItemMeta(m);
 						setIcon(i);
 					} catch (Exception ex) {
@@ -470,25 +473,25 @@ public class RecipeViewBuilder {
 		 */
 		view.addButton(new GuiButton(45, RecipeItemFactory.button(XMaterial.BARRIER, "&cDelete Recipe")) {
 			@Override
-			public void onClick(Player p2, GuiView v, org.bukkit.event.inventory.InventoryClickEvent e) {
+			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
 		});
 
 		view.addButton(new GuiButton(48, RecipeItemFactory.button(XMaterial.RED_STAINED_GLASS_PANE, "&cCancel")) {
 			@Override
-			public void onClick(Player p2, GuiView v, org.bukkit.event.inventory.InventoryClickEvent e) {
+			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
 		});
 
 		view.addButton(new GuiButton(49, RecipeItemFactory.button(XMaterial.WHITE_STAINED_GLASS_PANE, "&fMain Menu")) {
 			@Override
-			public void onClick(Player p2, GuiView v, org.bukkit.event.inventory.InventoryClickEvent e) {
+			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
 		});
 
 		view.addButton(new GuiButton(50, RecipeItemFactory.button(XMaterial.GREEN_STAINED_GLASS_PANE, "&aUpdate")) {
 			@Override
-			public void onClick(Player p2, GuiView v, org.bukkit.event.inventory.InventoryClickEvent e) {
+			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
 		});
 	}
@@ -496,7 +499,7 @@ public class RecipeViewBuilder {
 	private void updateSingleLineLore(GuiButton btn, String text) {
 		ItemStack icon = btn.getIcon();
 		ItemMeta meta = icon.getItemMeta();
-		meta.setLore(List.of(ChatColor.GRAY + text));
+		meta.setLore(Arrays.asList(ChatColor.GRAY + text));
 		icon.setItemMeta(meta);
 		btn.setIcon(icon);
 	}
@@ -506,7 +509,7 @@ public class RecipeViewBuilder {
 			int val = Integer.parseInt(newValue.replace(" ", ""));
 			ItemStack icon = btn.getIcon();
 			ItemMeta meta = icon.getItemMeta();
-			meta.setLore(List.of(ChatColor.GRAY + String.valueOf(val)));
+			meta.setLore(Arrays.asList(ChatColor.GRAY + String.valueOf(val)));
 			icon.setItemMeta(meta);
 			btn.setIcon(icon);
 		} catch (Exception ex) {

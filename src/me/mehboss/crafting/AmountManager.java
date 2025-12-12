@@ -11,11 +11,15 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
@@ -171,18 +175,21 @@ public class AmountManager implements Listener {
 			return;
 
 		// debounce
-		Main.getInstance().debounceMap.put(id, System.currentTimeMillis());
+		logDebug("[handleShiftClicks] Fired #1");
 
-		if (getRecipeUtil().getRecipeFromResult(inv.getResult()) == null)
+		Recipe matched = getRecipeUtil().getRecipeFromResult(inv.getResult());
+		Main.getInstance().debounceMap.put(id, System.currentTimeMillis());
+		if (matched == null)
 			return;
 
-		logDebug("[handleShiftClicks] Fired");
+		logDebug("[handleShiftClicks] Fired #2");
 
 		if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 			return;
 
-		String findName = getRecipeUtil().getRecipeFromResult(inv.getResult()).getName();
-		final ItemStack result = inv.getResult();
+		ItemStack cursor = e.getCursor();
+		ItemStack result = inv.getResult();
+		String findName = matched.getName();
 		boolean isShapeless = e.getRecipe() instanceof ShapelessRecipe;
 
 		HashMap<String, Recipe> types = isShapeless ? getRecipeUtil().getRecipesFromType(RecipeType.SHAPELESS)
@@ -190,17 +197,17 @@ public class AmountManager implements Listener {
 
 		if (NBTEditor.contains(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
 			String foundID = NBTEditor.getString(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
-
-			if (getRecipeUtil().getRecipeFromKey(foundID) != null)
-				findName = getRecipeUtil().getRecipeFromKey(foundID).getName();
+			Recipe keyedRecipe = getRecipeUtil().getRecipeFromKey(foundID);
+			if (keyedRecipe != null)
+				findName = keyedRecipe.getName();
 		}
 
 		// safeguard: match correct custom recipe result
 		if (types != null)
 			for (Recipe r : types.values()) {
 				ItemStack itm = r.getResult();
-				if (hasAllIngredients(inv, r.getName(), r.getIngredients(), id)
-						&& (result.equals(itm) || result.isSimilar(itm))) {
+				if ((result.equals(itm) || result.isSimilar(itm))
+						&& hasAllIngredients(inv, r.getName(), r.getIngredients(), id)) {
 					findName = r.getName();
 					break;
 				}
@@ -211,6 +218,26 @@ public class AmountManager implements Listener {
 		CraftingRecipeData recipe = (CraftingRecipeData) getRecipeUtil().getRecipe(findName);
 		if (recipe == null)
 			return;
+
+		if (!recipe.isGrantItem()) {
+			if (e.getAction() == InventoryAction.DROP_ONE_SLOT || e.getAction() == InventoryAction.DROP_ALL_SLOT) {
+				logDebug("[handleShiftClicks] Denying craft due to drop request on an ungrantable item..");
+				e.setCancelled(true);
+				return;
+			}
+		}
+
+		// prevents "ghost crafts" where the item isn't supposed to craft, but
+		// CraftItemEvent still fires.
+		if (cursor != null && cursor.getType() != Material.AIR) {
+			boolean canStackWithResult = cursor.isSimilar(result)
+					&& cursor.getAmount() + result.getAmount() <= cursor.getMaxStackSize();
+
+			if (!canStackWithResult) {
+				e.setCancelled(true);
+				return;
+			}
+		}
 
 		RecipeType type = recipe.getType();
 		ArrayList<String> handledIngredients = new ArrayList<>();
@@ -278,7 +305,7 @@ public class AmountManager implements Listener {
 		}
 
 		boolean recipeHasContainer = recipe.getAllIngredientTypes().stream()
-				.anyMatch(mat -> mat == XMaterial.DRAGON_BREATH.get()|| mat == XMaterial.POTION.get()
+				.anyMatch(mat -> mat == XMaterial.DRAGON_BREATH.get() || mat == XMaterial.POTION.get()
 						|| mat == XMaterial.LINGERING_POTION.get() || mat.toString().contains("_BUCKET"));
 		AtomicBoolean containerCraft = new AtomicBoolean(recipeHasContainer);
 
@@ -366,7 +393,6 @@ public class AmountManager implements Listener {
 				e.setCancelled(true);
 
 				logDebug("[handleShiftClicks] Manual handle of container, since vanilla mechanics replace.");
-				ItemStack cursor = player.getItemOnCursor();
 				if (cursor == null || cursor.getType() == Material.AIR)
 					player.setItemOnCursor(result.clone());
 				else if (cursor.isSimilar(result))

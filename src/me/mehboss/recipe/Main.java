@@ -37,6 +37,7 @@ import me.mehboss.anvil.AnvilManager;
 import me.mehboss.anvil.AnvilManager_1_8;
 import me.mehboss.anvil.GrindstoneManager;
 import me.mehboss.brewing.BrewEvent;
+import me.mehboss.commands.CommandRecipes;
 import me.mehboss.commands.TabCompletion;
 import me.mehboss.cooking.CookingManager;
 import me.mehboss.crafting.AmountManager;
@@ -137,6 +138,11 @@ public class Main extends JavaPlugin implements Listener {
 	void registerCommands() {
 		PluginCommand crecipeCommand = getCommand("crecipe");
 		crecipeCommand.setExecutor(new CommandListener());
+
+		if (getConfig().getBoolean("Recipes-Alias", true)) {
+			PluginCommand recipesCommand = getCommand("recipes");
+			recipesCommand.setExecutor(new CommandRecipes());
+		}
 
 		if (serverVersionAtLeast(1, 15)) {
 			TabCompletion tabCompleter = new TabCompletion();
@@ -352,7 +358,7 @@ public class Main extends JavaPlugin implements Listener {
 			Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		else
 			Bukkit.getPluginManager().registerEvents(new AnvilManager_1_8(), this);
-		
+
 		registerUpdateChecker();
 		registerBstats();
 	}

@@ -25,6 +25,7 @@ firstLoad: true # internally managed do not remove
 Debug: false
 Crafter-Debug: false
 Update-Check: true
+Recipes-Alias: true
 Messages:
   Invalid-Args: '&cInvalid args! (use: /crecipe give <player> <recipename> [amount])'
   Invalid-Perms: '&cYou are not allowed to use this command!'

@@ -11,17 +11,15 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event.Result;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapelessRecipe;
 
@@ -166,10 +164,17 @@ public class AmountManager implements Listener {
 		return true;
 	}
 
+	boolean isSlotEmpty(int slot, Inventory inv) {
+		ItemStack item = inv.getItem(slot);
+		return item == null || item.getType() == Material.AIR;
+	}
+
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 		UUID id = e.getWhoClicked().getUniqueId();
+		Inventory playerInventory = e.getWhoClicked().getInventory();
+		boolean isInvFull = playerInventory.firstEmpty() == -1;
 
 		if (inv.getResult() == null || inv.getResult().getType() == Material.AIR)
 			return;
@@ -186,6 +191,15 @@ public class AmountManager implements Listener {
 
 		if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 			return;
+
+		boolean isValidButton = e.getHotbarButton() != -1;
+		if (e.isCancelled() || e.getAction() == InventoryAction.HOTBAR_MOVE_AND_READD
+				|| (e.getClick() == ClickType.NUMBER_KEY && isInvFull)
+				|| (isValidButton && !isSlotEmpty(e.getHotbarButton(), playerInventory))) {
+			logDebug("[handleShiftClicks] Denying craft due to failed hotbar move..");
+			e.setCancelled(true);
+			return;
+		}
 
 		ItemStack cursor = e.getCursor();
 		ItemStack result = inv.getResult();

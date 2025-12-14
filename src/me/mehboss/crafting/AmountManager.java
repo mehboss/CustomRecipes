@@ -239,6 +239,13 @@ public class AmountManager implements Listener {
 				e.setCancelled(true);
 				return;
 			}
+
+			if (e.getClick() == ClickType.NUMBER_KEY && isValidButton) {
+				logDebug("[handleShiftClicks] Grant item is set to false, attempting to deny result swap..");
+				Bukkit.getScheduler().runTaskLater(Main.getInstance(),
+						() -> playerInventory.getItem(e.getHotbarButton()).setType(Material.AIR), 2L);
+				return;
+			}
 		}
 
 		// prevents "ghost crafts" where the item isn't supposed to craft, but

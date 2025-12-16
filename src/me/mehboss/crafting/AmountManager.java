@@ -242,8 +242,7 @@ public class AmountManager implements Listener {
 
 			if (e.getClick() == ClickType.NUMBER_KEY && isValidButton) {
 				logDebug("[handleShiftClicks] Grant item is set to false, attempting to deny result swap..");
-				Bukkit.getScheduler().runTaskLater(Main.getInstance(),
-						() -> playerInventory.getItem(e.getHotbarButton()).setType(Material.AIR), 2L);
+				e.setCancelled(true);
 				return;
 			}
 		}
@@ -320,7 +319,7 @@ public class AmountManager implements Listener {
 		}
 
 		if (itemsToAdd <= 0 || itemsToAdd == Integer.MAX_VALUE) {
-			logDebug("[handleShiftClicks][" + findName + "] No possible crafts.");
+			logDebug("[handleShiftClicks][" + findName + "] Issue detected while attempting amount deductions. If this is in error, please reach out for support.");
 			e.setCancelled(true);
 			return;
 		}

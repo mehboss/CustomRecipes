@@ -498,7 +498,8 @@ public class RecipeUtil {
 				boolean typeMatches = recipe.getResult().getType() == item.getType();
 				String iName = itemMeta.hasDisplayName() ? itemMeta.getDisplayName() : "none";
 				String rName = recipeMeta.hasDisplayName() ? recipeMeta.getDisplayName() : "none";
-				List<String> rLore = recipeMeta.hasLore() ? normalizeList(recipeMeta.getLore()) : Collections.emptyList();
+				List<String> rLore = recipeMeta.hasLore() ? normalizeList(recipeMeta.getLore())
+						: Collections.emptyList();
 				List<String> iLore = itemMeta.hasLore() ? normalizeList(itemMeta.getLore()) : Collections.emptyList();
 
 				if (rName.equals(iName) && rLore.equals(iLore) && typeMatches)
@@ -509,10 +510,8 @@ public class RecipeUtil {
 	}
 
 	private List<String> normalizeList(List<String> lore) {
-	    return lore.stream()
-	            .map(line -> ChatColor.translateAlternateColorCodes('&', line))
-	            .map(String::trim)
-	            .collect(Collectors.toList());
+		return lore.stream().map(line -> ChatColor.translateAlternateColorCodes('&', line)).map(String::trim)
+				.collect(Collectors.toList());
 	}
 
 	/**
@@ -523,7 +522,7 @@ public class RecipeUtil {
 	public ArrayList<String> getAllKeys() {
 		return keyList.isEmpty() ? new ArrayList<String>() : keyList;
 	}
-	
+
 	/**
 	 * Getter for all recipes registered
 	 * 
@@ -654,7 +653,7 @@ public class RecipeUtil {
 	 * @param recipe removes the recipe(s) from the bukkit registry, can be null
 	 */
 	private void clearDuplicates(Recipe recipe) {
-		if (Main.getInstance().serverVersionAtLeast(1, 16)) {
+		if (Main.getInstance().serverVersionAtLeast(1, 15)) {
 			NamespacedKey customKey = null;
 			if (recipe != null) {
 				String key = recipe.getKey().toLowerCase();
@@ -675,17 +674,53 @@ public class RecipeUtil {
 					Bukkit.removeRecipe(customKey);
 			}
 		} else {
+			// recipeIterator# is immutable in 1.12, so we must resetRecipes unfortunately.
 			if (recipe != null) {
-				for (Iterator<org.bukkit.inventory.Recipe> it = Bukkit.recipeIterator(); it.hasNext();) {
-					org.bukkit.inventory.Recipe r = it.next();
+				// Remove a single recipe safely
+				List<org.bukkit.inventory.Recipe> toLoad = new ArrayList<>();
+				Iterator<org.bukkit.inventory.Recipe> iter = Bukkit.recipeIterator();
+				while (iter.hasNext()) {
+					org.bukkit.inventory.Recipe r = iter.next();
 					if (r == null)
 						continue;
+
 					ItemStack result = r.getResult();
-					if (result != null && result.isSimilar(recipe.getResult())) {
-						it.remove();
+					// Keep all recipes except the one we want to remove
+					if (result == null || !result.isSimilar(recipe.getResult())) {
+						toLoad.add(r);
 					}
 				}
-				return;
+
+				// Reset all recipes and add back everything except the one we want removed
+				Bukkit.resetRecipes();
+				for (org.bukkit.inventory.Recipe r : toLoad) {
+					try {
+						Bukkit.addRecipe(r);
+					} catch (IllegalStateException ignored) {
+						// duplicates may throw this
+					}
+				}
+			} else {
+				List<org.bukkit.inventory.Recipe> toLoad = new ArrayList<>();
+				Iterator<org.bukkit.inventory.Recipe> iter = Bukkit.recipeIterator();
+				while (iter.hasNext()) {
+					org.bukkit.inventory.Recipe next = iter.next();
+					Recipe matched = getRecipeFromResult(next.getResult());
+					if (matched == null) {
+						toLoad.add(next);
+					}
+				}
+
+				Bukkit.resetRecipes();
+
+				// adds them all back except for yours
+				for (org.bukkit.inventory.Recipe rcp : toLoad) {
+					try {
+						Bukkit.addRecipe(rcp);
+					} catch (IllegalStateException ignored) {
+						// duplicates may throw this
+					}
+				}
 			}
 		}
 	}
@@ -876,7 +911,7 @@ public class RecipeUtil {
 		 * @return true if the recipe is exactChoice, false otherwise.
 		 */
 		public boolean isExactChoice() {
-			if (Main.getInstance().serverVersionAtLeast(1, 14))
+			if (Main.getInstance().serverVersionAtLeast(1, 13, 2))
 				return exactChoice;
 
 			return false;
@@ -888,7 +923,7 @@ public class RecipeUtil {
 		 * @param exactChoice true or false boolean
 		 */
 		public void setExactChoice(Boolean exactChoice) {
-			if (Main.getInstance().serverVersionAtLeast(1, 14))
+			if (Main.getInstance().serverVersionAtLeast(1, 13, 2))
 				this.exactChoice = exactChoice;
 		}
 

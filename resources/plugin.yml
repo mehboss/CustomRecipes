@@ -17,3 +17,19 @@ commands:
     description: Opens the recipe booklet!
     aliases: [recipe]
     permission: crecipe.book
+permissions:
+  crecipe.recipes:
+    description: Allows the recipe command
+    default: true
+  crecipe.gui:
+    description: Allows the gui command
+    default: op
+  crecipe.*:
+    description: Grants all commands
+    default: op
+  crecipe.help:
+    description: Allows the help command
+    default: op
+  crecipe.book:
+    description: Allows the book command
+    default: true

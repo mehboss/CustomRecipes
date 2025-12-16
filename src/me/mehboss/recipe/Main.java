@@ -268,7 +268,7 @@ public class Main extends JavaPlugin implements Listener {
 		craftManager = new CraftManager();
 		amountManager = new AmountManager(craftManager);
 
-		if (serverVersionAtLeast(1, 12))
+		if (serverVersionAtLeast(1, 13, 2))
 			exactChoice = new ExactChoice();
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)

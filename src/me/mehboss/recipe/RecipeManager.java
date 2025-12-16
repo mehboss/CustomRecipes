@@ -513,7 +513,8 @@ public class RecipeManager {
 						// Apply the modified enchantment meta to the item
 						item.setItemMeta(meta);
 					}
-				} else if ((item.getType() == XMaterial.ITEM_FRAME.get() || item.getType() == XMaterial.GLOW_ITEM_FRAME.get())
+				} else if ((item.getType() == XMaterial.ITEM_FRAME.get()
+						|| item.getType() == XMaterial.GLOW_ITEM_FRAME.get())
 						&& path.get(0).equalsIgnoreCase("EntityTag")) {
 
 					try {
@@ -590,7 +591,10 @@ public class RecipeManager {
 		compound = NBTEditor.set(compound, amount, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Amount");
 		compound = NBTEditor.set(compound, operation, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0,
 				"Operation");
-		compound = NBTEditor.set(compound, slot, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Slot");
+
+		if (slot != null)
+			compound = NBTEditor.set(compound, slot, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Slot");
+
 		compound = NBTEditor.set(compound, uuid, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "UUID");
 		compound = NBTEditor.set(compound, 99L, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "UUIDMost");
 		compound = NBTEditor.set(compound, 77530600L, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0,
@@ -811,8 +815,12 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleAttributes(String item, ItemMeta m) {
-		if (!(Main.getInstance().serverVersionAtLeast(1, 12)))
+		if (!(Main.getInstance().serverVersionAtLeast(1, 14))) {
+			logError(
+					"Failed to apply attributes due to unsupported version. You must use NBT to apply the attributes. Skipping for now..",
+					item);
 			return m;
+		}
 
 		if (getConfig().isSet(item + ".Attribute")) {
 			for (String split : getConfig().getStringList(item + ".Attribute")) {
@@ -826,12 +834,13 @@ public class RecipeManager {
 
 				try {
 					AttributeModifier modifier;
-					if (equipmentSlot == null)
+					if (equipmentSlot == null) {
 						modifier = new AttributeModifier(attribute, attributeAmount,
 								AttributeModifier.Operation.ADD_NUMBER);
-					else
+					} else {
 						modifier = new AttributeModifier(UUID.randomUUID(), attribute, attributeAmount,
 								AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.valueOf(equipmentSlot));
+					}
 
 					m.addAttributeModifier(Attribute.valueOf(attribute), modifier);
 				} catch (Exception e) {
@@ -1303,7 +1312,7 @@ public class RecipeManager {
 				// Create recipes based on type
 				switch (recipe.getType()) {
 				case SHAPELESS:
-					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
 						shapelessRecipe = Main.getInstance().exactChoice
 								.createShapelessRecipe((CraftingRecipeData) recipe);
 						break;
@@ -1313,7 +1322,7 @@ public class RecipeManager {
 					break;
 
 				case SHAPED:
-					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
 						shapedRecipe = Main.getInstance().exactChoice.createShapedRecipe((CraftingRecipeData) recipe);
 						break;
 					}
@@ -1322,7 +1331,7 @@ public class RecipeManager {
 					break;
 
 				case FURNACE:
-					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
 						furnaceRecipe = Main.getInstance().exactChoice.createFurnaceRecipe((CookingRecipeData) recipe);
 						break;
 					}
@@ -1331,27 +1340,27 @@ public class RecipeManager {
 					break;
 
 				case BLASTFURNACE:
-					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
 						blastRecipe = Main.getInstance().exactChoice
 								.createBlastFurnaceRecipe((CookingRecipeData) recipe);
 					}
 					break;
 
 				case SMOKER:
-					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
 						smokerRecipe = Main.getInstance().exactChoice.createSmokerRecipe((CookingRecipeData) recipe);
 					}
 					break;
 
 				case STONECUTTER:
-					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
 						sCutterRecipe = Main.getInstance().exactChoice
 								.createStonecuttingRecipe((WorkstationRecipeData) recipe);
 					}
 					break;
 
 				case CAMPFIRE:
-					if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
 						campfireRecipe = Main.getInstance().exactChoice
 								.createCampfireRecipe((CookingRecipeData) recipe);
 					}
@@ -1505,9 +1514,9 @@ public class RecipeManager {
 
 	boolean isVersionSupported(RecipeType type, String item) {
 		List<RecipeType> v16_Types = Arrays.asList(RecipeType.GRINDSTONE);
-		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS);
-		
-		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type)) {
+		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS, RecipeType.FURNACE);
+
+		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type) && !v16_Types.contains(type)) {
 			logError("Error loading recipe..", item);
 			logError(">= 1.14 is required for " + type.toString() + " recipes!", item);
 			return false;
@@ -1519,7 +1528,7 @@ public class RecipeManager {
 		}
 		return true;
 	}
-	
+
 	boolean isCustomItem(String id) {
 		String[] key = id.split(":");
 		if (key.length < 2)

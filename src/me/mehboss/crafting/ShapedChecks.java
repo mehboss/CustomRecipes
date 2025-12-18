@@ -181,8 +181,8 @@ public class ShapedChecks {
 			// NAME CHECKS
 			if (!recipe.getIgnoreNames()) {
 
-				if ((!CompatibilityUtil.hasDisplayname(meta) && ingredient.hasDisplayName())
-						|| (CompatibilityUtil.hasDisplayname(meta) && !ingredient.hasDisplayName())) {
+				if ((!CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames()) && ingredient.hasDisplayName())
+						|| (CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames()) && !ingredient.hasDisplayName())) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug(
 							"[handleShaped] The recipe ingredient displayname and the inventory slot displayname do not match",
@@ -196,8 +196,8 @@ public class ShapedChecks {
 					return false;
 				}
 
-				if (ingredient.hasDisplayName() && CompatibilityUtil.hasDisplayname(meta)
-						&& !(ingredient.getDisplayName().equals(CompatibilityUtil.getDisplayname(meta)))) {
+				if (ingredient.hasDisplayName() && CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames())
+						&& !(ingredient.getDisplayName().equals(CompatibilityUtil.getDisplayname(meta, recipe.isLegacyNames())))) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug("[handleShaped] The ingredient name for the recipe and inventory do not match",
 							recipe.getName());

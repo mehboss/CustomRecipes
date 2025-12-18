@@ -7,14 +7,14 @@ import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Ingredient;
+import me.mehboss.utils.RecipeUtil.Recipe;
 
 /**
  * Handles all metadata comparison logic used during special recipe matching.
  * <p>
- * Provides utility checks for matching item materials, display names,
- * and custom identifiers. This class is used internally by RecipeUtil
- * and recipe handlers to determine whether an input item matches a
- * defined ingredient.
+ * Provides utility checks for matching item materials, display names, and
+ * custom identifiers. This class is used internally by RecipeUtil and recipe
+ * handlers to determine whether an input item matches a defined ingredient.
  */
 public class MetaChecks {
 	RecipeUtil getRecipeUtil() {
@@ -26,18 +26,19 @@ public class MetaChecks {
 	 * <p>
 	 * Validates:
 	 * <ul>
-	 *     <li>null vs non-null mismatches</li>
-	 *     <li>material type</li>
-	 *     <li>custom identifier match (if present)</li>
-	 *     <li>display name match (if present)</li>
+	 * <li>null vs non-null mismatches</li>
+	 * <li>material type</li>
+	 * <li>custom identifier match (if present)</li>
+	 * <li>display name match (if present)</li>
 	 * </ul>
 	 *
 	 * @param recipeName name of the recipe (used for debug output)
-	 * @param item        the actual input item
-	 * @param ingredient  expected ingredient definition
+	 * @param item       the actual input item
+	 * @param ingredient expected ingredient definition
 	 * @return true if the item satisfies all required checks
 	 */
-	public Boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
+	public Boolean itemsMatch(Recipe recipe, ItemStack item, Ingredient ingredient) {
+		String recipeName = recipe.getName();
 		// Null check first
 		if ((ingredient.isEmpty() && item != null) || (!ingredient.isEmpty() && item == null)) {
 			logDebug("Unexpected item found", recipeName);
@@ -71,16 +72,19 @@ public class MetaChecks {
 			// Checks displayname requirements only
 		} else {
 
-			if (ingredient.hasDisplayName()
-					&& (!item.hasItemMeta() || !CompatibilityUtil.hasDisplayname(item.getItemMeta()))) {
+			if (ingredient.hasDisplayName() && (!item.hasItemMeta()
+					|| !CompatibilityUtil.hasDisplayname(item.getItemMeta(), recipe.isLegacyNames()))) {
 				logDebug("Ingredient has displayname, item in slot does not have one", recipeName);
 				return false;
 			}
 
-			if (ingredient.hasDisplayName()
-					&& !(CompatibilityUtil.getDisplayname(item.getItemMeta()).equals(ingredient.getDisplayName()))) {
+			if (ingredient.hasDisplayName() && !(CompatibilityUtil
+					.getDisplayname(item.getItemMeta(), recipe.isLegacyNames()).equals(ingredient.getDisplayName()))) {
 				logDebug("Displaynames do not match", recipeName);
-				logDebug("Slot displayname - " + CompatibilityUtil.getDisplayname(item.getItemMeta()), recipeName);
+				logDebug(
+						"Slot displayname - "
+								+ CompatibilityUtil.getDisplayname(item.getItemMeta(), recipe.isLegacyNames()),
+						recipeName);
 				logDebug("Ingredient displayname - " + ingredient.getDisplayName(), recipeName);
 				return false;
 			}

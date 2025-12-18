@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
@@ -174,7 +175,6 @@ public class CraftManager implements Listener {
 				return true;
 
 			if (item.getAmount() < ingredient.getAmount()) {
-
 				if (debug) {
 					logDebug("[amountsMatch] Item amount: " + item.getAmount(), recipeName);
 					logDebug("[amountsMatch] Required amount: " + ingredient.getAmount(), recipeName);
@@ -196,9 +196,6 @@ public class CraftManager implements Listener {
 			List<RecipeUtil.Ingredient> recipeIngredients, boolean debug, UUID id) {
 
 		logDebug("[amountsMatch] Checking recipe amounts..", recipeName, id);
-
-		boolean isCraftingInventory = inv.getType() == InventoryType.WORKBENCH
-				|| inv.getType() == InventoryType.CRAFTING;
 		RecipeType type = getRecipeUtil().getRecipe(recipeName).getType();
 		ItemStack[] matrix = inv.getContents();
 
@@ -217,31 +214,30 @@ public class CraftManager implements Listener {
 					continue;
 				}
 
-				if (!validateItem(invSlot, ingredient, recipeName, slot, debug, false))
+				if (!validateItem(invSlot, ingredient, recipeName, slot, debug, false)) {
 					return false;
-
+				}
 				continue;
 
 			} else {
 				if (ingredient.isEmpty())
 					continue;
-				int slot = isCraftingInventory ? 0 : -1;
-
+				int slot = -1;
+				boolean foundMatch = false;
+				
 				for (ItemStack item : matrix) {
-					if (isCraftingInventory && slot == 0) {
-						slot++;
-						continue;
-					}
-
-					if (usedSlots[slot])
-						continue;
-					if (item == null || item.getType() == Material.AIR)
+					slot++;
+					if (usedSlots[slot] || item == null || item.getType() == Material.AIR)
 						continue;
 					if (validateItem(item, ingredient, recipeName, slot, debug, false)) {
+						foundMatch = true;
 						usedSlots[slot] = true;
 						break;
 					}
-					slot++;
+				}
+				
+				if (!foundMatch) {
+					return false;
 				}
 			}
 		}
@@ -475,8 +471,7 @@ public class CraftManager implements Listener {
 
 			if (item == null || item.getType() == Material.AIR)
 				continue;
-			if (item.hasItemMeta()
-					&& (CompatibilityUtil.hasDisplayname(item.getItemMeta()) || item.getItemMeta().hasLore()))
+			if (item.hasItemMeta() && (item.getItemMeta().hasDisplayName() || item.getItemMeta().hasLore()))
 				return false;
 		}
 		logDebug("[hasVanillaIngredients] Skipping checks.. vanilla recipe detected.", "");
@@ -518,7 +513,7 @@ public class CraftManager implements Listener {
 
 		// avoids redundant checks to increase server performance
 		if (Main.getInstance().debounceMap.containsKey(id)) {
-			if (now - Main.getInstance().debounceMap.get(id) < 75) {
+			if (now - Main.getInstance().debounceMap.get(id) < 25) {
 				return;
 			}
 			Main.getInstance().debounceMap.remove(id);
@@ -661,7 +656,7 @@ public class CraftManager implements Listener {
 		}
 
 		// COOLDOWN
-		if ((recipe.hasPerm() && !(p.hasPermission(recipe.getPerm() + ".bypass")))
+		if ((recipe.hasPerm() && !(p.hasPermission(recipe.getPerm() + ".bypass"))) && recipe.hasCooldown()
 				&& getCooldownManager().hasCooldown(p.getUniqueId(), recipe.getKey())) {
 
 			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());

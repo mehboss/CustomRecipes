@@ -24,24 +24,26 @@ import me.mehboss.recipe.Main;
  * <p>
  * This includes:
  * <ul>
- *     <li>Accessing InventoryView methods safely across versions</li>
- *     <li>Retrieving players, titles, and top inventories without relying on version-specific classes</li>
- *     <li>Reflection helpers for invoking private methods and fields</li>
- *     <li>Base64 decoding for skin texture analysis</li>
- *     <li>Item name getters/setters supporting 1.20.5+ name changes</li>
+ * <li>Accessing InventoryView methods safely across versions</li>
+ * <li>Retrieving players, titles, and top inventories without relying on
+ * version-specific classes</li>
+ * <li>Reflection helpers for invoking private methods and fields</li>
+ * <li>Base64 decoding for skin texture analysis</li>
+ * <li>Item name getters/setters supporting 1.20.5+ name changes</li>
  * </ul>
  */
 public class CompatibilityUtil {
 
-    /**
-     * Retrieves the InventoryView from an {@link InventoryEvent} using reflection.
-     * <p>
-     * Different server versions may change how InventoryView is exposed,
-     * so this reflective access ensures compatibility.
-     *
-     * @param event The inventory event.
-     * @return The InventoryView object (returned as {@code Object} for compatibility).
-     */
+	/**
+	 * Retrieves the InventoryView from an {@link InventoryEvent} using reflection.
+	 * <p>
+	 * Different server versions may change how InventoryView is exposed, so this
+	 * reflective access ensures compatibility.
+	 *
+	 * @param event The inventory event.
+	 * @return The InventoryView object (returned as {@code Object} for
+	 *         compatibility).
+	 */
 	public static Object getInventoryView(InventoryEvent event) {
 		try {
 			Method getViewMethod = InventoryEvent.class.getMethod("getView");
@@ -51,12 +53,12 @@ public class CompatibilityUtil {
 		}
 	}
 
-    /**
-     * Extracts the {@link Player} from an InventoryView instance using reflection.
-     *
-     * @param view The InventoryView object.
-     * @return The player who opened the inventory, or {@code null} if unavailable.
-     */
+	/**
+	 * Extracts the {@link Player} from an InventoryView instance using reflection.
+	 *
+	 * @param view The InventoryView object.
+	 * @return The player who opened the inventory, or {@code null} if unavailable.
+	 */
 	public static Player getPlayerFromView(Object view) {
 		try {
 			Method getPlayerMethod = view.getClass().getMethod("getPlayer");
@@ -70,12 +72,12 @@ public class CompatibilityUtil {
 		}
 	}
 
-    /**
-     * Retrieves the top inventory from an {@link InventoryEvent} using reflection.
-     *
-     * @param event The inventory event.
-     * @return The top inventory (e.g. chest, crafting grid).
-     */
+	/**
+	 * Retrieves the top inventory from an {@link InventoryEvent} using reflection.
+	 *
+	 * @param event The inventory event.
+	 * @return The top inventory (e.g. chest, crafting grid).
+	 */
 	public static Inventory getTopInventory(InventoryEvent event) {
 		try {
 			Object view = event.getView();
@@ -87,15 +89,15 @@ public class CompatibilityUtil {
 		}
 	}
 
-    /**
-     * Retrieves an inventory's title reflectively.
-     * <p>
-     * Some Bukkit versions moved {@code getTitle()} into subclasses, so this
-     * method uses superclass traversal for compatibility.
-     *
-     * @param event The inventory event.
-     * @return Title of the inventory window.
-     */
+	/**
+	 * Retrieves an inventory's title reflectively.
+	 * <p>
+	 * Some Bukkit versions moved {@code getTitle()} into subclasses, so this method
+	 * uses superclass traversal for compatibility.
+	 *
+	 * @param event The inventory event.
+	 * @return Title of the inventory window.
+	 */
 	public static String getTitle(InventoryEvent event) {
 		try {
 			Object view = event.getView(); // InventoryView
@@ -136,70 +138,67 @@ public class CompatibilityUtil {
 		}
 	}
 
-    /**
-     * Extracts the skin texture URL from a Base64-encoded JSON texture payload.
-     *
-     * @param base64Texture A Base64-encoded Mojang skin texture string.
-     * @return The texture URL inside the JSON.
-     */
+	/**
+	 * Extracts the skin texture URL from a Base64-encoded JSON texture payload.
+	 *
+	 * @param base64Texture A Base64-encoded Mojang skin texture string.
+	 * @return The texture URL inside the JSON.
+	 */
 	public static String extractUrlFromBase64(String base64Texture) {
-	    byte[] decodedBytes = Base64.getDecoder().decode(base64Texture);
-	    String json = new String(decodedBytes);
+		byte[] decodedBytes = Base64.getDecoder().decode(base64Texture);
+		String json = new String(decodedBytes);
 
-	    JsonObject obj = Json.parse(json).asObject();
+		JsonObject obj = Json.parse(json).asObject();
 
-	    return obj.get("textures")
-	              .asObject()
-	              .get("SKIN")
-	              .asObject()
-	              .getString("url", null);
+		return obj.get("textures").asObject().get("SKIN").asObject().getString("url", null);
 	}
 
-    /**
-     * Checks if an item has a display name. Supports Bukkit name API changes
-     * introduced in Minecraft 1.20.5.
-     *
-     * @param item ItemMeta to inspect.
-     * @return True if the item has a custom name.
-     */
-	public static boolean hasDisplayname(ItemMeta item) {
-		if (Main.getInstance().serverVersionAtLeast(1, 20, 5))
+	/**
+	 * Checks if an item has a display name. Supports Bukkit name API changes
+	 * introduced in Minecraft 1.20.5.
+	 *
+	 * @param item ItemMeta to inspect.
+	 * @return True if the item has a custom name.
+	 */
+	public static boolean hasDisplayname(ItemMeta item, boolean isLegacyNames) {
+		if (!isLegacyNames && Main.getInstance().serverVersionAtLeast(1, 20, 5))
 			return item.hasItemName();
 
 		return item.hasDisplayName();
 	}
 
-    /**
-     * Retrieves the display name from an item.
-     *
-     * @param item ItemMeta from which to read the name.
-     * @return The custom display name.
-     */
-	public static String getDisplayname(ItemMeta item) {
-		if (Main.getInstance().serverVersionAtLeast(1, 20, 5))
+	/**
+	 * Retrieves the display name from an item.
+	 *
+	 * @param item ItemMeta from which to read the name.
+	 * @return The custom display name.
+	 */
+	public static String getDisplayname(ItemMeta item, boolean isLegacyNames) {
+		if (!isLegacyNames && Main.getInstance().serverVersionAtLeast(1, 20, 5))
 			return item.getItemName();
 
 		return item.getDisplayName();
 	}
 
-    /**
-     * Sets an item's display name using version-aware APIs.
-     * <p>
-     * In 1.20.5+:
-     * <ul>
-     *     <li>New naming system applies to all items except potion variants.</li>
-     * </ul>
-     *
-     * @param item The item whose meta should be modified.
-     * @param name The new display name (supports color codes).
-     * @return The updated ItemMeta with the new name applied.
-     */
-	public static ItemMeta setDisplayname(ItemStack item, String name) {
+	/**
+	 * Sets an item's display name using version-aware APIs.
+	 * <p>
+	 * In 1.20.5+:
+	 * <ul>
+	 * <li>New naming system applies to all items except potion variants.</li>
+	 * </ul>
+	 *
+	 * @param item The item whose meta should be modified.
+	 * @param name The new display name (supports color codes).
+	 * @return The updated ItemMeta with the new name applied.
+	 */
+	public static ItemMeta setDisplayname(ItemStack item, String name, boolean isLegacyNames) {
 		XMaterial[] itemTypes = { XMaterial.POTION, XMaterial.LINGERING_POTION, XMaterial.SPLASH_POTION };
 		XMaterial itemMaterial = XMaterial.matchXMaterial(item.getType());
 		ItemMeta itemM = item.getItemMeta();
 
-		if (Main.getInstance().serverVersionAtLeast(1, 20, 5) && !Arrays.asList(itemTypes).contains(itemMaterial)) {
+		if (!isLegacyNames && Main.getInstance().serverVersionAtLeast(1, 20, 5)
+				&& !Arrays.asList(itemTypes).contains(itemMaterial)) {
 			itemM.setItemName(ChatColor.translateAlternateColorCodes('&', name));
 			return itemM;
 		}

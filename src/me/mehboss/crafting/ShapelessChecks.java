@@ -14,6 +14,9 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
@@ -77,12 +80,12 @@ public class ShapelessChecks {
 
 			inventoryCount.put(it.getType(), inventoryCount.getOrDefault(it.getType(), 0) + 1);
 
-			if (!it.hasItemMeta() || !CompatibilityUtil.hasDisplayname(it.getItemMeta())) {
+			if (!it.hasItemMeta() || !CompatibilityUtil.hasDisplayname(it.getItemMeta(), recipe.isLegacyNames())) {
 				slotNames.add("false");
 				continue;
 			}
 
-			slotNames.add(CompatibilityUtil.getDisplayname(it.getItemMeta()));
+			slotNames.add(CompatibilityUtil.getDisplayname(it.getItemMeta(), recipe.isLegacyNames()));
 		}
 
 		// working copy used for consumption while matching
@@ -93,7 +96,6 @@ public class ShapelessChecks {
 				recipeCount.put(Material.AIR, recipeCount.getOrDefault(Material.AIR, 0) + 1);
 				recipeNames.add("null");
 				recipeMD.add(-1);
-				recipeIDs.add("null");
 				continue;
 			}
 
@@ -114,8 +116,8 @@ public class ShapelessChecks {
 					}
 				}
 
-				if (CompatibilityUtil.hasDisplayname(exactMatch.getItemMeta())) {
-					recipeNames.add(CompatibilityUtil.getDisplayname(exactMatch.getItemMeta()));
+				if (CompatibilityUtil.hasDisplayname(exactMatch.getItemMeta(), recipe.isLegacyNames())) {
+					recipeNames.add(CompatibilityUtil.getDisplayname(exactMatch.getItemMeta(), recipe.isLegacyNames()));
 				} else {
 					recipeNames.add("false");
 				}
@@ -169,11 +171,13 @@ public class ShapelessChecks {
 			return false;
 		}
 		logDebug("[handleShapeless] All required ingredients found..", recipe.getName(), id);
-
-		if (!recipeIDs.equals(slotIDs) || !slotIDs.equals(recipeIDs)) {
+		
+		Multiset<String> slotSet = HashMultiset.create(slotIDs);
+		Multiset<String> recipeSet = HashMultiset.create(recipeIDs);
+		if (!slotSet.containsAll(recipeSet)) {
 			logDebug("[handleShapeless] NBT tags mismatch: recipe vs inventory", recipe.getName(), id);
-			logDebug("[handleShapeless] recipeIDS: " + recipeIDs, recipe.getName(), id);
-			logDebug("[handleShapeless] slotIDS: " + slotIDs, recipe.getName(), id);
+			logDebug("[handleShapeless] recipeIDS: " + recipeSet, recipe.getName(), id);
+			logDebug("[handleShapeless] slotIDS: " + slotSet, recipe.getName(), id);
 			return false;
 		}
 

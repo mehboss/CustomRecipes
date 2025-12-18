@@ -158,6 +158,7 @@ public class RecipeManager {
 		recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Flags.Ignore-Model-Data"));
 		recipe.setExactChoice(getConfig().getBoolean(item + ".Exact-Choice"));
 		recipe.setDiscoverable(getConfig().getBoolean(item + ".Auto-Discover-Recipe"));
+		recipe.setLegacyNames(getConfig().getBoolean(item + ".Use-Display-Name", true));
 
 		if (getConfig().isSet(item + ".Book-Category")) {
 			try {
@@ -673,6 +674,9 @@ public class RecipeManager {
 				String[] breakdown = e.split(":");
 				String enchantment = breakdown[0];
 
+				if (enchantment.equalsIgnoreCase("none"))
+					break;
+
 				if (breakdown.length >= 3)
 					continue;
 
@@ -749,7 +753,7 @@ public class RecipeManager {
 		return m;
 	}
 
-	ItemMeta handleDisplayname(String item, ItemStack recipe) {
+	ItemMeta handleDisplayname(String item, ItemStack recipe, boolean useLegacyNames) {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
 		if (getConfig().isSet(item + ".Name")) {
@@ -761,7 +765,7 @@ public class RecipeManager {
 			logDebug("Applying displayname..", item);
 			logDebug("Displayname: " + name, item);
 
-			itemMeta = CompatibilityUtil.setDisplayname(recipe, name);
+			itemMeta = CompatibilityUtil.setDisplayname(recipe, name, useLegacyNames);
 		}
 		return itemMeta;
 	}
@@ -1034,7 +1038,7 @@ public class RecipeManager {
 					continue;
 				}
 			}
-
+			boolean useLegacyNames = getConfig().getBoolean(item + ".Use-Display-Name", true);
 			String resultPath = getConfig().isConfigurationSection(item + ".Result") ? item + ".Result" : item;
 			int amount = getConfig().isInt(resultPath + ".Amount") ? getConfig().getInt(resultPath + ".Amount") : 1;
 			String identifier = getConfig().getString(item + ".Identifier");
@@ -1057,7 +1061,7 @@ public class RecipeManager {
 					i = getConfig().getItemStack(resultPath + ".Item");
 				} else {
 					// handle material checks
-					Optional<ItemStack> built = buildItem(resultPath, getConfig());
+					Optional<ItemStack> built = buildItem(resultPath, getConfig(), useLegacyNames);
 					if (!built.isPresent())
 						continue;
 
@@ -1230,7 +1234,7 @@ public class RecipeManager {
 		}
 	}
 
-	public Optional<ItemStack> buildItem(String item, FileConfiguration path) {
+	public Optional<ItemStack> buildItem(String item, FileConfiguration path, boolean useLegacyNames) {
 		Optional<XMaterial> type = path.isString(item + ".Item")
 				? XMaterial.matchXMaterial(path.getString(item + ".Item").split(":")[0].toUpperCase())
 				: null;
@@ -1272,7 +1276,7 @@ public class RecipeManager {
 		i = handleEnchants(i, item);
 		i = handleCustomEnchants(i, item);
 		i = applyCustomTags(i, item);
-		m = handleDisplayname(item, i);
+		m = handleDisplayname(item, i, useLegacyNames);
 		m = handleHideEnchants(item, m);
 		m = handleCustomModelData(item, m);
 		m = handleAttributes(item, m);
@@ -1514,9 +1518,11 @@ public class RecipeManager {
 
 	boolean isVersionSupported(RecipeType type, String item) {
 		List<RecipeType> v16_Types = Arrays.asList(RecipeType.GRINDSTONE);
-		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS, RecipeType.FURNACE);
+		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS,
+				RecipeType.FURNACE);
 
-		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type) && !v16_Types.contains(type)) {
+		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type)
+				&& !v16_Types.contains(type)) {
 			logError("Error loading recipe..", item);
 			logError(">= 1.14 is required for " + type.toString() + " recipes!", item);
 			return false;

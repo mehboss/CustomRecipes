@@ -280,10 +280,10 @@ public class GrindstoneManager implements Listener {
 					bottomIng = item;
 			}
 
-			if (!itemsMatch(recipe.getName(), top, topIng) || !amountsMatch(recipe.getName(), top, topIng))
+			if (!itemsMatch(recipe, top, topIng) || !amountsMatch(recipe.getName(), top, topIng))
 				continue;
 
-			if (!itemsMatch(recipe.getName(), bottom, bottomIng) || !amountsMatch(recipe.getName(), bottom, bottomIng))
+			if (!itemsMatch(recipe, bottom, bottomIng) || !amountsMatch(recipe.getName(), bottom, bottomIng))
 				continue;
 
 			return Optional.of(recipe);
@@ -378,8 +378,8 @@ public class GrindstoneManager implements Listener {
 	}
 
     /** Checks item similarity using metadata comparison handlers. */
-	private boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
-		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
+	private boolean itemsMatch(Recipe recipe, ItemStack item, Ingredient ingredient) {
+		return Main.getInstance().metaChecks.itemsMatch(recipe, item, ingredient);
 	}
 
 	private void logDebug(String st, String recipeName) {

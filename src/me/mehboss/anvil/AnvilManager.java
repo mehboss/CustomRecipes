@@ -62,7 +62,7 @@ public class AnvilManager implements Listener {
 
 			int slot = 0;
 			for (Ingredient ingredient : recipe.getIngredients()) {
-				if (!itemsMatch(recipe.getName(), inv.getItem(slot), ingredient)
+				if (!itemsMatch(recipe, inv.getItem(slot), ingredient)
 						|| !amountsMatch(recipe.getName(), inv.getItem(slot), ingredient)) {
 					matchedToRecipe = false;
 					break;
@@ -135,8 +135,8 @@ public class AnvilManager implements Listener {
 	 * @param ingredient Ingredient to compare against.
 	 * @return true if items match according to MetaChecks; false otherwise.
 	 */
-	boolean itemsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
-		return Main.getInstance().metaChecks.itemsMatch(recipeName, item, ingredient);
+	boolean itemsMatch(Recipe recipe, ItemStack item, Ingredient ingredient) {
+		return Main.getInstance().metaChecks.itemsMatch(recipe, item, ingredient);
 	}
 
 	void logDebug(String st) {

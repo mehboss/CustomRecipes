@@ -113,7 +113,7 @@ public class RecipeViewBuilder {
 			if (index >= slots.length)
 				break;
 
-			ItemStack icon = ingredientItem(ingredient, p);
+			ItemStack icon = ingredientItem(ingredient, p, recipe.isLegacyNames());
 			if (icon == null)
 				icon = null; // leave AIR
 
@@ -140,7 +140,7 @@ public class RecipeViewBuilder {
 		view.getInventory().setItem(slot, requiredItem);
 	}
 
-	private ItemStack ingredientItem(Ingredient ing, Player p) {
+	private ItemStack ingredientItem(Ingredient ing, Player p, boolean isLegacyNames) {
 
 		if (ing == null)
 			return null;
@@ -161,7 +161,7 @@ public class RecipeViewBuilder {
 
 			if (ing.hasDisplayName()) {
 				ItemMeta meta = base.getItemMeta();
-				if (Main.getInstance().serverVersionAtLeast(1, 20, 5))
+				if (!isLegacyNames && Main.getInstance().serverVersionAtLeast(1, 20, 5))
 					meta.setItemName(ing.getDisplayName());
 				else
 					meta.setDisplayName(ing.getDisplayName());
@@ -305,7 +305,7 @@ public class RecipeViewBuilder {
 		/*
 		 * Amount (slot 35)
 		 */
-		int amount = (resultItem != null ? resultItem.getAmount() : 0);
+		int amount = (resultItem != null ? resultItem.getAmount() : 1);
 
 		view.addButton(new GuiStringButton(35, "Amount",
 				RecipeItemFactory.button(XMaterial.FEATHER, "&fAmount", String.valueOf(amount))) {
@@ -368,6 +368,30 @@ public class RecipeViewBuilder {
 			}
 		});
 
+		
+		/*
+		 * Custom Tagged toggle (slot 27)
+		 */
+		view.addButton(new GuiToggleButton(27, recipe.isCustomTagged(), "Custom-Tagged",
+				RecipeItemFactory.button(XMaterial.BOOKSHELF, "&fCustom-Tagged")) {
+
+			@Override
+			public void onToggle(Player p2, boolean val) {
+			}
+		});
+
+		
+		/*
+		 * Custom Tagged toggle (slot 7)
+		 */
+		view.addButton(new GuiToggleButton(7, recipe.isLegacyNames(), "Legacy-Names",
+				RecipeItemFactory.button(XMaterial.WHEAT, "&fLegacy-Names")) {
+
+			@Override
+			public void onToggle(Player p2, boolean val) {
+			}
+		});
+		
 		/*
 		 * Enabled toggle (slot 53)
 		 */

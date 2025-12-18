@@ -64,9 +64,16 @@ public class RecipeSaver {
 		int[] ingredientSlots = layout.getIngredientSlots();
 		int resultSlot = layout.getResultSlot();
 
-		String recipeName = recipe.getName();
-		if (recipeName == null || recipeName.trim().isEmpty()) {
+		String recipeName = readStringField(view, "Name", null);
+		if (recipeName == null || recipeName.trim().isEmpty() || recipeName.equalsIgnoreCase("none")
+				|| recipeName.trim().equals("New Recipe")) {
 			player.sendMessage(ChatColor.RED + "Recipe name is empty; cannot save.");
+			return;
+		}
+
+		String id = readStringField(view, "Identifier", null);
+		if (id == null || id.isEmpty() || id.equalsIgnoreCase("null") || id.equalsIgnoreCase("none")) {
+			player.sendMessage(ChatColor.RED + "Identifier must be set; cannot save.");
 			return;
 		}
 
@@ -125,7 +132,9 @@ public class RecipeSaver {
 		boolean shapeless = readBooleanToggle(view, "Shapeless", false);
 		boolean exactChoice = readBooleanToggle(view, "Exact-Choice", true);
 		boolean placeable = readBooleanToggle(view, "Placeable", false);
-
+		boolean isLegacyNames = readBooleanToggle(view, "Legacy-Names", true);
+		boolean isCustomTagged = readBooleanToggle(view, "Custom-Tagged", true);
+		
 		// ====== Textual fields ======
 		String identifier = readIdentifier(view, recipe.getName());
 		String permission = readStringField(view, "Permission", "none");
@@ -133,7 +142,7 @@ public class RecipeSaver {
 		if ("none".equalsIgnoreCase(group))
 			group = "";
 
-		String displayNameColored = readNameColored(resultItem);
+		String displayNameColored = readNameColored(resultItem, isLegacyNames);
 		// ====== Effects (currently unused, keep as empty list) ======
 		List<String> effects = new ArrayList<>(); // or from button "Effects" later
 
@@ -148,7 +157,8 @@ public class RecipeSaver {
 		// ====== Ingredient mapping / pattern ======
 		Map<ItemStack, String> letters = setItemLetters(inventory, ingredientSlots);
 		List<String> itemCrafting = generateItemCrafting(letters, inventory, ingredientSlots);
-		LinkedHashMap<String, Object> ingredients = buildIngredientsFromLetters(inventory, letters, ingredientSlots);
+		LinkedHashMap<String, Object> ingredients = buildIngredientsFromLetters(inventory, letters, ingredientSlots,
+				isLegacyNames);
 
 		String converterType = (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS) ? "none" : type.toString();
 
@@ -168,6 +178,7 @@ public class RecipeSaver {
 
 		cfg.put("Cooldown", -1);
 		cfg.put("Placeable", placeable);
+		cfg.put("Use-Display-Name", isLegacyNames);
 		cfg.put("Exact-Choice", exactChoice);
 		cfg.put("Identifier", identifier);
 
@@ -238,9 +249,9 @@ public class RecipeSaver {
 				result.put("Lore", lore);
 			}
 
-			result.put("Hide-Enchants", true);
+			result.put("Hide-Enchants", false);
 			result.put("Enchantments", enchantList);
-			result.put("Custom-Tagged", false);
+			result.put("Custom-Tagged", isCustomTagged);
 			result.put("Custom-Model-Data", "none");
 			result.put("Item-Flags", new ArrayList<>());
 			result.put("Attribute", new ArrayList<>());
@@ -490,18 +501,20 @@ public class RecipeSaver {
 		}
 	}
 
-	private String readNameColored(ItemStack item) {
+	private String readNameColored(ItemStack item, boolean isLegacyNames) {
 		if (item == null || item.getType() == Material.AIR || item.getItemMeta() == null)
 			return null;
 		ItemMeta im = item.getItemMeta();
-		String customName = CompatibilityUtil.hasDisplayname(im) ? CompatibilityUtil.getDisplayname(im) : "none";
+		String customName = CompatibilityUtil.hasDisplayname(im, isLegacyNames)
+				? CompatibilityUtil.getDisplayname(im, isLegacyNames)
+				: "none";
 		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
 
 		return (displayName != null && !"none".equals(displayName)) ? displayName : customName;
 	}
 
 	private LinkedHashMap<String, Object> buildIngredientsFromLetters(Inventory inv, Map<ItemStack, String> letters,
-			int[] ingredientSlots) {
+			int[] ingredientSlots, boolean isLegacyNames) {
 		LinkedHashMap<String, Object> out = new LinkedHashMap<>();
 		Set<String> seen = new HashSet<>();
 
@@ -520,7 +533,7 @@ public class RecipeSaver {
 			ing.put("Material", stack.getType().name());
 			ing.put("Identifier", findIngredientIdentifier(stack));
 			ing.put("Amount", Math.max(1, stack.getAmount()));
-			ing.put("Name", getIngredientNamePlain(stack));
+			ing.put("Name", getIngredientNamePlain(stack, isLegacyNames));
 			ing.put("Custom-Model-Data", "none");
 
 			out.put(letter, ing);
@@ -643,11 +656,13 @@ public class RecipeSaver {
 	}
 
 	// Ingredient plain display name (no colors) or "none"
-	private String getIngredientNamePlain(ItemStack item) {
+	private String getIngredientNamePlain(ItemStack item, boolean isLegacyNames) {
 		if (item == null || !item.hasItemMeta())
 			return "none";
 		ItemMeta im = item.getItemMeta();
-		String customName = CompatibilityUtil.hasDisplayname(im) ? CompatibilityUtil.getDisplayname(im) : "none";
+		String customName = CompatibilityUtil.hasDisplayname(im, isLegacyNames)
+				? CompatibilityUtil.getDisplayname(im, isLegacyNames)
+				: "none";
 		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
 
 		return (displayName != null && !"none".equals(displayName)) ? displayName : customName;

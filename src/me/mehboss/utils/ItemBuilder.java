@@ -25,7 +25,7 @@ public class ItemBuilder {
 		return new File(Main.getInstance().getDataFolder(), "items");
 	}
 
-	/** Load all items from items folder  */
+	/** Load all items from items folder */
 	public static void loadAll() {
 		BY_IDENTIFIER.clear();
 
@@ -54,13 +54,11 @@ public class ItemBuilder {
 		loadAll();
 	}
 
-	
 	/** Lists all items. */
 	public static ArrayList<String> getAllItems() {
 		return new ArrayList<>(BY_IDENTIFIER.keySet());
 	}
 
-	
 	/** Get by Identifier. */
 	public static ItemStack get(String identifier) {
 		ItemStack s = BY_IDENTIFIER.get(identifier);
@@ -71,14 +69,13 @@ public class ItemBuilder {
 	public static String get(ItemStack item) {
 		for (String id : BY_IDENTIFIER.keySet()) {
 			ItemStack custom = BY_IDENTIFIER.get(id);
-			
+
 			if (item.isSimilar(custom))
 				return id;
 		}
 		return null;
 	}
 
-	
 	/** Give one to a player by Identifier. */
 	public static boolean give(Player p, String identifier) {
 		ItemStack it = get(identifier);
@@ -104,7 +101,8 @@ public class ItemBuilder {
 		itemConfig = cfg;
 		String resultPath = cfg.isConfigurationSection(section + ".Result") ? section + ".Result" : section;
 
-		Optional<ItemStack> built = Main.getInstance().recipeManager.buildItem(resultPath, itemConfig);
+		boolean useLegacyName = cfg.getBoolean(resultPath + ".Use-Display-Name", true);
+		Optional<ItemStack> built = Main.getInstance().recipeManager.buildItem(resultPath, itemConfig, useLegacyName);
 		if (!built.isPresent()) {
 			Main.getInstance().getLogger().warning("[CustomItemAPI] buildItem failed for section " + section);
 			return;

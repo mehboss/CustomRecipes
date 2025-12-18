@@ -786,8 +786,9 @@ public class RecipeUtil {
 		private boolean ignoreData = false;
 		private boolean ignoreModelData = false;
 		private boolean ignoreNames = false;
-		private boolean isTagged = false;
+		private boolean isTagged = true;
 		private boolean discoverable = false;
+		private boolean useLegacyNames = true;
 
 		private boolean hasCommands = false;
 		private boolean isGrantItem = true;
@@ -835,6 +836,24 @@ public class RecipeUtil {
 			this.ingredients = new ArrayList<>();
 		}
 
+		/**
+		 * Getter for whether or not a recipe uses legacy names.
+		 * 
+		 * @return true if the recipe uses display name, false if the recipe/item uses the newer item_name
+		 */
+		public boolean isLegacyNames() {
+			return useLegacyNames;
+		}
+		
+		/**
+		 * Sets whether the recipe uses display_name or uses item_name
+		 * 
+		 * @param legacy true if the recipe uses legacy, false otherwise.
+		 */
+		public void setLegacyNames(boolean legacy) {
+			this.useLegacyNames = legacy;
+		}
+		
 		/**
 		 * Getter for setBookCategory
 		 * 

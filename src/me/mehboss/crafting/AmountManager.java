@@ -126,7 +126,7 @@ public class AmountManager implements Listener {
 						item.setAmount((item.getAmount()) - requiredAmount);
 						return;
 					}
-					item.setAmount((item.getAmount() + 1) - requiredAmount);
+					item.setAmount((item.getAmount()) - (requiredAmount - 1));
 				}
 			} else {
 				if ((item.getAmount() - itemsToRemove) <= 0) {
@@ -140,7 +140,7 @@ public class AmountManager implements Listener {
 					return;
 				}
 
-				item.setAmount(item.getAmount() - itemsToRemove);
+				item.setAmount(item.getAmount() - (itemsToRemove));
 			}
 		}
 	}
@@ -260,7 +260,6 @@ public class AmountManager implements Listener {
 		}
 
 		RecipeType type = recipe.getType();
-		ArrayList<String> handledIngredients = new ArrayList<>();
 
 		// ============================================================
 		// PASS 1 — ITEMS TO ADD
@@ -319,7 +318,8 @@ public class AmountManager implements Listener {
 		}
 
 		if (itemsToAdd <= 0 || itemsToAdd == Integer.MAX_VALUE) {
-			logDebug("[handleShiftClicks][" + findName + "] Issue detected while attempting amount deductions. If this is in error, please reach out for support.");
+			logDebug("[handleShiftClicks][" + findName
+					+ "] Issue detected while attempting amount deductions. If this is in error, please reach out for support.");
 			e.setCancelled(true);
 			return;
 		}
@@ -353,6 +353,7 @@ public class AmountManager implements Listener {
 
 		} else {
 			// shapeless
+			boolean[] handledSlots = new boolean[9];
 			for (Ingredient ing : recipe.getIngredients()) {
 				if (ing.isEmpty())
 					continue;
@@ -362,21 +363,21 @@ public class AmountManager implements Listener {
 				final boolean hasID = ing.hasIdentifier();
 				int req = Math.max(1, ing.getAmount());
 
+				// add 1 for inventory matrix
 				for (int i = 1; i < 10; i++) {
 					ItemStack stack = inv.getItem(i);
+
+					if (handledSlots[(i - 1)])
+						continue;
 					if (stack == null || stack.getType() == Material.AIR)
 						continue;
 
 					if (!matchesIngredient(stack, findName, ing, mat, name, hasID))
 						continue;
 
-					if (!handledIngredients.contains(ing.getAbbreviation())) {
-						handlesItemRemoval(e, inv, recipe, stack, ing, i, itemsToRemove, itemsToAdd, req,
-								containerCraft);
-					}
+					handlesItemRemoval(e, inv, recipe, stack, ing, i, itemsToRemove, itemsToAdd, req, containerCraft);
+					handledSlots[(i - 1)] = true;
 				}
-
-				handledIngredients.add(ing.getAbbreviation());
 			}
 		}
 

@@ -62,7 +62,7 @@ public class ExactChoice {
 			ItemMeta exactMeta = exactItem.getItemMeta();
 
 			if (item.hasDisplayName())
-				exactMeta = CompatibilityUtil.setDisplayname(exactItem, item.getDisplayName());
+				exactMeta = CompatibilityUtil.setDisplayname(exactItem, item.getDisplayName(), recipe.isLegacyNames());
 
 			if (item.hasCustomModelData())
 				exactMeta.setCustomModelData(item.getCustomModelData());

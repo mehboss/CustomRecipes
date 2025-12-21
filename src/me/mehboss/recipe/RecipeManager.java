@@ -61,8 +61,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionType;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
+import org.jetbrains.annotations.NotNull;
 
 import com.cryptomorin.xseries.XEnchantment;
+import com.cryptomorin.xseries.XItemStack;
+import com.cryptomorin.xseries.XItemStack.Deserializer;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XPotion;
 import com.mojang.authlib.GameProfile;
@@ -135,24 +138,55 @@ public class RecipeManager {
 		return bagItem;
 	}
 
-	void handleDisabledWorlds(String item, Recipe recipe) {
+	void handleCommand(String item, Recipe recipe) {
+		String path = item + ".Commands.Run-Commands";
+		String grantItem = item + ".Commands.Give-Item";
+
+		// Check if the list exists and is not empty
+		if (!getConfig().isSet(path) || getConfig().getStringList(path).isEmpty())
+			return;
+
+		if (getConfig().isSet(grantItem))
+			recipe.setGrantItem(getConfig().getBoolean(grantItem));
+
+		List<String> commands = getConfig().getStringList(path);
+		recipe.setCommands(commands);
+		logDebug("Successfully set commands: " + commands, item);
+	}
+
+	void handleMaterialChoice(Recipe recipe, Ingredient ingredient, String path) {
+		List<String> list = getConfig().getStringList(path + ".Materials");
+		if (list == null || list.isEmpty())
+			return;
+		for (String material : list) {
+			Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
+			if (!validMaterial(recipe.getName(), material, rawMaterial))
+				continue;
+			ingredient.addMaterialChoice(rawMaterial.get().get());
+		}
+	}
+
+	void handleRecipeFlags(String item, Recipe recipe) {
+		if (getConfig().getBoolean(item + ".Custom-Tagged"))
+			recipe.setTagged(true);
+
+		if (getConfig().isBoolean(item + ".Enabled"))
+			recipe.setActive(getConfig().getBoolean(item + ".Enabled"));
+
+		if (getConfig().isString(item + ".Permission"))
+			recipe.setPerm(getConfig().getString(item + ".Permission"));
+
+		if (getConfig().isInt(item + ".Cooldown") && getConfig().getInt(item + ".Cooldown") != -1)
+			recipe.setCooldown(getConfig().getInt(item + ".Cooldown"));
+
+		if (getConfig().isBoolean(item + ".Placeable"))
+			recipe.setPlaceable(getConfig().getBoolean(item + ".Placeable"));
+
 		if (getConfig().isSet(item + ".Disabled-Worlds")) {
 			for (String world : getConfig().getStringList(item + ".Disabled-Worlds"))
 				recipe.addDisabledWorld(world);
 		}
-	}
 
-	void handlePlaceable(String item, Recipe recipe) {
-		if (getConfig().isBoolean(item + ".Placeable"))
-			recipe.setPlaceable(getConfig().getBoolean(item + ".Placeable"));
-	}
-
-	void handleCooldown(String item, Recipe recipe) {
-		if (getConfig().isInt(item + ".Cooldown") && getConfig().getInt(item + ".Cooldown") != -1)
-			recipe.setCooldown(getConfig().getInt(item + ".Cooldown"));
-	}
-
-	void handleIgnoreFlags(String item, Recipe recipe) {
 		recipe.setIgnoreData(getConfig().getBoolean(item + ".Flags.Ignore-Data"));
 		recipe.setIgnoreNames(getConfig().getBoolean(item + ".Flags.Ignore-Name"));
 		recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Flags.Ignore-Model-Data"));
@@ -857,34 +891,6 @@ public class RecipeManager {
 		return m;
 	}
 
-	void handleCommand(String item, Recipe recipe) {
-		String path = item + ".Commands.Run-Commands";
-		String grantItem = item + ".Commands.Give-Item";
-
-		// Check if the list exists and is not empty
-		if (!getConfig().isSet(path) || getConfig().getStringList(path).isEmpty())
-			return;
-
-		if (getConfig().isSet(grantItem))
-			recipe.setGrantItem(getConfig().getBoolean(grantItem));
-
-		List<String> commands = getConfig().getStringList(path);
-		recipe.setCommands(commands);
-		logDebug("Successfully set commands: " + commands, item);
-	}
-
-	void handleMaterialChoice(Recipe recipe, Ingredient ingredient, String path) {
-		List<String> list = getConfig().getStringList(path + ".Materials");
-		if (list == null || list.isEmpty())
-			return;
-		for (String material : list) {
-			Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
-			if (!validMaterial(recipe.getName(), material, rawMaterial))
-				continue;
-			ingredient.addMaterialChoice(rawMaterial.get().get());
-		}
-	}
-
 	void checkIdentifiers() {
 		for (Recipe recipe : new ArrayList<>(getRecipeUtil().getAllRecipes().values())) {
 			for (Ingredient ingredient : recipe.getIngredients()) {
@@ -1080,14 +1086,8 @@ public class RecipeManager {
 			i.setAmount(amount);
 
 			recipe.setResult(i);
-			handleIgnoreFlags(item, recipe);
-			handleCooldown(item, recipe);
-			handlePlaceable(item, recipe);
+			handleRecipeFlags(item, recipe);
 			handleCommand(item, recipe);
-			handleDisabledWorlds(item, recipe);
-
-			if (getConfig().getBoolean(item + ".Custom-Tagged"))
-				recipe.setTagged(true);
 
 			ArrayList<String> slotsAbbreviations = new ArrayList<String>();
 			String row1 = gridRows.get(0);
@@ -1129,20 +1129,6 @@ public class RecipeManager {
 				}
 
 				count++;
-				String configPath = item + ".Ingredients." + abbreviation;
-				List<String> list = getConfig().getStringList(configPath + ".Materials");
-				String material = !list.isEmpty() ? list.get(0) : getConfig().getString(configPath + ".Material");
-				if (material == null) {
-					continue recipeLoop;
-				}
-				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
-				if (!validMaterial(recipe.getName(), material, rawMaterial)) {
-					logError("Error loading recipe..", recipe.getName());
-					logError("Could not find valid ingredient 'Material(s)' section! Skipping..", recipe.getName());
-					continue recipeLoop;
-				}
-
-				Material ingredientMaterial = rawMaterial.get().get();
 				if (count > amountRequirement) {
 					logError("Error loading recipe..", recipe.getName());
 					logError(
@@ -1152,40 +1138,22 @@ public class RecipeManager {
 					continue recipeLoop;
 				}
 
-				String ingredientName = getConfig().isString(configPath + ".Name")
-						? getConfig().getString(configPath + ".Name")
-						: null;
-				String ingredientIdentifier = getConfig().isString(configPath + ".Identifier")
-						? getConfig().getString(configPath + ".Identifier")
-						: null;
-				int ingredientAmount = getConfig().isInt(configPath + ".Amount")
-						? getConfig().getInt(configPath + ".Amount")
-						: 1;
-				int ingredientCMD = getConfig().isInt(configPath + ".Custom-Model-Data")
-						? getConfig().getInt(configPath + ".Custom-Model-Data")
-						: -1;
-
-				logDebug("Ingredient Name: " + ingredientName, recipe.getName());
-				logDebug("Ingredient Identifier: " + ingredientIdentifier, recipe.getName());
-				logDebug("Ingredient Type: " + ingredientMaterial, recipe.getName());
-				logDebug("Ingredient Amount: " + ingredientAmount, recipe.getName());
-
-				recipeIngredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
-				recipeIngredient.setDisplayName(ingredientName);
-				recipeIngredient.setCustomModelData(ingredientCMD);
-				recipeIngredient.setIdentifier(ingredientIdentifier);
-				recipeIngredient.setAmount(ingredientAmount);
-				recipeIngredient.setSlot(slot);
-
-				// handles material choice inputs for ingredients
-				handleMaterialChoice(recipe, recipeIngredient, configPath);
-
-				if (rawMaterial.get().getData() != 0) {
-					logDebug("[LegacyID] Found legacy ID - " + ingredientMaterial + ", with a short value of "
-							+ rawMaterial.get().getData(), recipe.getName());
-					recipeIngredient.setMaterialData(new MaterialData(ingredientMaterial, rawMaterial.get().getData()));
+				// Try to deserialize using XItemstack (Deserializer)
+				Optional<RecipeUtil.Ingredient> recipeIngredientOptional = tryDeserializeFromXItemstack(item,
+						abbreviation);
+				if (recipeIngredientOptional.isPresent()) {
+					recipeIngredient = recipeIngredientOptional.get();
+					logDebug("Loading ingredient '" + abbreviation + "' from ItemStack..", recipe.getName());
+				} else {
+					recipeIngredient = tryDeserializeFromConfig(recipe, item, abbreviation);
+					if (recipeIngredient == null) {
+						continue recipeLoop;
+					}
+					logDebug("Loading ingredient '" + abbreviation + "' from configuration settings..",
+							recipe.getName());
 				}
 
+				recipeIngredient.setSlot(slot);
 				recipe.addIngredient(recipeIngredient);
 
 				if (count == amountRequirement)
@@ -1194,12 +1162,6 @@ public class RecipeManager {
 
 			logDebug("Recipe Type: " + recipe.getType(), recipe.getName());
 			logDebug("Successfully added " + item + " with the amount output of " + i.getAmount(), recipe.getName());
-
-			if (getConfig().isBoolean(item + ".Enabled"))
-				recipe.setActive(getConfig().getBoolean(item + ".Enabled"));
-
-			if (getConfig().isString(item + ".Permission"))
-				recipe.setPerm(getConfig().getString(item + ".Permission"));
 
 			getRecipeUtil().createRecipe(recipe);
 			if (delayedRecipes.isEmpty() && name != null) {
@@ -1218,6 +1180,78 @@ public class RecipeManager {
 		if (delayedRecipes.isEmpty()) {
 			getRecipeUtil().reloadRecipes();
 		}
+	}
+
+	private Optional<RecipeUtil.Ingredient> tryDeserializeFromXItemstack(String recipe, String abbreviation) {
+		String ingredientPath = recipe + ".Ingredients." + abbreviation;
+		ConfigurationSection path = getConfig().getConfigurationSection(ingredientPath);
+
+		if (path == null)
+			return Optional.empty();
+
+		try {
+			Deserializer deserializer = new Deserializer();
+			deserializer.withConfig(path);
+			ItemStack item = deserializer.read();
+			if (item.getType() == XMaterial.BARRIER.get())
+				return Optional.empty();
+
+			RecipeUtil.Ingredient ingredient = new RecipeUtil.Ingredient(abbreviation, item.getType());
+			ingredient.setItem(item);
+			return Optional.of(ingredient);
+		} catch (Exception e) {
+			return Optional.empty();
+		}
+	}
+
+	// Method for deserializing from config
+	private RecipeUtil.Ingredient tryDeserializeFromConfig(Recipe recipe, String item, String abbreviation) {
+		String configPath = item + ".Ingredients." + abbreviation;
+		List<String> list = getConfig().getStringList(configPath + ".Materials");
+		String material = !list.isEmpty() ? list.get(0) : getConfig().getString(configPath + ".Material");
+
+		if (material == null) {
+			logError("Error loading recipe..", recipe.getName());
+			logError("Could not find valid ingredient 'Material(s)' section! Skipping..", recipe.getName());
+			return null;
+		}
+
+		Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
+		if (!validMaterial(recipe.getName(), material, rawMaterial)) {
+			logError("Error loading recipe..", recipe.getName());
+			logError("Invalid ingredient material/item found. Skipping..", recipe.getName());
+			return null;
+		}
+
+		Material ingredientMaterial = rawMaterial.get().get();
+		String ingredientName = getConfig().isString(configPath + ".Name") ? getConfig().getString(configPath + ".Name")
+				: null;
+		String ingredientIdentifier = getConfig().isString(configPath + ".Identifier")
+				? getConfig().getString(configPath + ".Identifier")
+				: null;
+		int ingredientAmount = getConfig().isInt(configPath + ".Amount") ? getConfig().getInt(configPath + ".Amount")
+				: 1;
+		int ingredientCMD = getConfig().isInt(configPath + ".Custom-Model-Data")
+				? getConfig().getInt(configPath + ".Custom-Model-Data")
+				: -1;
+
+		RecipeUtil.Ingredient ingredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
+		ingredient.setDisplayName(ingredientName);
+		ingredient.setCustomModelData(ingredientCMD);
+		ingredient.setIdentifier(ingredientIdentifier);
+		ingredient.setAmount(ingredientAmount);
+
+		// Set material data if available
+		if (rawMaterial.get().getData() != 0) {
+			logDebug("[LegacyID] Found legacy ID - " + ingredientMaterial + ", with a short value of "
+					+ rawMaterial.get().getData(), recipe.getName());
+			ingredient.setMaterialData(new MaterialData(ingredientMaterial, rawMaterial.get().getData()));
+		}
+
+		// Handle material choice inputs for ingredients
+		handleMaterialChoice(recipe, ingredient, configPath);
+
+		return ingredient;
 	}
 
 	boolean hasItemDamage(String item, Optional<XMaterial> type) {

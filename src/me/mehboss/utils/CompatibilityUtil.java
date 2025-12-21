@@ -153,6 +153,13 @@ public class CompatibilityUtil {
 		return obj.get("textures").asObject().get("SKIN").asObject().getString("url", null);
 	}
 
+	public static boolean supportsItemName() {
+		return Main.getInstance().serverVersionAtLeast(1, 20, 5);
+	}
+	
+	public static boolean supportsModelData() {
+		return Main.getInstance().serverVersionAtLeast(1, 14);
+	}
 	/**
 	 * Checks if an item has a display name. Supports Bukkit name API changes
 	 * introduced in Minecraft 1.20.5.

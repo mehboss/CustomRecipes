@@ -144,7 +144,7 @@ public class RecipeViewBuilder {
 
 	private ItemStack ingredientItem(Ingredient ing, Player p, boolean isLegacyNames) {
 
-		if (ing == null)
+		if (ing == null || ing.isEmpty())
 			return null;
 
 		ItemStack base = null;
@@ -155,7 +155,9 @@ public class RecipeViewBuilder {
 				base = r.getResult();
 			else
 				base = Main.getInstance().recipeUtil.getResultFromKey(ing.getIdentifier());
-		} else if (ing.getMaterial() != null) {
+		} else if (ing.hasItem()) {
+			base = ing.getItem();
+		} else {
 			base = XMaterial.matchXMaterial(ing.getMaterial().toString()).get().parseItem();
 
 			if (ing.hasMaterialData())

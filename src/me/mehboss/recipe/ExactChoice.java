@@ -57,6 +57,9 @@ public class ExactChoice {
 		} else if (item.hasIdentifier() && getRecipeUtil().getResultFromKey(item.getIdentifier()) != null) {
 			return new RecipeChoice.ExactChoice(getRecipeUtil().getResultFromKey(item.getIdentifier()));
 
+		} else if (item.hasItem()) {
+			return new RecipeChoice.ExactChoice(item.getItem());
+			
 		} else {
 			ItemStack exactItem = new ItemStack(item.getMaterial());
 			ItemMeta exactMeta = exactItem.getItemMeta();

@@ -20,9 +20,8 @@
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>3.5.0</version>
 				<configuration>
-					<failOnError>false</failOnError> <!-- don’t fail build if
-					Javadocs missing -->
-					<quiet>true</quiet>              <!-- suppress warnings -->
+					<failOnError>false</failOnError>
+					<quiet>true</quiet>
 					<excludePackageNames>
 						me.mehboss.recipe.*
 					</excludePackageNames>

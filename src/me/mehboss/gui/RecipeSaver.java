@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -27,6 +26,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 
+import com.cryptomorin.xseries.XItemStack.Serializer;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XPotion;
 
@@ -532,14 +532,24 @@ public class RecipeSaver {
 				continue;
 			seen.add(letter);
 
-			LinkedHashMap<String, Object> ing = new LinkedHashMap<>();
-			ing.put("Material", stack.getType().name());
-			ing.put("Identifier", findIngredientIdentifier(stack));
-			ing.put("Amount", Math.max(1, stack.getAmount()));
-			ing.put("Name", getIngredientNamePlain(stack, isLegacyNames));
-			ing.put("Custom-Model-Data", "none");
+			// Serialize the ItemStack into XItemStack and extract details
+			Serializer serializer = new Serializer().withItem(stack);
+			if (serializer == null)
+				continue;
 
-			out.put(letter, ing);
+			Map<String, Object> serializedMap = serializer.writeToMap(); // Get the full serialized map
+
+			// Get the identifier for the ingredient
+			String identifier = findIngredientIdentifier(stack);
+
+			if (identifier == null || identifier.isEmpty() || identifier.equals("none")) {
+				out.put(letter, serializedMap);
+			} else {
+				LinkedHashMap<String, Object> ing = new LinkedHashMap<>();
+				ing.put("Material", stack.getType().name());
+				ing.put("Identifier", identifier);
+				out.put(letter, ing);
+			}
 		}
 		return out;
 	}

@@ -839,12 +839,13 @@ public class RecipeUtil {
 		/**
 		 * Getter for whether or not a recipe uses legacy names.
 		 * 
-		 * @return true if the recipe uses display name, false if the recipe/item uses the newer item_name
+		 * @return true if the recipe uses display name, false if the recipe/item uses
+		 *         the newer item_name
 		 */
 		public boolean isLegacyNames() {
 			return useLegacyNames;
 		}
-		
+
 		/**
 		 * Sets whether the recipe uses display_name or uses item_name
 		 * 
@@ -853,7 +854,7 @@ public class RecipeUtil {
 		public void setLegacyNames(boolean legacy) {
 			this.useLegacyNames = legacy;
 		}
-		
+
 		/**
 		 * Getter for setBookCategory
 		 * 
@@ -1438,15 +1439,36 @@ public class RecipeUtil {
 			}
 
 			this.item = item;
+			ItemMeta meta = item.getItemMeta();
+			if (meta != null) {
+				String displayName = meta.hasDisplayName() ? meta.getDisplayName() : null;
+				String itemName = CompatibilityUtil.supportsItemName() && meta.hasItemName() ? meta.getItemName()
+						: null;
+
+				this.displayName = itemName != null ? itemName : displayName != null ? displayName : "false";
+				this.modelData = CompatibilityUtil.supportsModelData() && meta.hasCustomModelData()
+						? meta.getCustomModelData()
+						: -1;
+			}
+			this.material = item.getType();
 		}
 
 		/**
 		 * Getter for an ingredient itemstack
 		 * 
-		 * @returns the ingredient itemstack, can be null
+		 * @returns the ingredient itemstack
 		 */
 		public ItemStack getItem() {
 			return item;
+		}
+
+		/**
+		 * Getter for whether an ingredient has an itemstack
+		 * 
+		 * @returns true or false.
+		 */
+		public boolean hasItem() {
+			return item != null;
 		}
 
 		/**
@@ -1455,6 +1477,8 @@ public class RecipeUtil {
 		 * @param displayname the name the ingredient is required to have
 		 */
 		public void setDisplayName(String displayName) {
+			if (displayName == null)
+				return;
 			this.displayName = displayName;
 		}
 
@@ -1542,10 +1566,7 @@ public class RecipeUtil {
 		 * @returns the displayname of the ingredient, can be null
 		 */
 		public String getDisplayName() {
-			if (displayName == null)
-				return displayName;
-
-			return ChatColor.translateAlternateColorCodes('&', displayName);
+			return displayName == null ? displayName : ChatColor.translateAlternateColorCodes('&', displayName);
 		}
 
 		/**

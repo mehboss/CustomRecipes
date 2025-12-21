@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
+import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -40,13 +42,14 @@ public class AnvilManager implements Listener {
 	 */
 	@EventHandler
 	void onPlace(PrepareAnvilEvent e) {
-		
+
 		if (Main.getInstance().serverVersionLessThan(1, 9))
 			return;
-		
+
 		AnvilInventory inv = e.getInventory();
 		Recipe matchedRecipe = null;
 		Player p = (Player) CompatibilityUtil.getPlayerFromView(CompatibilityUtil.getInventoryView(e));
+		World w = p.getWorld();
 
 		HashMap<String, Recipe> anvilRecipes = getRecipeUtil().getRecipesFromType(RecipeType.ANVIL);
 		if (anvilRecipes == null || anvilRecipes.isEmpty())
@@ -79,10 +82,21 @@ public class AnvilManager implements Listener {
 		}
 
 		if (matchedRecipe != null) {
-			if (!matchedRecipe.isActive()
-					|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))
-					|| matchedRecipe.getDisabledWorlds().contains(p.getWorld().getName())) {
+			boolean hasPerms = p == null || !matchedRecipe.hasPerm() || p.hasPermission(matchedRecipe.getPerm());
+			boolean allowWorld = w == null || !matchedRecipe.getDisabledWorlds().contains(w.getName());
+			boolean hasCooldown = p != null && matchedRecipe.hasCooldown()
+					&& getCooldownManager().hasCooldown(p.getUniqueId(), matchedRecipe.getKey())
+					&& !(matchedRecipe.hasPerm() && p.hasPermission(matchedRecipe.getPerm() + ".bypass"));
+
+			if (!matchedRecipe.isActive() || !hasPerms || !allowWorld) {
 				sendNoPermsMessage(p, matchedRecipe.getName());
+				return;
+			}
+
+			if (hasCooldown) {
+				Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), matchedRecipe.getKey());
+				sendMessages(p, "crafting-limit", timeLeft);
+				inv.setItem(2, null);
 				return;
 			}
 
@@ -126,6 +140,10 @@ public class AnvilManager implements Listener {
 		return Main.getInstance().recipeUtil;
 	}
 
+	CooldownManager getCooldownManager() {
+		return Main.getInstance().cooldownManager;
+	}
+
 	/**
 	 * Checks if the given ItemStack matches the ingredient's item type and
 	 * metadata.
@@ -142,6 +160,10 @@ public class AnvilManager implements Listener {
 	void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+	}
+
+	void sendMessages(Player p, String s, long seconds) {
+		Main.getInstance().sendMessages(p, s, seconds);
 	}
 
 	void sendNoPermsMessage(Player p, String recipe) {

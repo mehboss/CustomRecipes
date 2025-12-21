@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v2.0.5.9                                                                                  #
+# Version v2.0.6                                                                                    #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
@@ -51,3 +51,44 @@ gui:
   Open-Sound: CLICK
   Open-Message: '&aOpening menu..'
   Displayname: '&cRecipe Manager - Page %page%'
+  Editing: '&aEDITING: '
+  Viewing: '&cVIEWING: '
+  Empty: 'None'
+  Buttons:
+    Create: '&2Create Recipe'
+    Next: '&aNext Page'
+    Previous: '&cPrevious Page'
+    Update: '&aUpdate'
+    Main-Menu: '&fMain Menu'
+    Back: '&cBack'
+    Cancel: '&cCancel'
+    Delete: '&cDelete Recipe'
+    Confirm-Delete: '&cConfirm Recipe Deletion'
+    Enabled: '&aEnabled'
+    Disabled: '&cDisabled'
+    Toggle-True: '&atrue'
+    Toggle-False: '&cfalse'
+  Recipe:
+    Legacy-Names: '&fLegacy Names'
+    Enabled: '&fEnabled'
+    Shapeless: '&fShapeless'
+    Recipe-Name: '&fRecipe Name'
+    Identifier: '&fIdentifier'
+    Custom-Tagged: '&fCustom Tagged'
+    Exact-Choice: '&fExact Choice'
+    Placeable: '&fPlaceable'
+    Amount: '&fAmount'
+    Group: '&fGroup'
+    Name: '&fName'
+    Lore: '&fLore'
+    Permission: '&fPermission'
+    Effects: '&fEffects'
+  Brewing:
+    Required-Items: '&fRequired Items'
+    Fuel-Charge: '&fFuel Charge'
+    Fuel-Set: '&fFuel Set'
+  Workstation:
+    Repair-Cost: '&fRepair Cost'
+    Experience: '&fExperience'
+  Cooking:
+    Cook-Time: '&fCook Time'

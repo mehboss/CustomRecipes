@@ -3,12 +3,14 @@ package me.mehboss.gui.framework;
 import java.util.List;
 
 import org.bukkit.ChatColor;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import me.mehboss.gui.framework.chat.ChatEditManager;
+import me.mehboss.recipe.Main;
 
 /**
  * Base GUI button. Each button occupies a single slot and has its own click
@@ -126,8 +128,9 @@ public abstract class GuiButton {
 				return;
 
 			ItemMeta meta = icon.getItemMeta();
-			meta.setDisplayName(
-					ChatColor.translateAlternateColorCodes('&', "&f" + label + ": " + (value ? "&atrue" : "&cfalse")));
+			meta.setDisplayName(getParsedValue("Recipe." + label, label) + ": "
+					+ (value ? getParsedValue("Buttons.Toggle-True", "&atrue")
+							: getParsedValue("Buttons.Toggle-False", "&cfalse")));
 			icon.setItemMeta(meta);
 		}
 
@@ -142,5 +145,18 @@ public abstract class GuiButton {
 		 * Fired whenever the value is toggled.
 		 */
 		public abstract void onToggle(Player player, boolean newValue);
+	}
+
+	private static String getValue(String path, String def) {
+		String val = getConfig().getString("gui." + path);
+		return (val == null || val.isEmpty()) ? def : val;
+	}
+
+	private static String getParsedValue(String msg, String def) {
+		return ChatColor.translateAlternateColorCodes('&', getValue(msg, def));
+	}
+
+	private static FileConfiguration getConfig() {
+		return Main.getInstance().getConfig();
 	}
 }

@@ -134,7 +134,7 @@ public class RecipeSaver {
 		boolean placeable = readBooleanToggle(view, "Placeable", false);
 		boolean isLegacyNames = readBooleanToggle(view, "Legacy-Names", true);
 		boolean isCustomTagged = readBooleanToggle(view, "Custom-Tagged", true);
-		
+
 		// ====== Textual fields ======
 		String identifier = readIdentifier(view, recipe.getName());
 		String permission = readStringField(view, "Permission", "none");
@@ -234,28 +234,31 @@ public class RecipeSaver {
 
 		// handles "result" configuration section
 		Map<String, Object> result = new LinkedHashMap<>();
-		if (!isPotion && !resultHasID.get()) {
+		if (!isPotion) {
 			result.put("Item", material);
-			result.put("Item-Damage", "none");
-			result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
-			result.put("Amount", resultAmount);
+			if (!resultHasID.get()) {
+				result.put("Item-Damage", "none");
+				result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
+				result.put("Amount", resultAmount);
 
-			if (resultHasID.get()) {
-				result.put("Name", "none");
-				result.put("Lore", new ArrayList<>());
-			} else {
-				result.put("Name",
-						(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored : "none");
-				result.put("Lore", lore);
+				if (resultHasID.get()) {
+					result.put("Name", "none");
+					result.put("Lore", new ArrayList<>());
+				} else {
+					result.put("Name",
+							(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored
+									: "none");
+					result.put("Lore", lore);
+				}
+
+				result.put("Hide-Enchants", false);
+				result.put("Enchantments", enchantList);
+				result.put("Custom-Tagged", isCustomTagged);
+				result.put("Custom-Model-Data", "none");
+				result.put("Item-Flags", new ArrayList<>());
+				result.put("Attribute", new ArrayList<>());
+				result.put("Custom-Tags", new ArrayList<>());
 			}
-
-			result.put("Hide-Enchants", false);
-			result.put("Enchantments", enchantList);
-			result.put("Custom-Tagged", isCustomTagged);
-			result.put("Custom-Model-Data", "none");
-			result.put("Item-Flags", new ArrayList<>());
-			result.put("Attribute", new ArrayList<>());
-			result.put("Custom-Tags", new ArrayList<>());
 		} else if (isPotion) {
 			savePotionToConfig(resultItem, result);
 		}

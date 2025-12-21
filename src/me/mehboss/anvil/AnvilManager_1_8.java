@@ -5,6 +5,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,6 +15,7 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -36,6 +39,7 @@ public class AnvilManager_1_8 implements Listener {
 			return;
 
 		Player p = (Player) e.getWhoClicked();
+		World w = p.getWorld();
 		AnvilInventory inv = (AnvilInventory) e.getInventory();
 
 		// Delay by 1 tick so the inventory updates like PrepareAnvilEvent would
@@ -69,10 +73,22 @@ public class AnvilManager_1_8 implements Listener {
 			}
 
 			if (matchedRecipe != null) {
-				if (!matchedRecipe.isActive()
-						|| (matchedRecipe.getPerm() != null && !p.hasPermission(matchedRecipe.getPerm()))
-						|| matchedRecipe.getDisabledWorlds().contains(p.getWorld().getName())) {
+				boolean hasPerms = p == null || !matchedRecipe.hasPerm() || p.hasPermission(matchedRecipe.getPerm());
+				boolean allowWorld = w == null || !matchedRecipe.getDisabledWorlds().contains(w.getName());
+				boolean hasCooldown = p != null && matchedRecipe.hasCooldown()
+						&& getCooldownManager().hasCooldown(p.getUniqueId(), matchedRecipe.getKey())
+						&& !(matchedRecipe.hasPerm() && p.hasPermission(matchedRecipe.getPerm() + ".bypass"));
+
+				if (!matchedRecipe.isActive() || !hasPerms || !allowWorld) {
 					sendNoPermsMessage(p, matchedRecipe.getName());
+					inv.setItem(2, null);
+					return;
+				}
+
+				if (hasCooldown) {
+					Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(),
+							matchedRecipe.getKey());
+					sendMessages(p, "crafting-limit", timeLeft);
 					inv.setItem(2, null);
 					return;
 				}
@@ -87,7 +103,7 @@ public class AnvilManager_1_8 implements Listener {
 			}
 		});
 	}
-	
+
 	/**
 	 * Checks whether the provided item satisfies the ingredient's required amount.
 	 *
@@ -119,6 +135,10 @@ public class AnvilManager_1_8 implements Listener {
 		return Main.getInstance().recipeUtil;
 	}
 
+	CooldownManager getCooldownManager() {
+		return Main.getInstance().cooldownManager;
+	}
+
 	/**
 	 * Checks if the given ItemStack matches the ingredient's item type and
 	 * metadata.
@@ -135,6 +155,10 @@ public class AnvilManager_1_8 implements Listener {
 	void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+	}
+
+	void sendMessages(Player p, String s, long seconds) {
+		Main.getInstance().sendMessages(p, s, seconds);
 	}
 
 	void sendNoPermsMessage(Player p, String recipe) {

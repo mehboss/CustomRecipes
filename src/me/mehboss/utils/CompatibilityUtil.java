@@ -203,7 +203,7 @@ public class CompatibilityUtil {
 			return itemM;
 		}
 
-		itemM.setDisplayName(ChatColor.RESET + ChatColor.translateAlternateColorCodes('&', name));
+		itemM.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
 		return itemM;
 	}
 }

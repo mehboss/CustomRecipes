@@ -189,27 +189,21 @@ public class Main extends JavaPlugin implements Listener {
 		if (!customYml.exists()) {
 			saveResource("blacklisted.yml", false);
 		}
-
 		if (!cooldownYml.exists()) {
 			saveResource("cooldowns.yml", false);
 		}
-
 		if (isFirstLoad && !cursedYml.exists()) {
 			saveResource("recipes/CursedPick.yml", false);
 		}
-
 		if (isFirstLoad && !swordYml.exists()) {
 			saveResource("recipes/CursedSword.yml", false);
 		}
-
 		if (isFirstLoad && !bagYml.exists()) {
 			saveResource("recipes/HavenBag.yml", false);
 		}
-
 		if (isFirstLoad && !sandYml.exists()) {
 			saveResource("recipes/WheatSand.yml", false);
 		}
-
 		if (isFirstLoad && !luckyYml.exists()) {
 			saveResource("items/LuckyPickaxe.yml", false);
 		}
@@ -449,26 +443,38 @@ public class Main extends JavaPlugin implements Listener {
 		clear();
 	}
 
+	private NamespacedKey createKey(String key) {
+		key = key.toLowerCase();
+
+		if (serverVersionAtLeast(1, 16, 5)) {
+			return NamespacedKey.fromString("customrecipes:" + key);
+		}
+		return new NamespacedKey(this, key);
+	}
+
 	void handleAutoDiscover() {
-		if (!serverVersionAtLeast(1, 12))
+		if (!serverVersionAtLeast(1, 13, 2))
 			return;
 
-		// Re-discover recipes for all online players
 		for (Player p : Bukkit.getOnlinePlayers()) {
 			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
-				NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
 
-				if (!recipe.isDiscoverable() || key == null || Bukkit.getRecipe(key) == null)
+				if (!recipe.isDiscoverable())
 					continue;
 
-				if ((recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) || (!recipe.isActive())) {
-					if (p.hasDiscoveredRecipe(key)) {
-						p.undiscoverRecipe(key);
-					}
-				} else {
-					if (!p.hasDiscoveredRecipe(key)) {
+				NamespacedKey key = createKey(recipe.getKey());
+				if (key == null)
+					continue;
+
+				boolean shouldHave = recipe.isActive() && (!recipe.hasPerm() || p.hasPermission(recipe.getPerm()));
+				if (shouldHave) {
+					if (!p.hasDiscoveredRecipe(key))
 						p.discoverRecipe(key);
-					}
+
+				} else {
+					if (p.hasDiscoveredRecipe(key))
+						p.undiscoverRecipe(key);
+
 				}
 			}
 		}
@@ -573,10 +579,9 @@ public class Main extends JavaPlugin implements Listener {
 							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + nk + ": "
 									+ ex.getMessage());
 						}
-						continue; // done with this entry
+						continue;
 					}
 
-					// --- Fallback: treat entry as an item name (your old behavior)
 					Optional<XMaterial> xm = XMaterial.matchXMaterial(s);
 					if (!xm.isPresent())
 						continue;
@@ -615,8 +620,7 @@ public class Main extends JavaPlugin implements Listener {
 	private static final Class<?> C_SMOKING = classOrNull("org.bukkit.inventory.SmokingRecipe");
 	private static final Class<?> C_CAMPFIRE = classOrNull("org.bukkit.inventory.CampfireRecipe");
 	private static final Class<?> C_STONECUT = classOrNull("org.bukkit.inventory.StonecuttingRecipe");
-	private static final Class<?> C_COOKING = classOrNull("org.bukkit.inventory.CookingRecipe"); // abstract base on
-																									// newer versions
+	private static final Class<?> C_COOKING = classOrNull("org.bukkit.inventory.CookingRecipe");
 
 	private static Class<?> classOrNull(String fqn) {
 		try {
@@ -655,15 +659,19 @@ public class Main extends JavaPlugin implements Listener {
 		if (customConfig == null)
 			return;
 
-		if (customConfig.isConfigurationSection("vanilla-recipe"))
+		disabledrecipe.clear();
+
+		if (customConfig.isConfigurationSection("vanilla-recipes")) {
 			for (String vanilla : customConfig.getConfigurationSection("vanilla-recipes").getKeys(false)) {
 				disabledrecipe.add(vanilla);
 			}
+		}
 
-		if (customConfig.isConfigurationSection("custom-recipes"))
+		if (customConfig.isConfigurationSection("custom-recipes")) {
 			for (String custom : customConfig.getConfigurationSection("custom-recipes").getKeys(false)) {
 				disabledrecipe.add(custom);
 			}
+		}
 	}
 
 	String getCooldownMessage(long totalSeconds) {
@@ -696,8 +704,7 @@ public class Main extends JavaPlugin implements Listener {
 			send = "no-permission-message.";
 		}
 
-		if (customConfig.getBoolean(send + "actionbar-message.enabled") == true) {
-
+		if (customConfig.getBoolean(send + "actionbar-message.enabled")) {
 			try {
 				String message = ChatColor.translateAlternateColorCodes('&',
 						customConfig.getString(send + "actionbar-message.message"));
@@ -707,7 +714,7 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}
 
-		if (customConfig.getBoolean(send + "chat-message.enabled") == true) {
+		if (customConfig.getBoolean(send + "chat-message.enabled")) {
 			String message = ChatColor.translateAlternateColorCodes('&',
 					customConfig.getString(send + "chat-message.message"));
 
@@ -717,13 +724,13 @@ public class Main extends JavaPlugin implements Listener {
 			p.sendMessage(message);
 		}
 
-		if (customConfig.getBoolean(send + "close-inventory") == true)
+		if (customConfig.getBoolean(send + "close-inventory"))
 			p.closeInventory();
 	}
 
 	public void sendnoPerms(Player p) {
 
-		if (getConfig().getBoolean("action-bar.enabled") == true) {
+		if (getConfig().getBoolean("action-bar.enabled")) {
 			try {
 				String message = ChatColor.translateAlternateColorCodes('&',
 						getConfig().getString("action-bar.message"));
@@ -734,52 +741,49 @@ public class Main extends JavaPlugin implements Listener {
 			}
 		}
 
-		if (getConfig().getBoolean("chat-message.enabled") == true) {
+		if (getConfig().getBoolean("chat-message.enabled")) {
 			String message = ChatColor.translateAlternateColorCodes('&', getConfig().getString("chat-message.message"));
 			p.sendMessage(message);
 		}
 
-		if (getConfig().getBoolean("chat-message.close-inventory") == true)
+		if (getConfig().getBoolean("chat-message.close-inventory"))
 			p.closeInventory();
 	}
 
 	@EventHandler
 	public void update(PlayerJoinEvent e) {
-
 		Player p = e.getPlayer();
 
-		if (getConfig().getBoolean("Update-Check") == true && e.getPlayer().hasPermission("crecipe.reload")
+		// Update check
+		if (getConfig().getBoolean("Update-Check") && p.hasPermission("crecipe.reload")
 				&& getDescription().getVersion().compareTo(newupdate) < 0) {
 			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
 					"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate
 							+ ", &fyou are on version&c " + getDescription().getVersion() + "!"));
 		}
 
-		if (serverVersionLessThan(1, 14))
+		// Recipe discovery exists since 1.13
+		if (!serverVersionAtLeast(1, 13, 2))
 			return;
 
 		try {
 			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
-				NamespacedKey key = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
-				Recipe result = Bukkit.getRecipe(key);
-
-				if (key == null || (result == null))
-					continue;
-
 				if (!recipe.isDiscoverable())
 					continue;
 
-				if (recipe.getPerm() != null && !p.hasPermission(recipe.getPerm())) {
-					if (p.hasDiscoveredRecipe(key))
-						p.undiscoverRecipe(key);
-				} else if (recipe.getPerm() == null || p.hasPermission(recipe.getPerm())) {
+				NamespacedKey key = createKey(recipe.getKey());
+				boolean shouldHave = recipe.isActive() && (!recipe.hasPerm() || p.hasPermission(recipe.getPerm()));
+
+				if (shouldHave) {
 					if (!p.hasDiscoveredRecipe(key))
 						p.discoverRecipe(key);
+				} else {
+					if (p.hasDiscoveredRecipe(key))
+						p.undiscoverRecipe(key);
 				}
-
 			}
-		} catch (NoClassDefFoundError error) {
-			Main.getInstance().getLogger().log(Level.WARNING, "Couldn't discover recipe upon player join.");
+		} catch (Throwable t) {
+			Main.getInstance().getLogger().log(Level.WARNING, "Couldn't discover recipes upon player join.", t);
 		}
 	}
 

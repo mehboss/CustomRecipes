@@ -1,7 +1,10 @@
 package me.mehboss.commands;
 
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -11,7 +14,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.NBTItem;
+import me.mehboss.gui.framework.GuiButton.GuiLoreButton;
+import me.mehboss.gui.framework.GuiView;
 import me.mehboss.gui.framework.RecipeGUI;
+import me.mehboss.gui.framework.chat.ChatEditManager;
 import me.mehboss.recipe.Main;
 
 public class CommandEditItem {
@@ -72,7 +78,7 @@ public class CommandEditItem {
 		if (command.args.length == 3 && command.args[1].equalsIgnoreCase("key")) {
 			ItemStack item = p.getItemInHand();
 			NBT.modify(item, (nbt) -> {
-			    nbt.setString("CUSTOM_ITEM_IDENTIFIER", command.args[2]);
+				nbt.setString("CUSTOM_ITEM_IDENTIFIER", command.args[2]);
 			});
 			p.setItemInHand(item);
 
@@ -143,7 +149,7 @@ public class CommandEditItem {
 
 			it.setDisplayName(ChatColor.translateAlternateColorCodes('&', String.valueOf(sb)));
 			inhand.setItemMeta(it);
-			return false;
+			return true;
 		}
 
 		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("modeldata")) {
@@ -160,16 +166,31 @@ public class CommandEditItem {
 			p.sendMessage(ChatColor.GREEN + "Successfully updated item model data!");
 			it.setCustomModelData(modelData);
 			inhand.setItemMeta(it);
-			return false;
+			return true;
 		}
 
 		if (command.args.length == 2 && command.args[1].equalsIgnoreCase("lore")) {
-			return false;
+			if (p.getItemInHand() == null || p.getItemInHand().getType() == Material.AIR)
+				return false;
+
+			ItemStack item = p.getItemInHand();
+			GuiLoreButton button = new GuiLoreButton(1, item) {
+				@Override
+				public void onLoreChange(Player player, List<String> newLore) {
+					ItemMeta meta = item.getItemMeta();
+					if (meta != null) {
+						meta.setLore(newLore);
+						item.setItemMeta(meta);
+					}
+				}
+			};
+		    ChatEditManager.get().beginLoreEdit(p, null, button);
+		    return true;
 		}
 
 		if (command.args.length == 2 && command.args[1].equalsIgnoreCase("print")) {
 			p.sendMessage(p.getItemInHand().toString());
-			return false;
+			return true;
 		}
 
 		p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------"));

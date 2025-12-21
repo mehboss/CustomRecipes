@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.bukkit.ChatColor;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -48,7 +49,8 @@ public class RecipeViewBuilder {
 		RecipeLayout layout = RecipeLayout.forType(type);
 
 		GuiView view = new GuiView(54,
-				(editing ? ChatColor.GREEN + "EDITING: " : ChatColor.RED + "VIEWING: ") + safeString(recipe.getName()));
+				(editing ? getParsedValue("Editing", "&aEDITING: ") : getParsedValue("Viewing", "&cVIEWING: "))
+						+ safeString(recipe.getName()));
 
 		/* Background */
 		fillBackground(view, layout);
@@ -187,7 +189,7 @@ public class RecipeViewBuilder {
 	}
 
 	private void setupViewingControls(GuiView view) {
-		ItemStack back = RecipeItemFactory.button(XMaterial.RED_STAINED_GLASS_PANE, "&cBack");
+		ItemStack back = RecipeItemFactory.button(XMaterial.RED_STAINED_GLASS_PANE, getValue("Buttons.Back", "&cBack"));
 
 		for (int slot : new int[] { 48, 49, 50 }) {
 			view.addButton(new GuiButton(slot, back) {
@@ -210,8 +212,8 @@ public class RecipeViewBuilder {
 		/*
 		 * Identifier (slot 9)
 		 */
-		view.addButton(new GuiStringButton(9, "Identifier",
-				RecipeItemFactory.button(XMaterial.PAPER, "&fIdentifier", safeString(recipe.getKey()))) {
+		view.addButton(new GuiStringButton(9, "Identifier", RecipeItemFactory.button(XMaterial.PAPER,
+				getValue("Recipe.Identifier", "&fIdentifier"), safeString(recipe.getKey()))) {
 
 			@Override
 			public void onStringChange(Player player, String newValue) {
@@ -227,7 +229,8 @@ public class RecipeViewBuilder {
 				? resultItem.getItemMeta().getLore()
 				: new ArrayList<>();
 
-		view.addButton(new GuiLoreButton(44, RecipeItemFactory.button(XMaterial.BOOK, "&fLore", lore)) {
+		view.addButton(new GuiLoreButton(44,
+				RecipeItemFactory.button(XMaterial.BOOK, getValue("Recipe.Lore", "&fLore"), lore)) {
 
 			@Override
 			public void onLoreChange(Player player, List<String> newLore) {
@@ -252,8 +255,9 @@ public class RecipeViewBuilder {
 		/*
 		 * Effects (slot 7)
 		 */
-		view.addButton(new GuiStringButton(8, "Effects", RecipeItemFactory.button(XMaterial.GHAST_TEAR, "&fEffects",
-				recipe.getEffects() != null ? recipe.getEffects() : Arrays.asList("None"))) {
+		view.addButton(new GuiStringButton(8, "Effects",
+				RecipeItemFactory.button(XMaterial.GHAST_TEAR, getValue("Recipe.Effects", "&fEffects"),
+						recipe.getEffects() != null ? recipe.getEffects() : Arrays.asList("None"))) {
 
 			@Override
 			public void onStringChange(Player player, String newValue) {
@@ -264,8 +268,8 @@ public class RecipeViewBuilder {
 		/*
 		 * Permission (slot 26)
 		 */
-		view.addButton(new GuiStringButton(26, "Permission",
-				RecipeItemFactory.button(XMaterial.ENDER_PEARL, "&fPermission", safeString(recipe.getPerm()))) {
+		view.addButton(new GuiStringButton(26, "Permission", RecipeItemFactory.button(XMaterial.ENDER_PEARL,
+				getValue("Recipe.Permission", "&fPermission"), safeString(recipe.getPerm()))) {
 
 			@Override
 			public void onStringChange(Player p2, String nv) {
@@ -276,8 +280,8 @@ public class RecipeViewBuilder {
 		/*
 		 * Name (slot 0)
 		 */
-		view.addButton(new GuiStringButton(0, "Name",
-				RecipeItemFactory.button(XMaterial.WRITABLE_BOOK, "&fRecipe Name", safeString(recipe.getName()))) {
+		view.addButton(new GuiStringButton(0, "Name", RecipeItemFactory.button(XMaterial.WRITABLE_BOOK,
+				getValue("Recipe.Recipe-Name", "&fRecipe Name"), safeString(recipe.getName()))) {
 
 			@Override
 			public void onStringChange(Player p2, String nv) {
@@ -292,14 +296,14 @@ public class RecipeViewBuilder {
 			String group = crafting != null ? safeString(crafting.getGroup())
 					: safeString(workstation != null ? workstation.getGroup() : "");
 
-			view.addButton(
-					new GuiStringButton(51, "Group", RecipeItemFactory.button(XMaterial.OAK_SIGN, "&fGroup", group)) {
+			view.addButton(new GuiStringButton(51, "Group",
+					RecipeItemFactory.button(XMaterial.OAK_SIGN, getValue("Recipe.Group", "&fGroup"), group)) {
 
-						@Override
-						public void onStringChange(Player p2, String nv) {
-							updateSingleLineLore(this, nv);
-						}
-					});
+				@Override
+				public void onStringChange(Player p2, String nv) {
+					updateSingleLineLore(this, nv);
+				}
+			});
 		}
 
 		/*
@@ -307,8 +311,8 @@ public class RecipeViewBuilder {
 		 */
 		int amount = (resultItem != null ? resultItem.getAmount() : 1);
 
-		view.addButton(new GuiStringButton(35, "Amount",
-				RecipeItemFactory.button(XMaterial.FEATHER, "&fAmount", String.valueOf(amount))) {
+		view.addButton(new GuiStringButton(35, "Amount", RecipeItemFactory.button(XMaterial.FEATHER,
+				getValue("Recipe.Amount", "&fAmount"), String.valueOf(amount))) {
 
 			@Override
 			public void onStringChange(Player p2, String nv) {
@@ -317,7 +321,7 @@ public class RecipeViewBuilder {
 
 					ItemStack icon = getIcon();
 					ItemMeta meta = icon.getItemMeta();
-					meta.setDisplayName(ChatColor.GRAY + "Amount: " + amt);
+					meta.setLore(Arrays.asList(String.valueOf(amt)));
 					icon.setItemMeta(meta);
 					setIcon(icon);
 
@@ -335,7 +339,7 @@ public class RecipeViewBuilder {
 		 * Placeable toggle (slot 8)
 		 */
 		view.addButton(new GuiToggleButton(17, recipe.isPlaceable(), "Placeable",
-				RecipeItemFactory.button(XMaterial.DIRT, "&fPlaceable")) {
+				RecipeItemFactory.button(XMaterial.DIRT, getValue("Recipe.Placeable", "&fPlaceable"))) {
 			@Override
 			public void onToggle(Player p2, boolean val) {
 			}
@@ -349,7 +353,7 @@ public class RecipeViewBuilder {
 			boolean isShapeless = recipe.getType() == RecipeType.SHAPELESS;
 
 			view.addButton(new GuiToggleButton(52, isShapeless, "Shapeless",
-					RecipeItemFactory.button(XMaterial.CRAFTING_TABLE, "&fShapeless")) {
+					RecipeItemFactory.button(XMaterial.CRAFTING_TABLE, getValue("Recipe.Shapeless", "&fShapeless"))) {
 
 				@Override
 				public void onToggle(Player p2, boolean val) {
@@ -361,43 +365,42 @@ public class RecipeViewBuilder {
 		 * Exact Choice toggle (slot 18)
 		 */
 		view.addButton(new GuiToggleButton(18, recipe.isExactChoice(), "Exact-Choice",
-				RecipeItemFactory.button(XMaterial.LEVER, "&fExact-Choice")) {
+				RecipeItemFactory.button(XMaterial.LEVER, getValue("Recipe.Exact-Choice", "&fExact-Choice"))) {
 
 			@Override
 			public void onToggle(Player p2, boolean val) {
 			}
 		});
 
-		
 		/*
 		 * Custom Tagged toggle (slot 27)
 		 */
 		view.addButton(new GuiToggleButton(27, recipe.isCustomTagged(), "Custom-Tagged",
-				RecipeItemFactory.button(XMaterial.BOOKSHELF, "&fCustom-Tagged")) {
+				RecipeItemFactory.button(XMaterial.BOOKSHELF, getValue("Recipe.Custom-Tagged", "&fCustom-Tagged"))) {
 
 			@Override
 			public void onToggle(Player p2, boolean val) {
 			}
 		});
 
-		
 		/*
 		 * Custom Tagged toggle (slot 7)
 		 */
 		view.addButton(new GuiToggleButton(7, recipe.isLegacyNames(), "Legacy-Names",
-				RecipeItemFactory.button(XMaterial.WHEAT, "&fLegacy-Names")) {
+				RecipeItemFactory.button(XMaterial.WHEAT, getValue("Recipe.Legacy-Names", "&fLegacy-Names"))) {
 
 			@Override
 			public void onToggle(Player p2, boolean val) {
 			}
 		});
-		
+
 		/*
 		 * Enabled toggle (slot 53)
 		 */
 		view.addButton(new GuiToggleButton(53, recipe.isActive(), "Enabled",
 				RecipeItemFactory.button(recipe.isActive() ? XMaterial.SLIME_BALL : XMaterial.SNOWBALL,
-						recipe.isActive() ? "&aEnabled" : "&cDisabled")) {
+						recipe.isActive() ? getValue("Buttons.Enabled", "&aEnabled")
+								: getValue("Buttons.Disabled", "&cDisabled"))) {
 
 			@Override
 			public void onToggle(Player p2, boolean val) {
@@ -408,8 +411,9 @@ public class RecipeViewBuilder {
 		 * Cook Time (slot 14)
 		 */
 		if (cooking != null) {
-			view.addButton(new GuiStringButton(43, "Cook-Time", RecipeItemFactory.button(XMaterial.CLOCK, "&fCook Time",
-					String.valueOf(cooking != null ? cooking.getCookTime() : 0))) {
+			view.addButton(new GuiStringButton(43, "Cook-Time",
+					RecipeItemFactory.button(XMaterial.CLOCK, getValue("Cooking.Cook-Time", "&fCook Time"),
+							String.valueOf(cooking != null ? cooking.getCookTime() : 0))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {
@@ -422,8 +426,10 @@ public class RecipeViewBuilder {
 		 * Experience (slot 15)
 		 */
 		if (cooking != null || recipe.getType() == RecipeType.GRINDSTONE)
-			view.addButton(new GuiStringButton(52, "Experience", RecipeItemFactory.button(XMaterial.EXPERIENCE_BOTTLE,
-					"&fExperience", String.valueOf(cooking != null ? cooking.getExperience() : 0))) {
+			view.addButton(new GuiStringButton(52, "Experience",
+					RecipeItemFactory.button(XMaterial.EXPERIENCE_BOTTLE,
+							getValue("Workstation.Experience", "&fExperience"),
+							String.valueOf(cooking != null ? cooking.getExperience() : 0))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {
@@ -444,8 +450,9 @@ public class RecipeViewBuilder {
 		 * Fuel Set (slot 16)
 		 */
 		if (recipe.getType() == RecipeType.BREWING_STAND) {
-			view.addButton(new GuiStringButton(43, "Fuel-Set", RecipeItemFactory.button(XMaterial.COAL, "&fFuel Set",
-					String.valueOf(brewing != null ? brewing.getBrewFuelSet() : 0))) {
+			view.addButton(new GuiStringButton(43, "Fuel-Set",
+					RecipeItemFactory.button(XMaterial.COAL, getValue("Brewing.Fuel-Set", "&fFuel Set"),
+							String.valueOf(brewing != null ? brewing.getBrewFuelSet() : 0))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {
@@ -458,8 +465,9 @@ public class RecipeViewBuilder {
 		 * Repair Cost (slot 23)
 		 */
 		if (recipe.getType() == RecipeType.ANVIL || recipe.getType() == RecipeType.GRINDSTONE)
-			view.addButton(new GuiStringButton(51, "Repair-Cost", RecipeItemFactory.button(XMaterial.ANVIL,
-					"&fRepair Cost", String.valueOf(workstation != null ? workstation.getRepairCost() : 0))) {
+			view.addButton(new GuiStringButton(51, "Repair-Cost",
+					RecipeItemFactory.button(XMaterial.ANVIL, getValue("Workstation.Repair-Cost", "&fRepair Cost"),
+							String.valueOf(workstation != null ? workstation.getRepairCost() : 0))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {
@@ -471,8 +479,9 @@ public class RecipeViewBuilder {
 		 * Fuel Charge (slot 25)
 		 */
 		if (recipe.getType() == RecipeType.BREWING_STAND) {
-			view.addButton(new GuiStringButton(52, "Fuel-Charge", RecipeItemFactory.button(XMaterial.FIRE_CHARGE,
-					"&fFuel Charge", String.valueOf(brewing != null ? brewing.getBrewFuelCharge() : 0))) {
+			view.addButton(new GuiStringButton(52, "Fuel-Charge",
+					RecipeItemFactory.button(XMaterial.FIRE_CHARGE, getValue("Brewing.Fuel-Charge", "&fFuel Charge"),
+							String.valueOf(brewing != null ? brewing.getBrewFuelCharge() : 0))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {
@@ -484,7 +493,8 @@ public class RecipeViewBuilder {
 			 * Required Bottles (slot 10)
 			 */
 			view.addButton(new GuiToggleButton(15, brewing != null && brewing.requiresBottles(), "Required-Items",
-					RecipeItemFactory.button(XMaterial.BREWING_STAND, "&fRequired Items")) {
+					RecipeItemFactory.button(XMaterial.BREWING_STAND,
+							getValue("Brewing.Required-Items", "&fRequired Items"))) {
 
 				@Override
 				public void onToggle(Player p2, boolean val) {
@@ -495,25 +505,29 @@ public class RecipeViewBuilder {
 		/*
 		 * Delete / Cancel / Save buttons (45,48,49,50)
 		 */
-		view.addButton(new GuiButton(45, RecipeItemFactory.button(XMaterial.BARRIER, "&cDelete Recipe")) {
+		view.addButton(new GuiButton(45,
+				RecipeItemFactory.button(XMaterial.BARRIER, getValue("Buttons.Delete", "&cDelete Recipe"))) {
 			@Override
 			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
 		});
 
-		view.addButton(new GuiButton(48, RecipeItemFactory.button(XMaterial.RED_STAINED_GLASS_PANE, "&cCancel")) {
+		view.addButton(new GuiButton(48,
+				RecipeItemFactory.button(XMaterial.RED_STAINED_GLASS_PANE, getValue("Buttons.Cancel", "&cCancel"))) {
 			@Override
 			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
 		});
 
-		view.addButton(new GuiButton(49, RecipeItemFactory.button(XMaterial.WHITE_STAINED_GLASS_PANE, "&fMain Menu")) {
+		view.addButton(new GuiButton(49, RecipeItemFactory.button(XMaterial.WHITE_STAINED_GLASS_PANE,
+				getValue("Buttons.Main-Menu", "&fMain Menu"))) {
 			@Override
 			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
 		});
 
-		view.addButton(new GuiButton(50, RecipeItemFactory.button(XMaterial.GREEN_STAINED_GLASS_PANE, "&aUpdate")) {
+		view.addButton(new GuiButton(50,
+				RecipeItemFactory.button(XMaterial.GREEN_STAINED_GLASS_PANE, getValue("Buttons.Update", "&aUpdate"))) {
 			@Override
 			public void onClick(Player p2, GuiView v, InventoryClickEvent e) {
 			}
@@ -541,7 +555,20 @@ public class RecipeViewBuilder {
 		}
 	}
 
+	private String getValue(String path, String def) {
+		String val = getConfig().getString("gui." + path);
+		return (val == null || val.isEmpty()) ? def : val;
+	}
+
+	private String getParsedValue(String msg, String def) {
+		return ChatColor.translateAlternateColorCodes('&', getValue(msg, def));
+	}
+
 	private String safeString(String s) {
-		return (s == null || s.isEmpty()) ? "None" : s;
+		return (s == null || s.isEmpty()) ? getValue("Empty", "None") : s;
+	}
+
+	private FileConfiguration getConfig() {
+		return Main.getInstance().getConfig();
 	}
 }

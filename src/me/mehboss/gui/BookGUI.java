@@ -51,7 +51,7 @@ public class BookGUI implements Listener {
 	ArrayList<ItemStack> recipe = new ArrayList<ItemStack>();
 	int slots;
 
-	public FileConfiguration getConfig() {
+	private FileConfiguration getConfig() {
 		return Main.getInstance().getConfig();
 	}
 
@@ -213,8 +213,7 @@ public class BookGUI implements Listener {
 					return;
 
 				ItemStack stained = createItem("stainedG", XMaterial.BLACK_STAINED_GLASS_PANE, " ");
-				if (!e.getCurrentItem().equals(stained)
-						&& (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
+				if (!e.getCurrentItem().equals(stained) && (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
 					Recipe recipe = new Recipe("New Recipe");
 					recipe.setType(type);
 					showCreationMenu(p, recipe, true, false);
@@ -322,16 +321,16 @@ public class BookGUI implements Listener {
 		}
 		ItemStack stained = createItem("stainedG", XMaterial.BLACK_STAINED_GLASS_PANE, " ");
 		ItemStack redstained = createItem("stainedG", XMaterial.RED_STAINED_GLASS_PANE,
-				ChatColor.RED + "Previous Page");
+				getParsedValue("Buttons.Previous", "&cPrevious Page"));
 		ItemStack orangestained = createItem("stainedG", XMaterial.ORANGE_STAINED_GLASS_PANE,
-				ChatColor.GREEN + "Next Page");
+				getParsedValue("Buttons.Next", "&aNext Page"));
 		ItemStack greenstained = createItem("stainedG", XMaterial.GREEN_STAINED_GLASS_PANE,
-				ChatColor.YELLOW + "Main Menu");
+				getParsedValue("Buttons.Main-Menu", "&eMain Menu"));
 		ItemStack limestained = null;
 
 		if (!Main.getInstance().recipeBook.contains(p.getUniqueId()))
 			limestained = createItem("stainedG", XMaterial.LIME_STAINED_GLASS_PANE,
-					ChatColor.DARK_GREEN + "Create Recipe");
+					getParsedValue("Buttons.Create", "&2Create Recipe"));
 
 		defaults(inv, redstained, orangestained, greenstained, limestained, stained, header);
 	}
@@ -415,5 +414,18 @@ public class BookGUI implements Listener {
 	void logDebug(String st) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
+	}
+
+	private String getParsedValue(String msg, String def) {
+		return ChatColor.translateAlternateColorCodes('&', getValue(msg, def));
+	}
+
+	private String getValue(String path, String def) {
+		String val = getConfig().getString("gui." + path);
+		return (val == null || val.isEmpty()) ? def : val;
+	}
+
+	private FileConfiguration getDefConfig() {
+		return Main.getInstance().getConfig();
 	}
 }

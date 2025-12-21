@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
@@ -133,9 +134,11 @@ public class RecipeGUI {
 
 			String title = ChatColor.stripColor(btn.getIcon().getItemMeta().getDisplayName());
 
-			if (!"Confirm Recipe Deletion".equals(title)) {
+			if (!getValue("Buttons.Confirm-Delete", "Confirm Recipe Deletion").replaceAll("&[0-9a-fk-or]", "")
+					.equals(title)) {
 
-				ItemStack confirm = RecipeItemFactory.button(XMaterial.BARRIER, "&cConfirm Recipe Deletion");
+				ItemStack confirm = RecipeItemFactory.button(XMaterial.BARRIER,
+						getValue("Buttons.Confirm-Delete", "&cConfirm Recipe Deletion"));
 
 				btn.setIcon(confirm);
 				view.addButton(btn); // refresh in view
@@ -185,5 +188,14 @@ public class RecipeGUI {
 
 		// Replace in this specific view only – no registry scanning
 		view.addButton(newBtn);
+	}
+
+	private String getValue(String path, String def) {
+		String val = getConfig().getString("gui." + path);
+		return (val == null || val.isEmpty()) ? def : val;
+	}
+
+	private FileConfiguration getConfig() {
+		return Main.getInstance().getConfig();
 	}
 }

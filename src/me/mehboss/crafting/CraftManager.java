@@ -20,13 +20,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Keyed;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -224,7 +227,7 @@ public class CraftManager implements Listener {
 					continue;
 				int slot = -1;
 				boolean foundMatch = false;
-				
+
 				for (ItemStack item : matrix) {
 					slot++;
 					if (usedSlots[slot] || item == null || item.getType() == Material.AIR)
@@ -235,7 +238,7 @@ public class CraftManager implements Listener {
 						break;
 					}
 				}
-				
+
 				if (!foundMatch) {
 					return false;
 				}
@@ -244,58 +247,70 @@ public class CraftManager implements Listener {
 		return true;
 	}
 
-	@SuppressWarnings("deprecation")
-	boolean isBlacklisted(ItemStack result, Player p) {
-		if (customConfig().getBoolean("blacklist-recipes")) {
-			for (String item : disabledrecipe()) {
+	boolean isBlacklisted(ItemStack result, Player p, org.bukkit.inventory.Recipe recipe) {
 
-				String[] split = item.split(":");
-				String id = split[0];
-				ItemStack i = null;
+		if (result == null || customConfig() == null)
+			return false;
+		if (!customConfig().getBoolean("blacklist-recipes"))
+			return false;
 
-				UUID pID = p.getUniqueId();
+		UUID pID = p.getUniqueId();
 
-				if (result == null)
+		for (String entry : Main.getInstance().disabledrecipe) {
+			if (customConfig().isConfigurationSection("vanilla-recipes." + entry)) {
+
+				Optional<XMaterial> match = XMaterial.matchXMaterial(entry);
+				if (!match.isPresent()) {
+					getLogger().log(Level.SEVERE, "Invalid vanilla material '" + entry + "' in config.");
+					continue;
+				}
+
+				ItemStack vanillaItem = match.get().parseItem();
+				if (vanillaItem == null)
+					continue;
+
+				if (!result.isSimilar(vanillaItem))
+					continue;
+
+				String perm = customConfig().getString("vanilla-recipes." + entry + ".permission", "none");
+
+				if (!perm.equalsIgnoreCase("none") && p.hasPermission("crecipe." + perm)) {
+					logDebug("[isBlacklisted] Player " + p.getName() + " has permission crecipe." + perm, "", pID);
+					return false;
+				}
+
+				logDebug("[isBlacklisted] Vanilla recipe blocked: " + entry, "", pID);
+				sendMessages(p, perm, 0);
+				return true;
+			}
+
+			if (customConfig().isConfigurationSection("custom-recipes." + entry)) {
+				String perm = customConfig().getString("custom-recipes." + entry + ".permission", "none");
+
+				if (!Main.getInstance().serverVersionAtLeast(1, 13)) {
+					return false;
+				}
+				if (recipe == null || !(recipe instanceof Keyed))
 					return false;
 
-				if (!customConfig().isConfigurationSection("vanilla-recipes." + split[0]))
-					continue;
+				NamespacedKey key = ((Keyed) recipe).getKey();
+				String recipeKey = key.getNamespace() + ":" + key.getKey();
 
-				if (!XMaterial.matchXMaterial(split[0]).isPresent()) {
-					getLogger().log(Level.SEVERE, "We are having trouble matching the material '" + split[0]
-							+ "' to a minecraft item. This can cause issues with the plugin. Please double check you have inputted the correct material "
-							+ "ID into the blacklisted config file and try again. If this problem persists please contact Mehboss on Spigot!");
+				if (!recipeKey.equalsIgnoreCase(entry)) {
 					continue;
 				}
-				i = XMaterial.matchXMaterial(split[0]).get().parseItem();
 
-				if (split.length == 2)
-					i.setDurability(Short.valueOf(split[1]));
-
-				logDebug("[isBlacklisted] Found " + disabledrecipe().size() + " disabled recipes.", "", pID);
-				String getPerm = customConfig().getString("vanilla-recipes." + item + ".permission");
-
-				if (i == null)
-					continue;
-
-				if ((NBTEditor.contains(i, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER", id)
-						&& NBTEditor.getString(i, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER", id).equals(id)
-						&& getRecipeUtil().getRecipe(id) == null) || result.isSimilar(i)) {
-
-					if (getPerm != null && !getPerm.equalsIgnoreCase("none") && p.hasPermission("crecipe." + getPerm)) {
-						logDebug("[isBlacklisted] Player " + p.getName() + " does have required permission '" + getPerm
-								+ "' for item " + item, "", pID);
-						return false;
-					}
-
-					logDebug("[isBlacklisted] Player " + p.getName() + " does not have required permission '" + getPerm
-							+ "' for item " + item + " or this recipe has been globally blacklisted!", "", pID);
-
-					sendMessages(p, getPerm, 0);
-					return true;
+				if (!perm.equalsIgnoreCase("none") && p.hasPermission("crecipe." + perm)) {
+					logDebug("[isBlacklisted] Player " + p.getName() + " has permission crecipe." + perm, "", pID);
+					return false;
 				}
+
+				logDebug("[isBlacklisted] Custom recipe blocked: " + entry, "", pID);
+				sendMessages(p, perm, 0);
+				return true;
 			}
 		}
+
 		return false;
 	}
 
@@ -519,23 +534,13 @@ public class CraftManager implements Listener {
 			Main.getInstance().debounceMap.remove(id);
 		}
 
-		if (isBlacklisted(inv.getResult(), p)) {
+		if (isBlacklisted(inv.getResult(), p, e.getRecipe())) {
 			inv.setResult(new ItemStack(Material.AIR));
 			return;
 		}
 
 		if (hasVanillaIngredients(inv, inv.getResult()))
 			return;
-
-//		if (inv.getType() == InventoryType.CRAFTING) {
-//			if (!(inv.getRecipe() instanceof ShapelessRecipe)) {
-//				logDebug("[handleCrafting] Skipping 2x2 checks.. recipe isn't shapeless..", "");
-//				
-//				if (getRecipeUtil().getRecipeFromResult(inv.getResult()) != null)
-//					inv.setResult(new ItemStack(Material.AIR));
-//				return;
-//			}
-//		}
 
 		logDebug("[handleCrafting] Fired craft event, beginning checks..", "", p.getUniqueId());
 		handleCraftingChecks(inv, p);
@@ -547,6 +552,7 @@ public class CraftManager implements Listener {
 		Boolean found = false;
 
 		UUID id = p.getUniqueId();
+		World w = p.getWorld();
 		AlignedResult alignedGrid = null;
 
 		for (Recipe data : getRecipeUtil().getAllRecipesSortedByResult(inv.getResult())) {
@@ -636,32 +642,20 @@ public class CraftManager implements Listener {
 			logDebug(" Attempt to craft disabled recipe detected..", recipe.getName(), id);
 			return;
 		}
+		boolean hasPerms = p == null || !recipe.hasPerm() || p.hasPermission(recipe.getPerm());
+		boolean allowWorld = w == null || !recipe.getDisabledWorlds().contains(w.getName());
 
 		// PERMISSIONS
-		if (recipe.hasPerm() && !p.hasPermission(recipe.getPerm())) {
+		if (!hasPerms) {
 			inv.setResult(new ItemStack(Material.AIR));
 			sendNoPermsMessage(p, recipe.getName());
 			return;
 		}
 
 		// WORLD DISABLED
-		if (!(recipe.getDisabledWorlds().isEmpty())) {
-			for (String string : recipe.getDisabledWorlds()) {
-				if (p.getWorld().getName().equalsIgnoreCase(string)) {
-					inv.setResult(new ItemStack(Material.AIR));
-					sendMessages(p, "none", 0);
-					return;
-				}
-			}
-		}
-
-		// COOLDOWN
-		if ((recipe.hasPerm() && !(p.hasPermission(recipe.getPerm() + ".bypass"))) && recipe.hasCooldown()
-				&& getCooldownManager().hasCooldown(p.getUniqueId(), recipe.getKey())) {
-
-			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
-			sendMessages(p, "crafting-limit", timeLeft);
+		if (!allowWorld) {
 			inv.setResult(new ItemStack(Material.AIR));
+			sendMessages(p, "none", 0);
 			return;
 		}
 
@@ -711,6 +705,7 @@ public class CraftManager implements Listener {
 				}
 			}
 
+			logDebug(" Final Recipe: " + inv.getRecipe(), recipe.getName(), id);
 			inv.setResult(item);
 		}
 	}

@@ -1,6 +1,5 @@
 package me.mehboss.crafting;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -48,6 +47,10 @@ public class AmountManager implements Listener {
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
 	}
 
+	void sendMessages(Player p, String s, long seconds) {
+		Main.getInstance().sendMessages(p, s, seconds);
+	}
+	
 	CooldownManager getCooldownManager() {
 		return Main.getInstance().cooldownManager;
 	}
@@ -173,6 +176,7 @@ public class AmountManager implements Listener {
 	void handleShiftClicks(CraftItemEvent e) {
 		CraftingInventory inv = e.getInventory();
 		UUID id = e.getWhoClicked().getUniqueId();
+		Player p = (Player) e.getWhoClicked();
 		Inventory playerInventory = e.getWhoClicked().getInventory();
 		boolean isInvFull = playerInventory.firstEmpty() == -1;
 
@@ -233,6 +237,18 @@ public class AmountManager implements Listener {
 		if (recipe == null)
 			return;
 
+		boolean hasCooldown = p != null && recipe.hasCooldown()
+				&& getCooldownManager().hasCooldown(p.getUniqueId(), recipe.getKey())
+				&& !(recipe.hasPerm() && p.hasPermission(recipe.getPerm() + ".bypass"));
+		
+		// COOLDOWN
+		if (hasCooldown) {
+			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
+			e.setCancelled(true);
+			sendMessages(p, "crafting-limit", timeLeft);
+			return;
+		}
+		
 		if (!recipe.isGrantItem()) {
 			if (e.getAction() == InventoryAction.DROP_ONE_SLOT || e.getAction() == InventoryAction.DROP_ALL_SLOT) {
 				logDebug("[handleShiftClicks] Denying craft due to drop request on an ungrantable item..");

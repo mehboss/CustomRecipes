@@ -579,9 +579,9 @@ public class RecipeManager {
 		String slot = (String) modifier.get("Slot");
 
 		// Debugging output
-		logDebug("Applying attribute modifier:", "null");
+		logDebug("Applying attribute modifier:", "");
 		logDebug("Name: " + name + ", AttributeName: " + attributeName + ", Amount: " + amount + ", Operation: "
-				+ operation + ", Slot: " + slot, "null");
+				+ operation + ", Slot: " + slot, "");
 
 		int[] uuid = { 0, 0, 0, 0 };
 
@@ -819,10 +819,11 @@ public class RecipeManager {
 	}
 
 	ItemMeta handleAttributes(String item, ItemMeta m) {
+		String logName = item.replaceAll(".Result", "");
 		if (!(Main.getInstance().serverVersionAtLeast(1, 14))) {
 			logError(
 					"Failed to apply attributes due to unsupported version. You must use NBT to apply the attributes. Skipping for now..",
-					item);
+					logName);
 			return m;
 		}
 
@@ -849,7 +850,7 @@ public class RecipeManager {
 					m.addAttributeModifier(Attribute.valueOf(attribute), modifier);
 				} catch (Exception e) {
 					logError("Could not add attribute " + attribute + ", " + attributeAmount + ", " + equipmentSlot
-							+ ", skipping for now..", item);
+							+ ", skipping for now..", logName);
 				}
 			}
 		}
@@ -1048,6 +1049,12 @@ public class RecipeManager {
 			String rawItem = getConfig().getString(resultPath + ".Item") != null
 					? getConfig().getString(resultPath + ".Item")
 					: null;
+			if (rawItem == null) {
+				logError("Error loading recipe..", recipe.getName());
+				logError("The 'Item' section is missing or improperly formatted! Skipping..", recipe.getName());
+				continue;
+			}
+
 			// Attach recipe name ONLY for debug purposes
 			ItemStack i = getRecipeUtil().getResultFromKey(rawItem + ":" + recipe.getName());
 
@@ -1125,8 +1132,13 @@ public class RecipeManager {
 				String configPath = item + ".Ingredients." + abbreviation;
 				List<String> list = getConfig().getStringList(configPath + ".Materials");
 				String material = !list.isEmpty() ? list.get(0) : getConfig().getString(configPath + ".Material");
+				if (material == null) {
+					continue recipeLoop;
+				}
 				Optional<XMaterial> rawMaterial = XMaterial.matchXMaterial(material);
 				if (!validMaterial(recipe.getName(), material, rawMaterial)) {
+					logError("Error loading recipe..", recipe.getName());
+					logError("Could not find valid ingredient 'Material(s)' section! Skipping..", recipe.getName());
 					continue recipeLoop;
 				}
 
@@ -1462,7 +1474,7 @@ public class RecipeManager {
 
 		FurnaceRecipe furnaceRecipe;
 
-		if (Main.getInstance().serverVersionAtLeast(1, 12)) {
+		if (Main.getInstance().serverVersionAtLeast(1, 13)) {
 			furnaceRecipe = new FurnaceRecipe(createNamespacedKey(recipe), recipe.getResult(),
 					recipe.getSlot(1).getMaterial(), recipe.getExperience(), recipe.getCookTime());
 		} else {

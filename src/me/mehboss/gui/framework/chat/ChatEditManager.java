@@ -170,7 +170,8 @@ public class ChatEditManager {
 			// Apply final lore to button
 			GuiLoreButton button = session.getLoreButton();
 			button.onLoreChange(p, lore);
-			session.getReturnView().updateButton(button);
+			if (session.getReturnView() != null)
+				session.getReturnView().updateButton(button);
 			endSessionAndReopen(session);
 			return;
 		}
@@ -233,9 +234,11 @@ public class ChatEditManager {
 
 	private void endSessionAndReopen(ChatEditSession session) {
 		sessions.remove(session.getPlayer().getUniqueId());
+		GuiView returnView = session.getReturnView();
 
-		Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("CustomRecipes"), () -> {
-			session.getPlayer().openInventory(session.getReturnView().getInventory());
-		});
+		if (returnView != null)
+			Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("CustomRecipes"), () -> {
+				session.getPlayer().openInventory(returnView.getInventory());
+			});
 	}
 }

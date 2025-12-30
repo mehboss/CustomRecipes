@@ -157,8 +157,12 @@ public class CompatibilityUtil {
 		return Main.getInstance().serverVersionAtLeast(1, 20, 5);
 	}
 	
-	public static boolean supportsModelData() {
+	public static boolean supportsCustomModelData() {
 		return Main.getInstance().serverVersionAtLeast(1, 14);
+	}
+	
+	public static boolean supportsItemModel() {
+		return Main.getInstance().serverVersionAtLeast(1, 21, 4);
 	}
 	/**
 	 * Checks if an item has a display name. Supports Bukkit name API changes

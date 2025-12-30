@@ -166,8 +166,17 @@ public class ShapedChecks {
 					logDebug("[handleShaped] InvID = " + invID, recipe.getName());
 					return false;
 				}
+				logDebug("[handleShaped] Passed 'ID' checks for the ingredient in slot " + i, recipe.getName());
+				continue;
+			}
 
-				logDebug("[handleShaped] Passed all checks for the ingredient in slot " + i, recipe.getName());
+			if (ingredient.hasItem()) {
+				if (!ingredient.getItem().isSimilar(stack)) {
+					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
+					logDebug("[handleShaped] Ingredient has item, and item found does not match.", recipe.getName());
+					return false;
+				}
+				logDebug("[handleShaped] Passed 'ITEM' checks for the ingredient in slot " + i, recipe.getName());
 				continue;
 			}
 
@@ -180,9 +189,9 @@ public class ShapedChecks {
 
 			// NAME CHECKS
 			if (!recipe.getIgnoreNames()) {
-
 				if ((!CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames()) && ingredient.hasDisplayName())
-						|| (CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames()) && !ingredient.hasDisplayName())) {
+						|| (CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames())
+								&& !ingredient.hasDisplayName())) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug(
 							"[handleShaped] The recipe ingredient displayname and the inventory slot displayname do not match",
@@ -197,7 +206,8 @@ public class ShapedChecks {
 				}
 
 				if (ingredient.hasDisplayName() && CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames())
-						&& !(ingredient.getDisplayName().equals(CompatibilityUtil.getDisplayname(meta, recipe.isLegacyNames())))) {
+						&& !(ingredient.getDisplayName()
+								.equals(CompatibilityUtil.getDisplayname(meta, recipe.isLegacyNames())))) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug("[handleShaped] The ingredient name for the recipe and inventory do not match",
 							recipe.getName());
@@ -214,12 +224,11 @@ public class ShapedChecks {
 			}
 
 			// MODEL DATA CHECKS
-			if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
-				logDebug("[handleShaped] Skipping CMD checks.. Version is less than 1.14..", recipe.getName());
-				continue;
-			}
-
 			if (!recipe.getIgnoreModelData()) {
+				if (!CompatibilityUtil.supportsCustomModelData()) {
+					logDebug("[handleShaped] Skipping CMD checks.. Version is less than 1.14..", recipe.getName());
+					continue;
+				}
 
 				if ((!meta.hasCustomModelData() && ingredient.hasCustomModelData())
 						|| (meta.hasCustomModelData() && !ingredient.hasCustomModelData())) {
@@ -248,6 +257,41 @@ public class ShapedChecks {
 				}
 
 				logDebug("[handleShaped] Inventory and recipe ingredient CMD matched for slot " + i, recipe.getName());
+			}
+
+			// ITEM MODEL CHECKS
+			if (!recipe.getIgnoreItemModel()) {
+				if (!CompatibilityUtil.supportsItemModel()) {
+					logDebug("[handleShaped] Skipping IM checks.. Version is less than 1.21.4..", recipe.getName());
+					continue;
+				}
+
+				if ((!meta.hasItemModel() && ingredient.hasItemModel())
+						|| (meta.hasItemModel() && !ingredient.hasItemModel())) {
+					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
+					logDebug("[handleShaped] The recipe ingredient IM and the inventory slot IM do not match..",
+							recipe.getName());
+					logDebug("[handleShaped] The inventory slot in question: " + i
+							+ ". The ingredient slot in question: " + ingredient.getSlot(), recipe.getName());
+					logDebug("[handleShaped] Does the ingredient have IM? " + ingredient.hasItemModel(),
+							recipe.getName());
+					logDebug("[handleShaped] Does the inventory have IM? " + meta.hasItemModel(), recipe.getName());
+					return false;
+				}
+
+				if (ingredient.hasItemModel() && meta.hasItemModel()
+						&& (ingredient.getItemModel() != meta.getItemModel().toString())) {
+					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
+					logDebug("[handleShaped] The ingredient IM for the recipe and inventory do not match..",
+							recipe.getName());
+					logDebug("[handleShaped] The inventory slot in question: " + i
+							+ ". The ingredient slot in question: " + ingredient.getSlot(), recipe.getName());
+					logDebug("[handleShaped] The ingredient IM: " + ingredient.getItemModel(), recipe.getName());
+					logDebug("[handleShaped] The inventory IM: " + meta.getItemModel(), recipe.getName());
+					return false;
+				}
+
+				logDebug("[handleShaped] Inventory and recipe ingredient IM matched for slot " + i, recipe.getName());
 			}
 		}
 

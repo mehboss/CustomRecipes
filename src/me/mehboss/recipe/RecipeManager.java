@@ -64,8 +64,6 @@ import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.NotNull;
 
 import com.cryptomorin.xseries.XEnchantment;
-import com.cryptomorin.xseries.XItemStack;
-import com.cryptomorin.xseries.XItemStack.Deserializer;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XPotion;
 import com.mojang.authlib.GameProfile;
@@ -83,7 +81,10 @@ import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.XItemStack;
+import me.mehboss.utils.libs.XItemStack.Deserializer;
 import net.advancedplugins.ae.api.AEAPI;
+import net.md_5.bungee.api.ChatColor;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
 
@@ -190,6 +191,7 @@ public class RecipeManager {
 		recipe.setIgnoreData(getConfig().getBoolean(item + ".Flags.Ignore-Data"));
 		recipe.setIgnoreNames(getConfig().getBoolean(item + ".Flags.Ignore-Name"));
 		recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Flags.Ignore-Model-Data"));
+		recipe.setIgnoreItemModel(getConfig().getBoolean(item + ".Flags.Ignore-Item-Model"));
 		recipe.setExactChoice(getConfig().getBoolean(item + ".Exact-Choice"));
 		recipe.setDiscoverable(getConfig().getBoolean(item + ".Auto-Discover-Recipe"));
 		recipe.setLegacyNames(getConfig().getBoolean(item + ".Use-Display-Name", true));
@@ -618,7 +620,6 @@ public class RecipeManager {
 				+ operation + ", Slot: " + slot, "");
 
 		int[] uuid = { 0, 0, 0, 0 };
-
 		NBTCompound compound = NBTEditor.getNBTCompound(item);
 		compound = NBTEditor.set(compound, attributeName, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers",
 				NBTEditor.NEW_ELEMENT, "AttributeName");
@@ -677,11 +678,6 @@ public class RecipeManager {
 
 		if (getConfig().getBoolean(item + ".Custom-Tagged"))
 			i = NBTEditor.set(i, identifier, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
-
-		if (identifier.equalsIgnoreCase("LifeStealHeart")) {
-			i.getItemMeta().getPersistentDataContainer().set(new NamespacedKey(Main.getInstance(), "heart"),
-					PersistentDataType.INTEGER, 1);
-		}
 
 		return i;
 	}
@@ -847,6 +843,23 @@ public class RecipeManager {
 				logError(
 						"Error occured while setting custom model data. This feature is only available for MC 1.14 or newer!",
 						item);
+			}
+		}
+		return m;
+	}
+
+	ItemMeta handleItemModel(String item, ItemMeta m) {
+		if (!CompatibilityUtil.supportsItemModel())
+			return m;
+
+		if (getConfig().isSet(item + ".Item-Model")) {
+			String model = getConfig().getString(item + ".Item-Model");
+			if (model == null || model.isEmpty() || model.equalsIgnoreCase("none"))
+				return m;
+			try {
+				m.setItemModel(NamespacedKey.fromString(model));
+			} catch (Exception e) {
+				logError("Error occured while setting item model..", item);
 			}
 		}
 		return m;
@@ -1047,14 +1060,14 @@ public class RecipeManager {
 			}
 			boolean useLegacyNames = getConfig().getBoolean(item + ".Use-Display-Name", true);
 			String resultPath = getConfig().isConfigurationSection(item + ".Result") ? item + ".Result" : item;
-			int amount = getConfig().isInt(resultPath + ".Amount") ? getConfig().getInt(resultPath + ".Amount") : 1;
+			int amount = getConfig().getInt(resultPath + ".Amount", 1);
 			String identifier = getConfig().getString(item + ".Identifier");
 			recipe.setKey(identifier);
 
 			// Checks for a custom item and attempts to set it
-			String rawItem = getConfig().getString(resultPath + ".Item") != null
-					? getConfig().getString(resultPath + ".Item")
-					: null;
+			String rawItem = getConfig().getString(resultPath + ".Item") == null
+					? getConfig().getString(resultPath + ".material")
+					: getConfig().getString(resultPath + ".Item");
 			if (rawItem == null) {
 				logError("Error loading recipe..", recipe.getName());
 				logError("The 'Item' section is missing or improperly formatted! Skipping..", recipe.getName());
@@ -1083,6 +1096,8 @@ public class RecipeManager {
 			}
 
 			i = handleDurability(i, resultPath);
+			i = handleIdentifier(i, item);
+
 			i.setAmount(amount);
 
 			recipe.setResult(i);
@@ -1139,13 +1154,14 @@ public class RecipeManager {
 				}
 
 				// Try to deserialize using XItemstack (Deserializer)
-				Optional<RecipeUtil.Ingredient> recipeIngredientOptional = tryDeserializeFromXItemstack(item,
-						abbreviation);
-				if (recipeIngredientOptional.isPresent()) {
-					recipeIngredient = recipeIngredientOptional.get();
+				Optional<ItemStack> deserializedItem = deserializeItemFromPath(item + ".Ingredients." + abbreviation);
+				if (deserializedItem.isPresent()) {
+					ItemStack stack = deserializedItem.get();
+					recipeIngredient = new RecipeUtil.Ingredient(abbreviation, stack.getType());
+					recipeIngredient.setItem(stack);
 					logDebug("Loading ingredient '" + abbreviation + "' from ItemStack..", recipe.getName());
 				} else {
-					recipeIngredient = tryDeserializeFromConfig(recipe, item, abbreviation);
+					recipeIngredient = deserializeItemFromConfig(recipe, item, abbreviation);
 					if (recipeIngredient == null) {
 						continue recipeLoop;
 					}
@@ -1182,30 +1198,31 @@ public class RecipeManager {
 		}
 	}
 
-	private Optional<RecipeUtil.Ingredient> tryDeserializeFromXItemstack(String recipe, String abbreviation) {
-		String ingredientPath = recipe + ".Ingredients." + abbreviation;
-		ConfigurationSection path = getConfig().getConfigurationSection(ingredientPath);
-
-		if (path == null)
+	private Optional<ItemStack> deserializeItemFromPath(String path) {
+		ConfigurationSection section = getConfig().getConfigurationSection(path);
+		if (section == null) {
 			return Optional.empty();
+		}
 
 		try {
-			Deserializer deserializer = new Deserializer();
-			deserializer.withConfig(path);
-			ItemStack item = deserializer.read();
-			if (item.getType() == XMaterial.BARRIER.get())
-				return Optional.empty();
+			XItemStack.Deserializer deserializer = XItemStack.deserializer();
+			deserializer.fromConfig(section);
+			ItemStack item = deserializer.deserialize();
 
-			RecipeUtil.Ingredient ingredient = new RecipeUtil.Ingredient(abbreviation, item.getType());
-			ingredient.setItem(item);
-			return Optional.of(ingredient);
+			// Optional: treat AIR or BARRIER as "no item"
+			if (item == null || item.getType() == Material.AIR || item.getType() == Material.BARRIER) {
+				return Optional.empty();
+			}
+
+			return Optional.of(item);
 		} catch (Exception e) {
+			// log if you want
 			return Optional.empty();
 		}
 	}
 
 	// Method for deserializing from config
-	private RecipeUtil.Ingredient tryDeserializeFromConfig(Recipe recipe, String item, String abbreviation) {
+	private RecipeUtil.Ingredient deserializeItemFromConfig(Recipe recipe, String item, String abbreviation) {
 		String configPath = item + ".Ingredients." + abbreviation;
 		List<String> list = getConfig().getStringList(configPath + ".Materials");
 		String material = !list.isEmpty() ? list.get(0) : getConfig().getString(configPath + ".Material");
@@ -1224,22 +1241,25 @@ public class RecipeManager {
 		}
 
 		Material ingredientMaterial = rawMaterial.get().get();
-		String ingredientName = getConfig().isString(configPath + ".Name") ? getConfig().getString(configPath + ".Name")
-				: null;
-		String ingredientIdentifier = getConfig().isString(configPath + ".Identifier")
-				? getConfig().getString(configPath + ".Identifier")
-				: null;
-		int ingredientAmount = getConfig().isInt(configPath + ".Amount") ? getConfig().getInt(configPath + ".Amount")
-				: 1;
-		int ingredientCMD = getConfig().isInt(configPath + ".Custom-Model-Data")
-				? getConfig().getInt(configPath + ".Custom-Model-Data")
-				: -1;
+
+		ArrayList<String> lore = new ArrayList<String>();
+		for (String line : getConfig().getStringList(configPath + ".Lore")) {
+			lore.add(ChatColor.translateAlternateColorCodes('&', line));
+		}
+
+		String ingredientName = getConfig().getString(configPath + ".Name");
+		String ingredientIdentifier = getConfig().getString(configPath + ".Identifier");
+		int ingredientAmount = getConfig().getInt(configPath + ".Amount", 1);
+		int ingredientCMD = getConfig().getInt(configPath + ".Custom-Model-Data", -1);
+		String ingredientIM = getConfig().getString(configPath + ".Item-Model");
 
 		RecipeUtil.Ingredient ingredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
 		ingredient.setDisplayName(ingredientName);
 		ingredient.setCustomModelData(ingredientCMD);
+		ingredient.setItemModel(ingredientIM);
 		ingredient.setIdentifier(ingredientIdentifier);
 		ingredient.setAmount(ingredientAmount);
+		ingredient.setLore(lore);
 
 		// Set material data if available
 		if (rawMaterial.get().getData() != 0) {
@@ -1281,11 +1301,18 @@ public class RecipeManager {
 	}
 
 	public Optional<ItemStack> buildItem(String item, FileConfiguration path, boolean useLegacyNames) {
+		recipeConfig = path;
+
+		Optional<ItemStack> result = deserializeItemFromPath(item);
+		if (result.isPresent()) {
+			logDebug("Loading result from ItemStack..", item);
+			return Optional.of(result.get());
+		}
+
+		logDebug("Loading result from configuration settings..", item);
 		Optional<XMaterial> type = path.isString(item + ".Item")
 				? XMaterial.matchXMaterial(path.getString(item + ".Item").split(":")[0].toUpperCase())
 				: null;
-
-		recipeConfig = path;
 
 		// not a valid material
 		if (!(validMaterial(item, path.getString(item + ".Item"), type)))
@@ -1325,12 +1352,11 @@ public class RecipeManager {
 		m = handleDisplayname(item, i, useLegacyNames);
 		m = handleHideEnchants(item, m);
 		m = handleCustomModelData(item, m);
+		m = handleItemModel(item, m);
 		m = handleAttributes(item, m);
 		m = handleFlags(item, m);
 		m = handleLore(item, m);
 		i.setItemMeta(m);
-
-		i = handleIdentifier(i, item);
 
 		return Optional.of(i);
 	}

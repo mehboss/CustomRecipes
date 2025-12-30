@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -29,14 +30,17 @@ public class ShapelessChecks {
 
 		logDebug("[handleShapeless] Handling shapeless checks..!", recipe.getName(), id);
 
-		ArrayList<String> slotNames = new ArrayList<>();
 		ArrayList<String> recipeNames = new ArrayList<>();
+		ArrayList<String> slotNames = new ArrayList<>();
 
 		ArrayList<Integer> recipeMD = new ArrayList<>();
-		ArrayList<Integer> inventoryMD = new ArrayList<>();
+		ArrayList<Integer> slotMD = new ArrayList<>();
 
-		ArrayList<String> slotIDs = new ArrayList<>();
+		ArrayList<String> recipeIM = new ArrayList<>();
+		ArrayList<String> slotIM = new ArrayList<>();
+
 		ArrayList<String> recipeIDs = new ArrayList<>();
+		ArrayList<String> slotIDs = new ArrayList<>();
 
 		Map<Material, Integer> recipeCount = new HashMap<>();
 		Map<Material, Integer> inventoryCount = new HashMap<>();
@@ -45,7 +49,8 @@ public class ShapelessChecks {
 			inventoryCount.put(Material.AIR, 5);
 			Collections.addAll(slotNames, "null", "null", "null", "null", "null");
 			Collections.addAll(slotIDs, "null", "null", "null", "null", "null");
-			Collections.addAll(inventoryMD, -1, -1, -1, -1, -1);
+			Collections.addAll(slotIM, "null", "null", "null", "null", "null");
+			Collections.addAll(slotMD, -1, -1, -1, -1, -1);
 		}
 
 		Boolean isCrafting = inv.getType() == InventoryType.CRAFTING || inv.getType() == InventoryType.WORKBENCH;
@@ -60,7 +65,8 @@ public class ShapelessChecks {
 			if (it == null || it.getType() == Material.AIR || it.getAmount() <= 0) {
 				slotNames.add("null");
 				slotIDs.add("null");
-				inventoryMD.add(-1);
+				slotIM.add("null");
+				slotMD.add(-1);
 				inventoryCount.put(Material.AIR, inventoryCount.getOrDefault(Material.AIR, 0) + 1);
 				continue;
 			}
@@ -70,11 +76,18 @@ public class ShapelessChecks {
 				key = "null";
 			slotIDs.add(key);
 
-			if (Main.getInstance().serverVersionAtLeast(1, 14)) {
+			if (CompatibilityUtil.supportsCustomModelData()) {
 				if (it.hasItemMeta() && it.getItemMeta().hasCustomModelData()) {
-					inventoryMD.add(it.getItemMeta().getCustomModelData());
+					slotMD.add(it.getItemMeta().getCustomModelData());
 				} else {
-					inventoryMD.add(-1);
+					slotMD.add(-1);
+				}
+			}
+			if (CompatibilityUtil.supportsItemModel()) {
+				if (it.hasItemMeta() && it.getItemMeta().hasItemModel()) {
+					slotIM.add(it.getItemMeta().getItemModel().toString());
+				} else {
+					slotIM.add("null");
 				}
 			}
 
@@ -95,6 +108,7 @@ public class ShapelessChecks {
 			if (ingredient.isEmpty()) {
 				recipeCount.put(Material.AIR, recipeCount.getOrDefault(Material.AIR, 0) + 1);
 				recipeNames.add("null");
+				recipeIM.add("null");
 				recipeMD.add(-1);
 				continue;
 			}
@@ -108,11 +122,18 @@ public class ShapelessChecks {
 
 				recipeIDs.add(ingredient.getIdentifier());
 
-				if (Main.getInstance().serverVersionAtLeast(1, 14)) {
+				if (CompatibilityUtil.supportsCustomModelData()) {
 					if (exactMatch.hasItemMeta() && exactMatch.getItemMeta().hasCustomModelData()) {
 						recipeMD.add(exactMatch.getItemMeta().getCustomModelData());
 					} else {
 						recipeMD.add(-1);
+					}
+				}
+				if (CompatibilityUtil.supportsItemModel()) {
+					if (exactMatch.hasItemMeta() && exactMatch.getItemMeta().hasItemModel()) {
+						recipeIM.add(exactMatch.getItemMeta().getItemModel().toString());
+					} else {
+						recipeIM.add("null");
 					}
 				}
 
@@ -147,6 +168,12 @@ public class ShapelessChecks {
 			recipeIDs.add("null");
 			recipeMD.add(ingredient.getCustomModelData());
 
+			if (ingredient.hasItemModel()) {
+				recipeIM.add(ingredient.getItemModel());
+			} else {
+				recipeIM.add("null");
+			}
+			
 			if (ingredient.hasDisplayName()) {
 				recipeNames.add(ingredient.getDisplayName());
 			} else {
@@ -171,7 +198,7 @@ public class ShapelessChecks {
 			return false;
 		}
 		logDebug("[handleShapeless] All required ingredients found..", recipe.getName(), id);
-		
+
 		Multiset<String> slotSet = HashMultiset.create(slotIDs);
 		Multiset<String> recipeSet = HashMultiset.create(recipeIDs);
 		if (!slotSet.containsAll(recipeSet)) {
@@ -188,24 +215,50 @@ public class ShapelessChecks {
 			Map<Integer, Integer> recipeModelCount = new HashMap<>();
 			Map<Integer, Integer> inventoryModelCount = new HashMap<>();
 
-			if (!Main.getInstance().serverVersionAtLeast(1, 14)) {
+			if (!CompatibilityUtil.supportsCustomModelData()) {
 				recipeMD.clear();
-				inventoryMD.clear();
+				slotMD.clear();
 			}
 			for (int model : recipeMD) {
 				recipeModelCount.put(model, recipeModelCount.getOrDefault(model, 0) + 1);
 			}
-			for (int model : inventoryMD) {
+			for (int model : slotMD) {
 				inventoryModelCount.put(model, inventoryModelCount.getOrDefault(model, 0) + 1);
 			}
-
-			if (!recipeMD.containsAll(inventoryMD) || !inventoryMD.containsAll(recipeMD)) {
-				logDebug("[handleShapeless] Model data mismatch: recipe vs inventory", recipe.getName(), id);
+			if (!recipeMD.containsAll(slotMD) || !slotMD.containsAll(recipeMD)) {
+				logDebug("[handleShapeless] CMD mismatch: recipe vs inventory", recipe.getName(), id);
 				return false;
 			}
 
 			if (!recipeModelCount.equals(inventoryModelCount)) {
-				logDebug("[handleShapeless] Model data mismatch: recipe vs inventory", recipe.getName(), id);
+				logDebug("[handleShapeless] CMD mismatch: recipe vs inventory", recipe.getName(), id);
+				logDebug(" RM: " + recipeModelCount, recipe.getName(), id);
+				logDebug(" IM: " + inventoryModelCount, recipe.getName(), id);
+				return false;
+			}
+		}
+
+		if (!recipe.getIgnoreItemModel()) {
+			Map<String, Integer> recipeModelCount = new HashMap<>();
+			Map<String, Integer> inventoryModelCount = new HashMap<>();
+
+			if (!CompatibilityUtil.supportsItemModel()) {
+				recipeIM.clear();
+				slotIM.clear();
+			}
+			for (String model : recipeIM) {
+				recipeModelCount.put(model, recipeModelCount.getOrDefault(model, 0) + 1);
+			}
+			for (String model : slotIM) {
+				inventoryModelCount.put(model, inventoryModelCount.getOrDefault(model, 0) + 1);
+			}
+			if (!recipeIM.containsAll(slotIM) || !slotIM.containsAll(recipeIM)) {
+				logDebug("[handleShapeless] ItemModel mismatch: recipe vs inventory", recipe.getName(), id);
+				return false;
+			}
+
+			if (!recipeModelCount.equals(inventoryModelCount)) {
+				logDebug("[handleShapeless] ItemModel mismatch: recipe vs inventory", recipe.getName(), id);
 				logDebug(" RM: " + recipeModelCount, recipe.getName(), id);
 				logDebug(" IM: " + inventoryModelCount, recipe.getName(), id);
 				return false;

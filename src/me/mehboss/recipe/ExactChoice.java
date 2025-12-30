@@ -69,6 +69,9 @@ public class ExactChoice {
 
 			if (item.hasCustomModelData())
 				exactMeta.setCustomModelData(item.getCustomModelData());
+			
+			if (item.hasLore())
+				exactMeta.setLore(item.getLore());
 
 			exactItem.setItemMeta(exactMeta);
 			return new RecipeChoice.ExactChoice(exactItem);

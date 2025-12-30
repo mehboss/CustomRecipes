@@ -26,7 +26,6 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 
-import com.cryptomorin.xseries.XItemStack.Serializer;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XPotion;
 
@@ -40,6 +39,8 @@ import me.mehboss.recipe.Main;
 import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.libs.XItemStack;
+import me.mehboss.utils.libs.XItemStack.Serializer;
 
 public class RecipeSaver {
 
@@ -235,29 +236,37 @@ public class RecipeSaver {
 		// handles "result" configuration section
 		Map<String, Object> result = new LinkedHashMap<>();
 		if (!isPotion) {
-			result.put("Item", material);
-			if (!resultHasID.get()) {
-				result.put("Item-Damage", "none");
-				result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
-				result.put("Amount", resultAmount);
+			Serializer serializer = XItemStack.serializer().fromItem(resultItem);
+			if (serializer != null) {
+				Map<String, Object> serializedMap = serializer.writeToMap();
+				result = serializedMap;
+			} else {
+				// DEPRECATED
+				// MARKED FOR REMOVAL
+				result.put("Item", material);
+				if (!resultHasID.get()) {
+					result.put("Item-Damage", "none");
+					result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
+					result.put("Amount", resultAmount);
 
-				if (resultHasID.get()) {
-					result.put("Name", "none");
-					result.put("Lore", new ArrayList<>());
-				} else {
-					result.put("Name",
-							(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored
-									: "none");
-					result.put("Lore", lore);
+					if (resultHasID.get()) {
+						result.put("Name", "none");
+						result.put("Lore", new ArrayList<>());
+					} else {
+						result.put("Name",
+								(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored
+										: "none");
+						result.put("Lore", lore);
+					}
+
+					result.put("Hide-Enchants", false);
+					result.put("Enchantments", enchantList);
+					result.put("Custom-Tagged", isCustomTagged);
+					result.put("Custom-Model-Data", "none");
+					result.put("Item-Flags", new ArrayList<>());
+					result.put("Attribute", new ArrayList<>());
+					result.put("Custom-Tags", new ArrayList<>());
 				}
-
-				result.put("Hide-Enchants", false);
-				result.put("Enchantments", enchantList);
-				result.put("Custom-Tagged", isCustomTagged);
-				result.put("Custom-Model-Data", "none");
-				result.put("Item-Flags", new ArrayList<>());
-				result.put("Attribute", new ArrayList<>());
-				result.put("Custom-Tags", new ArrayList<>());
 			}
 		} else if (isPotion) {
 			savePotionToConfig(resultItem, result);
@@ -524,25 +533,24 @@ public class RecipeSaver {
 		for (int i = 0; i < ingredientSlots.length; i++) {
 			int slotIndex = ingredientSlots[i];
 			ItemStack stack = inv.getItem(slotIndex);
+
 			if (stack == null || stack.getType() == Material.AIR)
 				continue;
 
 			String letter = letters.get(stack);
+
 			if (letter == null || seen.contains(letter))
 				continue;
 			seen.add(letter);
 
-			// Serialize the ItemStack into XItemStack and extract details
-			Serializer serializer = new Serializer().withItem(stack);
-			if (serializer == null)
-				continue;
-
-			Map<String, Object> serializedMap = serializer.writeToMap(); // Get the full serialized map
-
 			// Get the identifier for the ingredient
 			String identifier = findIngredientIdentifier(stack);
-
 			if (identifier == null || identifier.isEmpty() || identifier.equals("none")) {
+				Serializer serializer = XItemStack.serializer().fromItem(stack);
+				if (serializer == null)
+					continue;
+
+				Map<String, Object> serializedMap = serializer.writeToMap();
 				out.put(letter, serializedMap);
 			} else {
 				LinkedHashMap<String, Object> ing = new LinkedHashMap<>();

@@ -53,6 +53,7 @@ CursedSword:
   ItemsLeftover: []
   Flags:
     Ignore-Data: false
+    Ignore-Item-Model: false
     Ignore-Custom-Model-Data: false
     Ignore-Name: false
   Use-Conditions: false

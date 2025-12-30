@@ -21,6 +21,7 @@ import me.mehboss.gui.framework.GuiView;
 import me.mehboss.gui.framework.RecipeItemFactory;
 import me.mehboss.gui.framework.RecipeLayout;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
@@ -163,18 +164,27 @@ public class RecipeViewBuilder {
 			if (ing.hasMaterialData())
 				base = ing.getMaterialData().toItemStack();
 
+			if (base == null)
+				return null;
+
+			ItemMeta meta = base.getItemMeta();
 			if (ing.hasDisplayName()) {
-				ItemMeta meta = base.getItemMeta();
-				if (!isLegacyNames && Main.getInstance().serverVersionAtLeast(1, 20, 5))
+				if (!isLegacyNames && CompatibilityUtil.supportsItemName())
 					meta.setItemName(ing.getDisplayName());
 				else
 					meta.setDisplayName(ing.getDisplayName());
-				base.setItemMeta(meta);
 			}
-		}
 
-		if (base == null)
-			return null;
+			if (CompatibilityUtil.supportsItemModel() && meta.hasItemModel())
+				meta.setItemModel(org.bukkit.NamespacedKey.fromString(ing.getItemModel()));
+			if (CompatibilityUtil.supportsCustomModelData() && meta.hasCustomModelData())
+				meta.setCustomModelData(ing.getCustomModelData());
+
+			if (ing.hasLore())
+				meta.setLore(ing.getLore());
+
+			base.setItemMeta(meta);
+		}
 
 		base.setAmount(ing.getAmount());
 		return base;

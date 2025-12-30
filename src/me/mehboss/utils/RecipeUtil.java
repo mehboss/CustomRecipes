@@ -784,6 +784,7 @@ public class RecipeUtil {
 		private boolean placeable = true;
 		private boolean active = true;
 		private boolean ignoreData = false;
+		private boolean ignoreItemModel = false;
 		private boolean ignoreModelData = false;
 		private boolean ignoreNames = false;
 		private boolean isTagged = true;
@@ -1190,10 +1191,28 @@ public class RecipeUtil {
 		/**
 		 * Getter for ignoreModelData
 		 * 
-		 * @returns true of the recipe ignores CustomMetaData, false otherwise
+		 * @returns true of the recipe ignores CustomModelData, false otherwise
 		 */
 		public boolean getIgnoreModelData() {
 			return this.ignoreModelData;
+		}
+
+		/**
+		 * Setter for if the recipe ignores ItemModel
+		 * 
+		 * @param ignoreItemModel true to ignore, otherwise false
+		 */
+		public void setIgnoreItemModel(boolean ignoreItemModel) {
+			this.ignoreItemModel = ignoreItemModel;
+		}
+
+		/**
+		 * Getter for ignoreItemModel
+		 * 
+		 * @returns true of the recipe ignores ItemModel, false otherwise
+		 */
+		public boolean getIgnoreItemModel() {
+			return this.ignoreItemModel;
 		}
 
 		/**
@@ -1404,10 +1423,12 @@ public class RecipeUtil {
 	 */
 	public static class Ingredient {
 		private ItemStack item;
+		private String itemModel;
 		private Material material;
 		private MaterialData materialData;
 		private List<Material> materialChoices = new ArrayList<>();
 
+		private List<String> lore;
 		private String displayName = "false";
 		private String abbreviation;
 		private String identifier;
@@ -1446,11 +1467,16 @@ public class RecipeUtil {
 						: null;
 
 				this.displayName = itemName != null ? itemName : displayName != null ? displayName : "false";
-				this.modelData = CompatibilityUtil.supportsModelData() && meta.hasCustomModelData()
+				this.modelData = CompatibilityUtil.supportsCustomModelData() && meta.hasCustomModelData()
 						? meta.getCustomModelData()
 						: -1;
+				this.itemModel = CompatibilityUtil.supportsItemModel() && meta.hasItemModel()
+						? meta.getItemModel().toString()
+						: null;
 			}
 			this.material = item.getType();
+			this.amount = item.getAmount();
+
 		}
 
 		/**
@@ -1469,6 +1495,62 @@ public class RecipeUtil {
 		 */
 		public boolean hasItem() {
 			return item != null;
+		}
+
+		/**
+		 * Getter for an ingredient lore
+		 * 
+		 * @returns the ingredients lore
+		 */
+		public List<String> getLore() {
+			return lore;
+		}
+
+		/**
+		 * Setter for the ingredients lore
+		 * 
+		 * @param lore the lore the ingredient is required to have
+		 */
+		public void setLore(List<String> lore) {
+			this.lore = lore;
+		}
+
+		/**
+		 * Getter for whether an ingredient has a lore
+		 * 
+		 * @returns true or false.
+		 */
+		public boolean hasLore() {
+			return lore != null && !lore.isEmpty();
+		}
+
+		/**
+		 * Getter for an ingredients item model
+		 * 
+		 * @returns the ingredients item model
+		 */
+		public String getItemModel() {
+			return itemModel;
+		}
+
+		/**
+		 * Setter for the ingredients item model
+		 * 
+		 * @param namespacedKey the item model the ingredient is required to have
+		 */
+		public void setItemModel(String namespacedKey) {
+			if (!CompatibilityUtil.supportsItemModel())
+				return;
+			this.itemModel = namespacedKey;
+		}
+
+		/**
+		 * Getter for whether an ingredient has item model
+		 * 
+		 * @returns true or false.
+		 */
+		public boolean hasItemModel() {
+			return itemModel != null;
 		}
 
 		/**
@@ -1717,6 +1799,8 @@ public class RecipeUtil {
 		 * @param data the custom model data of the ingredient
 		 */
 		public void setCustomModelData(int data) {
+			if (!CompatibilityUtil.supportsCustomModelData())
+				return;
 			this.modelData = data;
 		}
 

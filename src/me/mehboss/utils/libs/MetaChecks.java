@@ -1,4 +1,4 @@
-package me.mehboss.utils;
+package me.mehboss.utils.libs;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 
@@ -17,7 +18,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
  * handlers to determine whether an input item matches a defined ingredient.
  */
 public class MetaChecks {
-	RecipeUtil getRecipeUtil() {
+	private static RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
 

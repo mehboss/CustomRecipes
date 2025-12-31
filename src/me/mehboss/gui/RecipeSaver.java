@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -22,12 +21,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 
 import com.cryptomorin.xseries.XMaterial;
-import com.cryptomorin.xseries.XPotion;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.gui.framework.GuiButton;
@@ -36,9 +33,9 @@ import me.mehboss.gui.framework.GuiButton.GuiToggleButton;
 import me.mehboss.gui.framework.GuiView;
 import me.mehboss.gui.framework.RecipeLayout;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.libs.CompatibilityUtil;
 import me.mehboss.utils.libs.XItemStack;
 import me.mehboss.utils.libs.XItemStack.Serializer;
 
@@ -235,42 +232,39 @@ public class RecipeSaver {
 
 		// handles "result" configuration section
 		Map<String, Object> result = new LinkedHashMap<>();
-		if (!isPotion) {
-			Serializer serializer = XItemStack.serializer().fromItem(resultItem);
-			if (serializer != null) {
-				Map<String, Object> serializedMap = serializer.writeToMap();
-				result = serializedMap;
-			} else {
-				// DEPRECATED
-				// MARKED FOR REMOVAL
-				result.put("Item", material);
-				if (!resultHasID.get()) {
-					result.put("Item-Damage", "none");
-					result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
-					result.put("Amount", resultAmount);
+		Serializer serializer = XItemStack.serializer().fromItem(resultItem);
+		if (serializer != null) {
+			Map<String, Object> serializedMap = serializer.writeToMap();
+			result = serializedMap;
+		} else {
+			// DEPRECATED
+			// MARKED FOR REMOVAL
+			result.put("Item", material);
+			if (!resultHasID.get()) {
+				result.put("Item-Damage", "none");
+				result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
+				result.put("Amount", resultAmount);
 
-					if (resultHasID.get()) {
-						result.put("Name", "none");
-						result.put("Lore", new ArrayList<>());
-					} else {
-						result.put("Name",
-								(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored
-										: "none");
-						result.put("Lore", lore);
-					}
-
-					result.put("Hide-Enchants", false);
-					result.put("Enchantments", enchantList);
-					result.put("Custom-Tagged", isCustomTagged);
-					result.put("Custom-Model-Data", "none");
-					result.put("Item-Flags", new ArrayList<>());
-					result.put("Attribute", new ArrayList<>());
-					result.put("Custom-Tags", new ArrayList<>());
+				if (resultHasID.get()) {
+					result.put("Name", "none");
+					result.put("Lore", new ArrayList<>());
+				} else {
+					result.put("Name",
+							(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored
+									: "none");
+					result.put("Lore", lore);
 				}
+
+				result.put("Hide-Enchants", false);
+				result.put("Enchantments", enchantList);
+				result.put("Custom-Tagged", isCustomTagged);
+				result.put("Custom-Model-Data", "none");
+				result.put("Item-Flags", new ArrayList<>());
+				result.put("Attribute", new ArrayList<>());
+				result.put("Custom-Tags", new ArrayList<>());
 			}
-		} else if (isPotion) {
-			savePotionToConfig(resultItem, result);
 		}
+		
 		// adds the section back to parent
 		cfg.put("Result", result);
 
@@ -299,67 +293,6 @@ public class RecipeSaver {
 		cfg.put("Disabled-Worlds", new ArrayList<>());
 
 		return cfg;
-	}
-
-	public void savePotionToConfig(ItemStack item, Map<String, Object> configValues) {
-		Map<String, Object> cfg = configValues;
-
-		// --- Material ---
-		cfg.put("Item", item.getType().name());
-
-		if (!(item.getItemMeta() instanceof PotionMeta)) {
-			return;
-		}
-
-		PotionMeta meta = (PotionMeta) item.getItemMeta();
-
-		// --- Name ---
-		if (meta.hasDisplayName())
-			cfg.put("Name", meta.getDisplayName());
-
-		// --- Color ---
-		if (meta.hasColor()) {
-			Color c = meta.getColor();
-			cfg.put("Color", c.getRed() + "," + c.getGreen() + "," + c.getBlue());
-		} // Try to detect vanilla vs custom
-		boolean vanilla = meta.hasCustomEffects() && meta.getBasePotionData() != null;
-
-		// =====================================================
-		// Case 1: VANILLA POTION (BasePotionData)
-		// =====================================================
-		if (meta.getBasePotionData() != null && vanilla) {
-			PotionData pd = meta.getBasePotionData();
-
-			// XPotion reverse lookup
-			XPotion xp = XPotion.matchXPotion(pd.getType());
-
-			cfg.put("PotionType", xp.getPotionType().name());
-			cfg.put("Amplifier", pd.isUpgraded() ? 1 : 0);
-			cfg.put("Duration", pd.isExtended() ? 3600 : 1800); // approx
-
-			return;
-		}
-
-		// =====================================================
-		// Case 2: CUSTOM EFFECTS
-		// =====================================================
-		if (meta.getCustomEffects().isEmpty()) {
-			return;
-		}
-
-		List<Map<String, Object>> list = new ArrayList<>();
-
-		for (PotionEffect eff : meta.getCustomEffects()) {
-			Map<String, Object> m = new LinkedHashMap<>();
-			m.put("Type", XPotion.of(eff.getType()).get().getName());
-			m.put("Duration", eff.getDuration() / 20);
-			m.put("Amplifier", eff.getAmplifier());
-			list.add(m);
-		}
-
-		cfg.put("Effects", list);
-		cfg.put("UseVanillaType", vanilla);
-		cfg.put("Amount", item.getAmount());
 	}
 
 	private GuiStringButton getStringButton(GuiView view, String fieldName) {
@@ -674,19 +607,6 @@ public class RecipeSaver {
 
 		String nbt = getCustomIdentifier(item);
 		return (nbt != null && !"none".equalsIgnoreCase(nbt)) ? nbt : "none";
-	}
-
-	// Ingredient plain display name (no colors) or "none"
-	private String getIngredientNamePlain(ItemStack item, boolean isLegacyNames) {
-		if (item == null || !item.hasItemMeta())
-			return "none";
-		ItemMeta im = item.getItemMeta();
-		String customName = CompatibilityUtil.hasDisplayname(im, isLegacyNames)
-				? CompatibilityUtil.getDisplayname(im, isLegacyNames)
-				: "none";
-		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
-
-		return (displayName != null && !"none".equals(displayName)) ? displayName : customName;
 	}
 
 	public String getCustomIdentifier(ItemStack itemStack) {

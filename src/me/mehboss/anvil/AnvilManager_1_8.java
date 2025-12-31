@@ -15,12 +15,12 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.CooldownManager;
 
 public class AnvilManager_1_8 implements Listener {
 

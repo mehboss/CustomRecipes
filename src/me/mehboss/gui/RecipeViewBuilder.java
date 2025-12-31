@@ -21,7 +21,6 @@ import me.mehboss.gui.framework.GuiView;
 import me.mehboss.gui.framework.RecipeItemFactory;
 import me.mehboss.gui.framework.RecipeLayout;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
@@ -29,6 +28,7 @@ import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
 
 /**
  * Builds the GUI for viewing and editing recipes using the modular GUI

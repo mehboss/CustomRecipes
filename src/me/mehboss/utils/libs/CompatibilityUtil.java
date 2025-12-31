@@ -1,4 +1,4 @@
-package me.mehboss.utils;
+package me.mehboss.utils.libs;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;

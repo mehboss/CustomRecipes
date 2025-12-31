@@ -14,9 +14,8 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
-import me.mehboss.utils.ItemBuilder;
-
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.libs.ItemBuilder;
 
 public class TabCompletion implements TabCompleter {
 

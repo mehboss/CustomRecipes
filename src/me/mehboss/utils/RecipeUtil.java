@@ -35,6 +35,8 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CookingRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
+import me.mehboss.utils.libs.ItemBuilder;
 import net.Indyuce.mmoitems.MMOItems;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
@@ -340,7 +342,7 @@ public class RecipeUtil {
 			}
 
 			// havenbags:size:material:customModelData:canBind:texture
-			ItemStack bagItem = Main.getInstance().recipeManager.handleBagCreation(bagMaterial, size, bagCMD, canBind,
+			ItemStack bagItem = Main.getInstance().itemFactory.handleBagCreation(bagMaterial, size, bagCMD, canBind,
 					bagTexture, null);
 			return bagItem;
 

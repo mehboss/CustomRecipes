@@ -26,13 +26,13 @@ import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CooldownManager.Cooldown;
-import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.libs.CooldownManager;
+import me.mehboss.utils.libs.CooldownManager.Cooldown;
 
 public class AmountManager implements Listener {
 

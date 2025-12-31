@@ -22,9 +22,9 @@ import org.bukkit.inventory.ItemStack;
 import com.cryptomorin.xseries.XMaterial;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.libs.CooldownManager;
 
 /**
  * Handles custom furnace, smoker, and blast furnace recipe behaviors.

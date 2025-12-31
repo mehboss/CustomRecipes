@@ -19,16 +19,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.recipe.CookingBookCategory;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
 
-import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
 
 public class ExactChoice {
-	RecipeManager recipeManager = Main.getInstance().recipeManager;
+	RecipeBuilder recipeManager = Main.getInstance().recipeManager;
 
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;

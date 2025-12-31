@@ -14,13 +14,13 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
-import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
+import me.mehboss.utils.libs.CooldownManager;
 
 /**
  * Handles custom anvil crafting logic for recipes registered via RecipeUtil.

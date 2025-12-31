@@ -19,9 +19,9 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.libs.CompatibilityUtil;
 
 public class ShapelessChecks {
 

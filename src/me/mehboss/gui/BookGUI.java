@@ -16,6 +16,7 @@ import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -38,7 +39,6 @@ import com.cryptomorin.xseries.XMaterial;
 import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.gui.framework.GuiView.GuiRegistry;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
 
 public class BookGUI implements Listener {
 

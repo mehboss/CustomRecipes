@@ -46,13 +46,13 @@ import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.crafting.ShapedChecks.AlignedResult;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
-import me.mehboss.utils.CooldownManager;
-import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
+import me.mehboss.utils.libs.CooldownManager;
+import me.mehboss.utils.libs.RecipeConditions.ConditionSet;
 
 public class CraftManager implements Listener {
 

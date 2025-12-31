@@ -20,10 +20,10 @@ import com.cryptomorin.xseries.XMaterial;
 import me.mehboss.crafting.ShapedChecks.AlignedResult;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
-import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.libs.RecipeConditions.ConditionSet;
 
 public class CrafterManager implements Listener {
 

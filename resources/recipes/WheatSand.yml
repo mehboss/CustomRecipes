@@ -5,7 +5,7 @@ WheatSand:
   Identifier: WHEATSAND
   Converter: FURNACE
   Book-Category: 'MISC'
-  Cooktime: 20 # In ticks - 20 ticks per second
+  Cook-Time: 20 # In ticks - 20 ticks per second
   Experience: 1
   Result:
     Item: SAND

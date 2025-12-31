@@ -51,28 +51,36 @@ import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.gui.BookGUI;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
-import me.mehboss.utils.CooldownManager;
-import me.mehboss.utils.ItemBuilder;
-import me.mehboss.utils.MetaChecks;
+import me.mehboss.utils.Metrics;
 import me.mehboss.utils.Placeholders;
 import me.mehboss.utils.RecipeUtil;
-import me.mehboss.utils.CooldownManager.Cooldown;
-import me.mehboss.utils.libs.Metrics;
-import me.mehboss.utils.libs.UpdateChecker;
+import me.mehboss.utils.UpdateChecker;
+import me.mehboss.utils.libs.CooldownManager;
+import me.mehboss.utils.libs.ItemBuilder;
+import me.mehboss.utils.libs.ItemFactory;
+import me.mehboss.utils.libs.MetaChecks;
+import me.mehboss.utils.libs.CooldownManager.Cooldown;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
+	
+	public RecipeUtil recipeUtil;
+	public RecipeBuilder recipeManager;
+	public ExactChoice exactChoice;
+	
 	public AmountManager amountManager;
 	public CraftManager craftManager;
-	public RecipeManager recipeManager;
+	
 	public ShapedChecks shapedChecks;
 	public ShapelessChecks shapelessChecks;
+	
+	public ItemFactory itemFactory;
+	public MetaChecks metaChecks;
+	
 	public BookGUI recipes;
 	public RecipeTypeGUI typeGUI;
 	public CooldownManager cooldownManager;
-	public RecipeUtil recipeUtil;
-	public ExactChoice exactChoice;
 
 	public RecipeGUI editItem;
 
@@ -83,11 +91,11 @@ public class Main extends JavaPlugin implements Listener {
 
 	// add three more shapelessname, amount, and ID specifically for config.
 
-	File customYml = new File(getDataFolder() + "/blacklisted.yml");
 	public FileConfiguration customConfig = null;
-
-	File cooldownYml = new File(getDataFolder() + "/cooldowns.yml");
+	File customYml = new File(getDataFolder() + "/blacklisted.yml");
+	
 	FileConfiguration cooldownConfig = null;
+	File cooldownYml = new File(getDataFolder() + "/cooldowns.yml");
 
 	File cursedYml = new File(getDataFolder() + "/recipes/CursedPick.yml");
 	File swordYml = new File(getDataFolder() + "/recipes/CursedSword.yml");
@@ -95,27 +103,25 @@ public class Main extends JavaPlugin implements Listener {
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
 	File sandYml = new File(getDataFolder() + "/recipes/WheatSand.yml");
 
+	public Boolean debug = false;
+	public Boolean crafterdebug = false;
+	
 	public Boolean hasAE = false;
 	public Boolean hasEE = false;
 	public Boolean hasHavenBags = false;
-	Boolean hasEEnchants = false;
+	public Boolean hasEEnchants = false;
+	
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
-	public Boolean debug = false;
-	public Boolean crafterdebug = false;
-
-	public RecipeUtil getRecipeUtil() {
-		return recipeUtil;
-	}
-
+	private static Main instance;
 	public static Main getInstance() {
 		return instance;
 	}
-
-	private static Main instance;
-	public MetaChecks metaChecks;
+	public RecipeUtil getRecipeUtil() {
+		return recipeUtil;
+	}
 
 	public boolean hasCustomPlugin(String plugin) {
 		switch (plugin) {
@@ -253,9 +259,10 @@ public class Main extends JavaPlugin implements Listener {
 	public void onEnable() {
 
 		instance = this;
+		itemFactory = new ItemFactory();
 		cooldownManager = new CooldownManager();
 		recipeUtil = new RecipeUtil();
-		recipeManager = new RecipeManager();
+		recipeManager = new RecipeBuilder();
 		metaChecks = new MetaChecks();
 		shapedChecks = new ShapedChecks();
 		shapelessChecks = new ShapelessChecks();
@@ -390,7 +397,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Reset managers
 		recipeUtil = new RecipeUtil();
-		recipeManager = new RecipeManager();
+		recipeManager = new RecipeBuilder();
 		editItem = new RecipeGUI();
 		recipes = new BookGUI(this);
 		typeGUI = new RecipeTypeGUI();

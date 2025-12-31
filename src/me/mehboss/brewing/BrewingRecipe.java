@@ -17,11 +17,11 @@ import com.cryptomorin.xseries.XSound;
 
 import de.tr7zw.changeme.nbtapi.NBTTileEntity;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.BrewingRecipeData;
+import me.mehboss.utils.libs.CooldownManager;
 
 /**
  * Handles runtime logic for custom brewing recipes.

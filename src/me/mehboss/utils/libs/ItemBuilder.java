@@ -1,4 +1,4 @@
-package me.mehboss.utils;
+package me.mehboss.utils.libs;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -102,14 +102,14 @@ public class ItemBuilder {
 		String resultPath = cfg.isConfigurationSection(section + ".Result") ? section + ".Result" : section;
 
 		boolean useLegacyName = cfg.getBoolean(resultPath + ".Use-Display-Name", true);
-		Optional<ItemStack> built = Main.getInstance().recipeManager.buildItem(resultPath, itemConfig, useLegacyName);
+		Optional<ItemStack> built = Main.getInstance().itemFactory.buildItem(resultPath, itemConfig, useLegacyName);
 		if (!built.isPresent()) {
 			Main.getInstance().getLogger().warning("[CustomItemAPI] buildItem failed for section " + section);
 			return;
 		}
 
 		ItemStack it = built.get();
-		it = Main.getInstance().recipeManager.handleDurability(it, resultPath);
+		it = Main.getInstance().itemFactory.handleDurability(it, resultPath);
 		int amount = cfg.isInt(resultPath + ".Amount") ? cfg.getInt(resultPath + ".Amount") : 1;
 		it.setAmount(amount);
 

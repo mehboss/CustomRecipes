@@ -29,13 +29,13 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CooldownManager;
 import me.mehboss.utils.InventoryUtils;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.CooldownManager;
 
 /**
  * Handles all custom logic for grindstone-based workstation recipes.

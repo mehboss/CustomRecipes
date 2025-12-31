@@ -4,8 +4,8 @@ import java.util.ArrayList;
 
 import com.cryptomorin.xseries.XMaterial;
 
-import me.mehboss.utils.RecipeConditions.ConditionSet;
 import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.libs.RecipeConditions.ConditionSet;
 
 /**
  * Stores additional data for custom crafting recipes.

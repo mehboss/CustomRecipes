@@ -1,4 +1,4 @@
-package me.mehboss.utils;
+package me.mehboss.utils.libs;
 
 import java.util.Collections;
 import java.util.HashMap;

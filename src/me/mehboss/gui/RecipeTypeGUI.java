@@ -1,8 +1,8 @@
 package me.mehboss.gui;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.CompatibilityUtil;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
+import me.mehboss.utils.libs.CompatibilityUtil;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;

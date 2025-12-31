@@ -8,8 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.ItemBuilder;
 import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.libs.ItemBuilder;
 
 public class CommandGive {
 

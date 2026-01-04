@@ -22,9 +22,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionData;
-import org.bukkit.potion.PotionEffect;
-
-import com.cryptomorin.xseries.XMaterial;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.gui.framework.GuiButton;
@@ -33,6 +30,8 @@ import me.mehboss.gui.framework.GuiButton.GuiToggleButton;
 import me.mehboss.gui.framework.GuiView;
 import me.mehboss.gui.framework.RecipeLayout;
 import me.mehboss.recipe.Main;
+import me.mehboss.recipe.RecipeBuilder;
+import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.libs.CompatibilityUtil;
@@ -109,8 +108,11 @@ public class RecipeSaver {
 			player.sendMessage(ChatColor.RED + "Failed to save the recipe to " + recipeFile.getName() + ".");
 		}
 
-		Main.getInstance().recipeManager.addRecipes(recipeName);
 		player.closeInventory();
+		if (getRecipeUtil().getRecipe(recipeName) != null)
+			getRecipeUtil().removeRecipe(recipeName);
+
+		getRecipeBuilder().addRecipes(recipeName);
 	}
 
 	private Map<String, Object> convertToRecipeConfig(GuiView view, Inventory inventory, Recipe recipe, RecipeType type,
@@ -226,16 +228,17 @@ public class RecipeSaver {
 		cfg.put("Auto-Discover-Recipe", true);
 		cfg.put("Book-Category", "MISC");
 
-		boolean isPotion = material == XMaterial.POTION.get().toString()
-				|| material == XMaterial.SPLASH_POTION.get().toString()
-				|| material == XMaterial.LINGERING_POTION.get().toString();
-
 		// handles "result" configuration section
 		Map<String, Object> result = new LinkedHashMap<>();
 		Serializer serializer = XItemStack.serializer().fromItem(resultItem);
-		if (serializer != null) {
+		if (resultHasID.get()) {
+			result.put("Item", material);
+
+		} else if (serializer != null) {
 			Map<String, Object> serializedMap = serializer.writeToMap();
+			serializedMap.put("custom-tagged", isCustomTagged);
 			result = serializedMap;
+
 		} else {
 			// DEPRECATED
 			// MARKED FOR REMOVAL
@@ -244,17 +247,9 @@ public class RecipeSaver {
 				result.put("Item-Damage", "none");
 				result.put("Durability", (resultItem != null) ? resultItem.getDurability() : 0);
 				result.put("Amount", resultAmount);
-
-				if (resultHasID.get()) {
-					result.put("Name", "none");
-					result.put("Lore", new ArrayList<>());
-				} else {
-					result.put("Name",
-							(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored
-									: "none");
-					result.put("Lore", lore);
-				}
-
+				result.put("Name",
+						(displayNameColored != null && !displayNameColored.isEmpty()) ? displayNameColored : "none");
+				result.put("Lore", lore);
 				result.put("Hide-Enchants", false);
 				result.put("Enchantments", enchantList);
 				result.put("Custom-Tagged", isCustomTagged);
@@ -264,7 +259,7 @@ public class RecipeSaver {
 				result.put("Custom-Tags", new ArrayList<>());
 			}
 		}
-		
+
 		// adds the section back to parent
 		cfg.put("Result", result);
 
@@ -631,5 +626,13 @@ public class RecipeSaver {
 			list.add(name + ":" + e.getValue());
 		}
 		return list;
+	}
+
+	RecipeBuilder getRecipeBuilder() {
+		return Main.getInstance().recipeBuilder;
+	}
+
+	RecipeUtil getRecipeUtil() {
+		return Main.getInstance().recipeUtil;
 	}
 }

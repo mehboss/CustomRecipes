@@ -7,7 +7,7 @@ import java.util.List;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
-import me.mehboss.utils.libs.ItemBuilder;
+import me.mehboss.utils.libs.ItemManager;
 
 public class CommandItems {
 	public static boolean Run(CRCommand command) {
@@ -23,7 +23,7 @@ public class CommandItems {
 			}
 		}
 
-		List<String> items = new ArrayList<>(ItemBuilder.getAllItems());
+		List<String> items = new ArrayList<>(ItemManager.getAllItems());
 
 		// Sort the recipes alphabetically
 		Collections.sort(items, String.CASE_INSENSITIVE_ORDER);

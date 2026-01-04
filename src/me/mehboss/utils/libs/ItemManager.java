@@ -16,7 +16,7 @@ import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
 
-public class ItemBuilder {
+public class ItemManager {
 
 	private static final Map<String, ItemStack> BY_IDENTIFIER = new HashMap<>();
 	static FileConfiguration itemConfig = null;

@@ -2,6 +2,7 @@ package me.mehboss.gui.framework;
 
 import java.io.File;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -15,6 +16,7 @@ import me.mehboss.commands.CommandRemove;
 import me.mehboss.gui.RecipeSaver;
 import me.mehboss.gui.RecipeViewBuilder;
 import me.mehboss.gui.framework.GuiView.GuiRegistry;
+import me.mehboss.gui.framework.GuiView.PagedGuiView;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Recipe;
 
@@ -44,9 +46,20 @@ public class RecipeGUI {
 		// Look up recipe from the API
 		Recipe linked = Main.getInstance().recipeUtil.getRecipeFromResult(clickedItem);
 		if (linked == null)
-			return; // not a recipe result, ignore
+			return;
 
-		// OPEN the linked recipe in viewing mode
+		UUID id = player.getUniqueId();
+		GuiView view = GuiRegistry.get(id);
+		if (view instanceof PagedGuiView)
+			return;
+
+		if (!GuiRegistry.hasRootView(id)) {
+			GuiView current = GuiRegistry.get(id);
+			if (current != null) {
+				GuiRegistry.setRootView(id, current);
+			}
+		}
+
 		openViewing(player, linked);
 		return;
 	}
@@ -56,14 +69,10 @@ public class RecipeGUI {
 	 */
 	public void openViewing(Player player, Recipe recipe) {
 		GuiView view = builder.buildViewing(recipe);
-		if (!GuiRegistry.hasRootView(player.getUniqueId()))
-			GuiRegistry.setRootView(player.getUniqueId(), view);
 
 		// Back buttons (48, 49, 50) -> close and open type GUI
 		for (int slot : new int[] { 48, 49, 50 }) {
 			overrideOn(view, slot, (p, v, e) -> {
-				p.closeInventory();
-
 				GuiView root = GuiRegistry.getRootView(player.getUniqueId());
 				if (root != null && root != view) {
 					root.open(player);

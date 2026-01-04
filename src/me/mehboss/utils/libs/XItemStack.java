@@ -561,9 +561,9 @@ public final class XItemStack {
 			// Display Name & Lore
 			if (meta.hasDisplayName()) {
 				if (miniMessageHandler != null) {
-					config.set("display_name", AdventureAPIFactory.displayName(meta, miniMessageHandler));
+					config.set("name", AdventureAPIFactory.displayName(meta, miniMessageHandler));
 				} else {
-					config.set("display_name", translator.apply(meta.getDisplayName()));
+					config.set("name", translator.apply(meta.getDisplayName()));
 				}
 			}
 			if (meta.hasLore()) {
@@ -576,7 +576,7 @@ public final class XItemStack {
 
 			if (SUPPORTS_ITEM_NAME && meta.hasItemName()) {
 				String itemName = meta.getItemName();
-				config.set("item_name", translator.apply(itemName));
+				config.set("item-name", translator.apply(itemName));
 			}
 
 			customModelData();
@@ -600,6 +600,10 @@ public final class XItemStack {
 				return;
 			try {
 
+				if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
+					item = NBTEditor.set(item, NBTEditor.DELETE, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+				}
+
 				if (!NBTEditor.contains(item, NBTEditor.ITEMSTACK_COMPONENTS, NBTEditor.CUSTOM_DATA)) {
 					return;
 				}
@@ -609,7 +613,7 @@ public final class XItemStack {
 
 				if (compound != null) {
 					String encoded = compound.toString();
-					config.set("custom_data", encoded);
+					config.set("custom-data", encoded);
 				}
 			} catch (Throwable t) {
 				t.printStackTrace();
@@ -1132,14 +1136,6 @@ public final class XItemStack {
 					meta.addAttributeModifier(attributeInst.get().get(), modifier);
 				}
 			}
-
-			if (!meta.getItemFlags().isEmpty() && XReflection.supports(1, 20, 6)) {
-				// Item flags will not work without an attribute modifier being present.
-				if (!meta.hasAttributeModifiers()) {
-					meta.addAttributeModifier(XAttribute.ATTACK_DAMAGE.get(), XAttribute.createModifier(
-							"xseries:itemflagdummy", 0.0, AttributeModifier.Operation.MULTIPLY_SCALAR_1, null));
-				}
-			}
 		}
 
 		@SuppressWarnings("deprecation")
@@ -1242,7 +1238,7 @@ public final class XItemStack {
 
 		@SuppressWarnings("ConstantValue")
 		private void displayName() {
-			String name = config.getString("display_name");
+			String name = config.getString("name");
 
 			if (!Strings.isNullOrEmpty(name)) {
 				if (miniMessageHandler != null) {
@@ -1263,7 +1259,7 @@ public final class XItemStack {
 			if (!SUPPORTS_ITEM_NAME)
 				return;
 
-			String itemName = config.getString("item_name");
+			String itemName = config.getString("item-name");
 			if (!Strings.isNullOrEmpty(itemName)) {
 				String translated = translator.apply(itemName);
 				meta.setItemName(translated);
@@ -1276,7 +1272,7 @@ public final class XItemStack {
 			if (!SUPPORTS_NBTEDITOR)
 				return;
 
-			String encoded = config.getString("custom_data");
+			String encoded = config.getString("custom-data");
 			if (encoded == null || encoded.isEmpty())
 				return;
 			try {

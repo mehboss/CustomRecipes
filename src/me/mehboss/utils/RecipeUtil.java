@@ -36,7 +36,7 @@ import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.libs.CompatibilityUtil;
-import me.mehboss.utils.libs.ItemBuilder;
+import me.mehboss.utils.libs.ItemManager;
 import net.Indyuce.mmoitems.MMOItems;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
@@ -167,7 +167,7 @@ public class RecipeUtil {
 	 */
 	public void registerRecipe(Recipe recipe) {
 		this.clearDuplicates(recipe);
-		Main.getInstance().recipeManager.addRecipesFromAPI(recipe);
+		Main.getInstance().recipeBuilder.addRecipesFromAPI(recipe);
 	}
 
 	/**
@@ -176,7 +176,7 @@ public class RecipeUtil {
 	 */
 	public void reloadRecipes() {
 		this.clearDuplicates(null);
-		Main.getInstance().recipeManager.addRecipesFromAPI(null);
+		Main.getInstance().recipeBuilder.addRecipesFromAPI(null);
 	}
 
 	/**
@@ -243,8 +243,8 @@ public class RecipeUtil {
 
 		if (getRecipeFromKey(rawkey) != null)
 			return getRecipeFromKey(rawkey).getResult();
-		if (ItemBuilder.get(rawkey) != null)
-			return ItemBuilder.get(rawkey);
+		if (ItemManager.get(rawkey) != null)
+			return ItemManager.get(rawkey);
 
 		// If not found, treat it as a custom item key
 		if (split.length < 2)
@@ -376,7 +376,7 @@ public class RecipeUtil {
 			return recipe.getKey();
 
 		// Then, try for a custom item
-		String customID = ItemBuilder.get(item);
+		String customID = ItemManager.get(item);
 		if (customID != null)
 			return customID;
 
@@ -1432,6 +1432,7 @@ public class RecipeUtil {
 
 		private List<String> lore;
 		private String displayName = "false";
+		private String itemName = "false";
 		private String abbreviation;
 		private String identifier;
 		private int slot = 0;
@@ -1457,18 +1458,26 @@ public class RecipeUtil {
 		 */
 		public void setItem(ItemStack item) {
 			if (item == null || item.getType() == Material.AIR) {
-				String errorMessage = "[CRAPI] The ingredient result can not be set to null or air";
+				String errorMessage = "[CRAPI] The ingredient item can not be set to null or air";
 				throw new InvalidRecipeException(errorMessage);
 			}
 
 			this.item = item;
 			ItemMeta meta = item.getItemMeta();
+
+			// Set material data if available
+			XMaterial material = XMaterial.matchXMaterial(item);
+			if (CompatibilityUtil.supportsMaterialData() && material.getData() != 0) {
+				this.materialData = new MaterialData(material.get(), material.getData());
+			}
+
 			if (meta != null) {
 				String displayName = meta.hasDisplayName() ? meta.getDisplayName() : null;
 				String itemName = CompatibilityUtil.supportsItemName() && meta.hasItemName() ? meta.getItemName()
 						: null;
 
-				this.displayName = itemName != null ? itemName : displayName != null ? displayName : "false";
+				this.displayName = displayName != null ? displayName : "false";
+				this.itemName = itemName != null ? itemName : "false";
 				this.modelData = CompatibilityUtil.supportsCustomModelData() && meta.hasCustomModelData()
 						? meta.getCustomModelData()
 						: -1;
@@ -1567,6 +1576,17 @@ public class RecipeUtil {
 		}
 
 		/**
+		 * Setter for the ingredients item name (1.21.5+ component)
+		 * 
+		 * @param itemName the name the ingredient is required to have
+		 */
+		public void setItemName(String itemName) {
+			if (itemName == null)
+				return;
+			this.itemName = itemName;
+		}
+
+		/**
 		 * Setter for the identifier of the ingredient Requires the ingredient to be
 		 * tagged with another Custom Recipe
 		 * 
@@ -1650,7 +1670,15 @@ public class RecipeUtil {
 		 * @returns the displayname of the ingredient, can be null
 		 */
 		public String getDisplayName() {
-			return displayName == null ? displayName : ChatColor.translateAlternateColorCodes('&', displayName);
+			String name = null;
+
+			if (itemName != null && !itemName.equals("false")) {
+				name = itemName;
+			} else if (displayName != null && !displayName.equals("false")) {
+				name = displayName;
+			}
+
+			return name == null ? "false" : ChatColor.translateAlternateColorCodes('&', name);
 		}
 
 		/**
@@ -1659,9 +1687,16 @@ public class RecipeUtil {
 		 * @returns true if the ingredient has one, false otherwise
 		 */
 		public boolean hasDisplayName() {
-			return displayName != null && !displayName.equalsIgnoreCase("false")
-					&& !displayName.equalsIgnoreCase("none") && !displayName.equalsIgnoreCase("null")
-					&& !displayName.isEmpty();
+			return (displayName != null && !displayName.equals("false"));
+		}
+
+		/**
+		 * Getter for if the ingredient uses display_name or item_name
+		 * 
+		 * @returns true if the ingredient uses display_name, false otherwise
+		 */
+		public boolean hasItemName() {
+			return itemName != null && !itemName.equals("false");
 		}
 
 		/**

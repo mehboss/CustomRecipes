@@ -13,12 +13,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import de.tr7zw.changeme.nbtapi.NBT;
-import de.tr7zw.changeme.nbtapi.NBTItem;
 import me.mehboss.gui.framework.GuiButton.GuiLoreButton;
-import me.mehboss.gui.framework.GuiView;
-import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.gui.framework.chat.ChatEditManager;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.libs.CompatibilityUtil;
 
 public class CommandEditItem {
 	@SuppressWarnings("deprecation")
@@ -153,18 +151,41 @@ public class CommandEditItem {
 		}
 
 		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("modeldata")) {
+			if (!CompatibilityUtil.supportsCustomModelData()) {
+				p.sendMessage(ChatColor.RED + "Unsupported server version!");
+				return false;
+			}
 
-			Integer modelData = -1;
-
+			Integer model = -1;
 			try {
-				modelData = Integer.parseInt(command.args[1]);
+				model = Integer.parseInt(command.args[2]);
 			} catch (NumberFormatException e) {
-				p.sendMessage(ChatColor.RED + "Custom model data must be an int! " + command.args[1]);
+				p.sendMessage(ChatColor.RED + "Custom model data must be an int! " + command.args[2]);
 				return false;
 			}
 
 			p.sendMessage(ChatColor.GREEN + "Successfully updated item model data!");
-			it.setCustomModelData(modelData);
+			it.setCustomModelData(model);
+			inhand.setItemMeta(it);
+			return true;
+		}
+
+		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("itemmodel")) {
+			if (!CompatibilityUtil.supportsItemModel()) {
+				p.sendMessage(ChatColor.RED + "Unsupported server version!");
+				return false;
+			}
+
+			try {
+				String[] split = command.args[2].split(":");
+				NamespacedKey model = new NamespacedKey(split[0], split[1]);
+				it.setItemModel(model);
+			} catch (Exception e) {
+				p.sendMessage(ChatColor.RED + "An error occurred while updating the item model!");
+				return false;
+			}
+
+			p.sendMessage(ChatColor.GREEN + "Successfully updated item model!");
 			inhand.setItemMeta(it);
 			return true;
 		}
@@ -184,8 +205,8 @@ public class CommandEditItem {
 					}
 				}
 			};
-		    ChatEditManager.get().beginLoreEdit(p, null, button);
-		    return true;
+			ChatEditManager.get().beginLoreEdit(p, null, button);
+			return true;
 		}
 
 		if (command.args.length == 2 && command.args[1].equalsIgnoreCase("print")) {
@@ -201,6 +222,7 @@ public class CommandEditItem {
 		p.sendMessage(ChatColor.RED + "/cr edititem print");
 		p.sendMessage(ChatColor.RED + "/cr edititem name [name]");
 		p.sendMessage(ChatColor.RED + "/cr edititem modeldata [int]");
+		p.sendMessage(ChatColor.RED + "/cr edititem itemmodel namespace:string");
 		p.sendMessage(ChatColor.RED + "/cr edititem enchant add/remove [enchantment] [level]");
 		p.sendMessage(ChatColor.RED + "/cr edititem hideenchants [true/false]");
 		p.sendMessage(ChatColor.RED + "/cr edititem lore");

@@ -3,6 +3,7 @@ package me.mehboss.gui;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -423,9 +424,8 @@ public class RecipeViewBuilder {
 		 * Cook Time (slot 14)
 		 */
 		if (cooking != null) {
-			view.addButton(new GuiStringButton(43, "Cook-Time",
-					RecipeItemFactory.button(XMaterial.CLOCK, getValue("Cooking.Cook-Time", "&fCook Time"),
-							String.valueOf(cooking != null ? cooking.getCookTime() : 0))) {
+			view.addButton(new GuiStringButton(43, "Cook-Time", RecipeItemFactory.button(XMaterial.CLOCK,
+					getValue("Cooking.Cook-Time", "&fCook Time"), String.valueOf(cooking.getCookTime()))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {
@@ -435,13 +435,12 @@ public class RecipeViewBuilder {
 		}
 
 		/*
-		 * Experience (slot 15)
+		 * Experience (slot 52)
 		 */
+
 		if (cooking != null || recipe.getType() == RecipeType.GRINDSTONE)
-			view.addButton(new GuiStringButton(52, "Experience",
-					RecipeItemFactory.button(XMaterial.EXPERIENCE_BOTTLE,
-							getValue("Workstation.Experience", "&fExperience"),
-							String.valueOf(cooking != null ? cooking.getExperience() : 0))) {
+			view.addButton(new GuiStringButton(52, "Experience", RecipeItemFactory.button(XMaterial.EXPERIENCE_BOTTLE,
+					getValue("Workstation.Experience", "&fExperience"), String.valueOf(cooking.getExperience()))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {

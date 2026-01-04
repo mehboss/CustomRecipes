@@ -14,12 +14,14 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.libs.CompatibilityUtil;
 
@@ -55,12 +57,11 @@ public class ShapelessChecks {
 
 		Boolean isCrafting = inv.getType() == InventoryType.CRAFTING || inv.getType() == InventoryType.WORKBENCH;
 		ItemStack[] matrix = inv.getContents();
+		int start = (isCrafting) ? 1 : 0;
 
-		for (int i = 0; i < matrix.length; i++) {
-			if (i == 0 && isCrafting)
-				continue;
-
+		for (int i = start; i < matrix.length; i++) {
 			ItemStack it = matrix[i];
+			ItemMeta im = it.getItemMeta();
 
 			if (it == null || it.getType() == Material.AIR || it.getAmount() <= 0) {
 				slotNames.add("null");
@@ -77,28 +78,22 @@ public class ShapelessChecks {
 			slotIDs.add(key);
 
 			if (CompatibilityUtil.supportsCustomModelData()) {
-				if (it.hasItemMeta() && it.getItemMeta().hasCustomModelData()) {
-					slotMD.add(it.getItemMeta().getCustomModelData());
+				if (it.hasItemMeta() && im.hasCustomModelData()) {
+					slotMD.add(im.getCustomModelData());
 				} else {
 					slotMD.add(-1);
 				}
 			}
 			if (CompatibilityUtil.supportsItemModel()) {
-				if (it.hasItemMeta() && it.getItemMeta().hasItemModel()) {
-					slotIM.add(it.getItemMeta().getItemModel().toString());
+				if (it.hasItemMeta() && im.hasItemModel()) {
+					slotIM.add(im.getItemModel().toString());
 				} else {
 					slotIM.add("null");
 				}
 			}
 
 			inventoryCount.put(it.getType(), inventoryCount.getOrDefault(it.getType(), 0) + 1);
-
-			if (!it.hasItemMeta() || !CompatibilityUtil.hasDisplayname(it.getItemMeta(), recipe.isLegacyNames())) {
-				slotNames.add("false");
-				continue;
-			}
-
-			slotNames.add(CompatibilityUtil.getDisplayname(it.getItemMeta(), recipe.isLegacyNames()));
+			slotNames.add(getNameKey(im));
 		}
 
 		// working copy used for consumption while matching
@@ -115,6 +110,7 @@ public class ShapelessChecks {
 
 			if (ingredient.hasIdentifier() && getRecipeUtil().getResultFromKey(ingredient.getIdentifier()) != null) {
 				ItemStack exactMatch = getRecipeUtil().getResultFromKey(ingredient.getIdentifier());
+				ItemMeta exactMeta = exactMatch.getItemMeta();
 				Material type = exactMatch.getType();
 
 				recipeCount.put(type, recipeCount.getOrDefault(type, 0) + 1);
@@ -123,25 +119,21 @@ public class ShapelessChecks {
 				recipeIDs.add(ingredient.getIdentifier());
 
 				if (CompatibilityUtil.supportsCustomModelData()) {
-					if (exactMatch.hasItemMeta() && exactMatch.getItemMeta().hasCustomModelData()) {
-						recipeMD.add(exactMatch.getItemMeta().getCustomModelData());
+					if (exactMatch.hasItemMeta() && exactMeta.hasCustomModelData()) {
+						recipeMD.add(exactMeta.getCustomModelData());
 					} else {
 						recipeMD.add(-1);
 					}
 				}
 				if (CompatibilityUtil.supportsItemModel()) {
-					if (exactMatch.hasItemMeta() && exactMatch.getItemMeta().hasItemModel()) {
-						recipeIM.add(exactMatch.getItemMeta().getItemModel().toString());
+					if (exactMatch.hasItemMeta() && exactMeta.hasItemModel()) {
+						recipeIM.add(exactMeta.getItemModel().toString());
 					} else {
 						recipeIM.add("null");
 					}
 				}
 
-				if (CompatibilityUtil.hasDisplayname(exactMatch.getItemMeta(), recipe.isLegacyNames())) {
-					recipeNames.add(CompatibilityUtil.getDisplayname(exactMatch.getItemMeta(), recipe.isLegacyNames()));
-				} else {
-					recipeNames.add("false");
-				}
+				recipeNames.add(getNameKey(exactMeta));
 				continue;
 			}
 
@@ -167,17 +159,12 @@ public class ShapelessChecks {
 
 			recipeIDs.add("null");
 			recipeMD.add(ingredient.getCustomModelData());
+			recipeNames.add(getNameKey(ingredient));
 
 			if (ingredient.hasItemModel()) {
 				recipeIM.add(ingredient.getItemModel());
 			} else {
 				recipeIM.add("null");
-			}
-			
-			if (ingredient.hasDisplayName()) {
-				recipeNames.add(ingredient.getDisplayName());
-			} else {
-				recipeNames.add("false");
 			}
 		}
 
@@ -292,6 +279,28 @@ public class ShapelessChecks {
 		}
 
 		return true;
+	}
+
+	String getNameKey(ItemMeta im) {
+		if (im == null)
+			return "null";
+		if (CompatibilityUtil.supportsItemName() && im.hasItemName()) {
+			return "itemName:" + im.getItemName();
+		} else if (im.hasDisplayName()) {
+			return "displayName:" + im.getDisplayName();
+		}
+		return "false";
+	}
+
+	String getNameKey(Ingredient ingredient) {
+		if (ingredient.isEmpty())
+			return "null";
+		if (ingredient.hasItemName()) {
+			return "itemName:" + ingredient.getDisplayName();
+		} else if (ingredient.hasDisplayName()) {
+			return "displayName:" + ingredient.getDisplayName();
+		}
+		return "false";
 	}
 
 	RecipeUtil getRecipeUtil() {

@@ -15,7 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.libs.ItemBuilder;
+import me.mehboss.utils.libs.ItemManager;
 
 public class TabCompletion implements TabCompleter {
 
@@ -168,7 +168,7 @@ public class TabCompletion implements TabCompleter {
 
 	private Collection<String> getAllKeys() {
 		Set<String> combined = new HashSet<>();
-		combined.addAll(ItemBuilder.getAllItems());
+		combined.addAll(ItemManager.getAllItems());
 		combined.addAll(Main.getInstance().recipeUtil.getAllKeys());
 		return combined;
 	}

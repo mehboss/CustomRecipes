@@ -156,14 +156,19 @@ public class CompatibilityUtil {
 	public static boolean supportsItemName() {
 		return Main.getInstance().serverVersionAtLeast(1, 20, 5);
 	}
-	
+
 	public static boolean supportsCustomModelData() {
 		return Main.getInstance().serverVersionAtLeast(1, 14);
 	}
-	
+
 	public static boolean supportsItemModel() {
 		return Main.getInstance().serverVersionAtLeast(1, 21, 4);
 	}
+
+	public static boolean supportsMaterialData() {
+		return Main.getInstance().serverVersionLessThan(1, 13);
+	}
+
 	/**
 	 * Checks if an item has a display name. Supports Bukkit name API changes
 	 * introduced in Minecraft 1.20.5.
@@ -171,8 +176,8 @@ public class CompatibilityUtil {
 	 * @param item ItemMeta to inspect.
 	 * @return True if the item has a custom name.
 	 */
-	public static boolean hasDisplayname(ItemMeta item, boolean isLegacyNames) {
-		if (!isLegacyNames && Main.getInstance().serverVersionAtLeast(1, 20, 5))
+	public static boolean hasDisplayname(ItemMeta item, boolean hasItemName) {
+		if (supportsItemName() && hasItemName)
 			return item.hasItemName();
 
 		return item.hasDisplayName();
@@ -184,8 +189,8 @@ public class CompatibilityUtil {
 	 * @param item ItemMeta from which to read the name.
 	 * @return The custom display name.
 	 */
-	public static String getDisplayname(ItemMeta item, boolean isLegacyNames) {
-		if (!isLegacyNames && Main.getInstance().serverVersionAtLeast(1, 20, 5))
+	public static String getDisplayname(ItemMeta item, boolean hasItemName) {
+		if (supportsItemName() && hasItemName)
 			return item.getItemName();
 
 		return item.getDisplayName();
@@ -203,7 +208,7 @@ public class CompatibilityUtil {
 	 * @param name The new display name (supports color codes).
 	 * @return The updated ItemMeta with the new name applied.
 	 */
-	public static ItemMeta setDisplayname(ItemStack item, String name, boolean isLegacyNames) {
+	public static ItemMeta setDisplaname(ItemStack item, String name, boolean isLegacyNames) {
 		XMaterial[] itemTypes = { XMaterial.POTION, XMaterial.LINGERING_POTION, XMaterial.SPLASH_POTION };
 		XMaterial itemMaterial = XMaterial.matchXMaterial(item.getType());
 		ItemMeta itemM = item.getItemMeta();

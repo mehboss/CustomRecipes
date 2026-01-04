@@ -18,7 +18,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
  * handlers to determine whether an input item matches a defined ingredient.
  */
 public class MetaChecks {
-	private static RecipeUtil getRecipeUtil() {
+	private RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
 

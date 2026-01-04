@@ -56,7 +56,7 @@ import me.mehboss.utils.Placeholders;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.UpdateChecker;
 import me.mehboss.utils.libs.CooldownManager;
-import me.mehboss.utils.libs.ItemBuilder;
+import me.mehboss.utils.libs.ItemManager;
 import me.mehboss.utils.libs.ItemFactory;
 import me.mehboss.utils.libs.MetaChecks;
 import me.mehboss.utils.libs.CooldownManager.Cooldown;
@@ -64,20 +64,20 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
-	
+
 	public RecipeUtil recipeUtil;
-	public RecipeBuilder recipeManager;
+	public RecipeBuilder recipeBuilder;
 	public ExactChoice exactChoice;
-	
+
 	public AmountManager amountManager;
 	public CraftManager craftManager;
-	
+
 	public ShapedChecks shapedChecks;
 	public ShapelessChecks shapelessChecks;
-	
+
 	public ItemFactory itemFactory;
 	public MetaChecks metaChecks;
-	
+
 	public BookGUI recipes;
 	public RecipeTypeGUI typeGUI;
 	public CooldownManager cooldownManager;
@@ -93,7 +93,7 @@ public class Main extends JavaPlugin implements Listener {
 
 	public FileConfiguration customConfig = null;
 	File customYml = new File(getDataFolder() + "/blacklisted.yml");
-	
+
 	FileConfiguration cooldownConfig = null;
 	File cooldownYml = new File(getDataFolder() + "/cooldowns.yml");
 
@@ -105,20 +105,22 @@ public class Main extends JavaPlugin implements Listener {
 
 	public Boolean debug = false;
 	public Boolean crafterdebug = false;
-	
+
 	public Boolean hasAE = false;
 	public Boolean hasEE = false;
 	public Boolean hasHavenBags = false;
 	public Boolean hasEEnchants = false;
-	
+
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
 	String newupdate = null;
 
 	private static Main instance;
+
 	public static Main getInstance() {
 		return instance;
 	}
+
 	public RecipeUtil getRecipeUtil() {
 		return recipeUtil;
 	}
@@ -158,7 +160,6 @@ public class Main extends JavaPlugin implements Listener {
 
 	void registerUpdateChecker() {
 		new UpdateChecker(this, 36925).getVersion(version -> {
-
 			newupdate = version;
 
 			if (getDescription().getVersion().compareTo(version) >= 0) {
@@ -198,22 +199,25 @@ public class Main extends JavaPlugin implements Listener {
 		if (!cooldownYml.exists()) {
 			saveResource("cooldowns.yml", false);
 		}
-		if (isFirstLoad && !cursedYml.exists()) {
-			saveResource("recipes/CursedPick.yml", false);
-		}
-		if (isFirstLoad && !swordYml.exists()) {
-			saveResource("recipes/CursedSword.yml", false);
-		}
-		if (isFirstLoad && !bagYml.exists()) {
-			saveResource("recipes/HavenBag.yml", false);
-		}
-		if (isFirstLoad && !sandYml.exists()) {
-			saveResource("recipes/WheatSand.yml", false);
-		}
-		if (isFirstLoad && !luckyYml.exists()) {
-			saveResource("items/LuckyPickaxe.yml", false);
-		}
 
+		if (isFirstLoad) {
+			if (!cursedYml.exists()) {
+				saveResource("recipes/CursedPick.yml", false);
+			}
+			if (!swordYml.exists()) {
+				saveResource("recipes/CursedSword.yml", false);
+			}
+			if (!bagYml.exists()) {
+				saveResource("recipes/HavenBag.yml", false);
+			}
+			if (!sandYml.exists()) {
+				saveResource("recipes/WheatSand.yml", false);
+			}
+			if (!luckyYml.exists()) {
+				saveResource("items/LuckyPickaxe.yml", false);
+			}
+		}
+		
 		if (ymlFile.exists() && ymlConfig != null) {
 			try {
 				ymlConfig.save(ymlFile);
@@ -225,30 +229,20 @@ public class Main extends JavaPlugin implements Listener {
 	}
 
 	public void saveAllCustomYml() {
-		// Get the directory for the "recipes" folder
 		File recipesFolder = new File(getDataFolder(), "recipes");
-
-		// Check if the folder exists
 		if (!recipesFolder.exists() || !recipesFolder.isDirectory()) {
 			return;
 		}
 
 		// Get all files in the "recipes" folder
 		File[] recipeFiles = recipesFolder.listFiles();
-
-		// Iterate over each file
 		for (File recipeFile : recipeFiles) {
-			// Check if it's a file (not a directory)
 			if (recipeFile.isFile()) {
-				// Get the file name and extension
 				String fileName = recipeFile.getName();
 				String fileExtension = fileName.substring(fileName.lastIndexOf(".") + 1);
 
 				if (fileExtension.equalsIgnoreCase("yml")) {
-					// Load the file configuration
 					FileConfiguration recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
-
-					// Save the file
 					saveCustomYml(recipeConfig, recipeFile);
 				}
 			}
@@ -262,7 +256,7 @@ public class Main extends JavaPlugin implements Listener {
 		itemFactory = new ItemFactory();
 		cooldownManager = new CooldownManager();
 		recipeUtil = new RecipeUtil();
-		recipeManager = new RecipeBuilder();
+		recipeBuilder = new RecipeBuilder();
 		metaChecks = new MetaChecks();
 		shapedChecks = new ShapedChecks();
 		shapelessChecks = new ShapelessChecks();
@@ -274,16 +268,12 @@ public class Main extends JavaPlugin implements Listener {
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
-
 		if (Bukkit.getPluginManager().getPlugin("AdvancedEnchantments") != null)
 			hasAE = true;
-
 		if (Bukkit.getPluginManager().getPlugin("EcoEnchants") != null)
 			hasEE = true;
-
 		if (Bukkit.getPluginManager().getPlugin("ExcellentEnchants") != null)
 			hasEEnchants = true;
-
 		if (Bukkit.getPluginManager().getPlugin("HavenBags") != null) {
 			hasHavenBags = true;
 		}
@@ -304,16 +294,6 @@ public class Main extends JavaPlugin implements Listener {
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 
-		if (!customConfig.isSet("override-recipes")) {
-			customConfig.set("override-recipes", new ArrayList<String>());
-			saveCustomYml(customConfig, customYml);
-		}
-
-		if (!customConfig.isSet("disable-all-vanilla")) {
-			customConfig.set("disable-all-vanilla", false);
-			saveCustomYml(customConfig, customYml);
-		}
-
 		if (isFirstLoad && getConfig().isSet("firstLoad"))
 			getConfig().set("firstLoad", false);
 
@@ -331,8 +311,8 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getScheduler().runTaskLater(this, new Runnable() {
 			@Override
 			public void run() {
-				ItemBuilder.loadAll();
-				recipeManager.addRecipes(null);
+				ItemManager.loadAll();
+				recipeBuilder.addRecipes(null);
 				registerCommands();
 				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 			}
@@ -385,7 +365,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Reset managers
 		recipeUtil = null;
-		recipeManager = null;
+		recipeBuilder = null;
 	}
 
 	public void reload() {
@@ -397,7 +377,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Reset managers
 		recipeUtil = new RecipeUtil();
-		recipeManager = new RecipeBuilder();
+		recipeBuilder = new RecipeBuilder();
 		editItem = new RecipeGUI();
 		recipes = new BookGUI(this);
 		typeGUI = new RecipeTypeGUI();
@@ -409,8 +389,8 @@ public class Main extends JavaPlugin implements Listener {
 		disableRecipes();
 
 		// Re-add recipes immediately
-		ItemBuilder.reload();
-		recipeManager.addRecipes(null);
+		ItemManager.reload();
+		recipeBuilder.addRecipes(null);
 		getLogger().log(Level.INFO, "Reloaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 
 		handleAutoDiscover();

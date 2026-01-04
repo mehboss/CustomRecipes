@@ -37,7 +37,9 @@ import org.bukkit.plugin.Plugin;
 import com.cryptomorin.xseries.XMaterial;
 
 import me.mehboss.gui.framework.RecipeGUI;
+import me.mehboss.gui.framework.GuiView;
 import me.mehboss.gui.framework.GuiView.GuiRegistry;
+import me.mehboss.gui.framework.GuiView.PagedGuiView;
 import me.mehboss.recipe.Main;
 
 public class BookGUI implements Listener {
@@ -227,9 +229,13 @@ public class BookGUI implements Listener {
 
 				if (e.getRawSlot() == 48 || e.getRawSlot() == 50) {
 
-					String original = title;
-					String[] cp = original.split("Page ");
-					int currentpage = Integer.parseInt(cp[1]);
+					GuiView base = GuiRegistry.get(p.getUniqueId());
+					if (!(base instanceof PagedGuiView))
+						return;
+
+					PagedGuiView view = (PagedGuiView) base;
+
+					int currentpage = view.getPage();
 					int newpage = currentpage;
 
 					List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
@@ -237,25 +243,30 @@ public class BookGUI implements Listener {
 					final int pageSize = 14;
 					int maxPage = Math.max(1, (int) Math.ceil(recipes.size() / (double) pageSize));
 
-					if (e.getRawSlot() == 48) { // prev
+					// determine new page
+					if (e.getRawSlot() == 48) {
 						if (currentpage <= 1)
 							return;
 						newpage--;
-					} else { // next
+					} else {
 						if (currentpage >= maxPage)
 							return;
 						newpage++;
 					}
 
-					String newname = ChatColor.translateAlternateColorCodes('&',
-							original.replace(String.valueOf(currentpage), String.valueOf(newpage)));
+					// build new title from config
+					String newTitle = ChatColor.translateAlternateColorCodes('&',
+							getConfig().getString("gui.Displayname").replace("%page%", String.valueOf(newpage)));
 
-					Inventory newp = Bukkit.getServer().createInventory(null, 54, newname);
+					// create NEW paged view
+					PagedGuiView newView = new PagedGuiView(54, newTitle, newpage, type);
 
-					ItemStack header = (type == null) ? createTypeHeader(null) : createTypeHeader(type);
+					Inventory inv = newView.getInventory();
+					ItemStack header = createTypeHeader(type);
+					items(p, inv, newpage - 1, recipes, header);
 
-					items(p, newp, newpage - 1, recipes, header);
-					p.openInventory(newp);
+					newView.open(p);
+					GuiRegistry.register(p.getUniqueId(), newView);
 					return;
 				}
 
@@ -274,7 +285,6 @@ public class BookGUI implements Listener {
 				if (recipeName != null) {
 					boolean viewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
 					Recipe recipe = Main.getInstance().recipeUtil.getRecipe(recipeName);
-
 					showCreationMenu(p, recipe, false, viewing);
 				}
 			}
@@ -403,12 +413,14 @@ public class BookGUI implements Listener {
 		String title = ChatColor.translateAlternateColorCodes('&',
 				Main.getInstance().getConfig().getString("gui.Displayname").replace("%page%", "1"));
 
-		Inventory newInv = Bukkit.getServer().createInventory(null, 54,
-				title.replace("%page%", "1").replace(" %page%", ""));
 		ItemStack header = createTypeHeader(type);
 
-		items(p, newInv, 0, recipes, header);
-		p.openInventory(newInv);
+		PagedGuiView view = new PagedGuiView(54, title, 1, type);
+		GuiRegistry.register(p.getUniqueId(), view);
+
+		Inventory inv = view.getInventory();
+		items(p, inv, 0, recipes, header);
+		view.open(p);
 	}
 
 	void logDebug(String st) {

@@ -189,34 +189,30 @@ public class ShapedChecks {
 
 			// NAME CHECKS
 			if (!recipe.getIgnoreNames()) {
-				if ((!CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames()) && ingredient.hasDisplayName())
-						|| (CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames())
-								&& !ingredient.hasDisplayName())) {
-					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
-					logDebug(
-							"[handleShaped] The recipe ingredient displayname and the inventory slot displayname do not match",
-							recipe.getName());
-					logDebug("[handleShaped] The inventory slot in question: " + i
-							+ ". The ingredient slot in question: " + ingredient.getSlot(), recipe.getName());
-					logDebug("[handleShaped] Does the ingredient have a displayname? " + ingredient.hasDisplayName(),
-							recipe.getName());
-					logDebug("[handleShaped] Does the inventory have a displayname? " + meta.hasDisplayName(),
-							recipe.getName());
-					return false;
-				}
+				String ingName = ingredient.getDisplayName();
+				boolean ingHasName = ingName != null && !"false".equals(ingName);
 
-				if (ingredient.hasDisplayName() && CompatibilityUtil.hasDisplayname(meta, recipe.isLegacyNames())
-						&& !(ingredient.getDisplayName()
-								.equals(CompatibilityUtil.getDisplayname(meta, recipe.isLegacyNames())))) {
-					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
-					logDebug("[handleShaped] The ingredient name for the recipe and inventory do not match",
-							recipe.getName());
-					logDebug("[handleShaped] The inventory slot in question: " + i
-							+ ". The ingredient slot in question: " + ingredient.getSlot(), recipe.getName());
-					logDebug("[handleShaped] The ingredient displayname: " + ingredient.getDisplayName(),
-							recipe.getName());
-					logDebug("[handleShaped] The inventory displayname: " + meta.getDisplayName(), recipe.getName());
-					return false;
+				if (ingHasName) {
+					if (!CompatibilityUtil.hasDisplayname(meta, ingredient.hasItemName())) {
+						logDebug("[handleShaped] Skipping recipe..", recipe.getName());
+						logDebug("[handleShaped] Ingredient has a name but inventory slot does not", recipe.getName());
+						logDebug("[handleShaped] InvSlot: " + i + " | IngSlot: " + ingredient.getSlot(),
+								recipe.getName());
+						return false;
+					}
+
+					// Check if names match
+					String metaName = CompatibilityUtil.getDisplayname(meta, ingredient.hasItemName());
+					if (!ingName.equals(metaName)) {
+						logDebug("[handleShaped] Skipping recipe..", recipe.getName());
+						logDebug("[handleShaped] Ingredient name and inventory slot name do not match",
+								recipe.getName());
+						logDebug("[handleShaped] InvSlot: " + i + " | IngSlot: " + ingredient.getSlot(),
+								recipe.getName());
+						logDebug("[handleShaped] hasItemName? " + ingredient.hasItemName(), recipe.getName());
+						logDebug("[handleShaped] InvName: " + metaName, recipe.getName());
+						return false;
+					}
 				}
 
 				logDebug("[handleShaped] Inventory and recipe ingredient displayname matched for slot " + i,

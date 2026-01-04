@@ -56,14 +56,15 @@ import valorless.havenbags.datamodels.Data;
 public class ItemFactory {
 
 	FileConfiguration file;
+
 	FileConfiguration getConfig() {
 		return file;
 	}
-	
+
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
-	
+
 	private void logError(String st, String recipe) {
 		Logger.getLogger("Minecraft").log(Level.WARNING,
 				"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "] " + st);
@@ -74,7 +75,7 @@ public class ItemFactory {
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe.replaceAll(".Result", "") + "] " + st);
 	}
-	
+
 	public boolean isHavenBag(String item) {
 		if (getConfig().isSet(item + ".Identifier")
 				&& getConfig().getString(item + ".Identifier").split("-")[0].contains("havenbags"))
@@ -82,13 +83,13 @@ public class ItemFactory {
 
 		return false;
 	}
-	
+
 	boolean hasHavenBag() {
 		if (Main.getInstance().hasHavenBags)
 			return true;
 		return false;
 	}
-	
+
 	boolean isCustomItem(String id) {
 		String[] key = id.split(":");
 		if (key.length < 2)
@@ -101,7 +102,7 @@ public class ItemFactory {
 		}
 		return false;
 	}
-	
+
 	boolean isInt(String s) {
 		try {
 			Integer.parseInt(s);
@@ -110,7 +111,7 @@ public class ItemFactory {
 		}
 		return true;
 	}
-	
+
 	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
 		if (type == null || !type.isPresent() || type.get().get() == null) {
 			if (isCustomItem(materialInput))
@@ -124,11 +125,11 @@ public class ItemFactory {
 		}
 		return true;
 	}
-	
+
 	public Optional<ItemStack> buildItem(String item, FileConfiguration path, boolean useLegacyNames) {
 		Optional<ItemStack> result = deserializeItemFromPath(path, item);
 		file = path;
-		
+
 		if (result.isPresent()) {
 			logDebug("Loading result from ItemStack..", item);
 			return Optional.of(result.get());
@@ -210,7 +211,8 @@ public class ItemFactory {
 	}
 
 	// Method for deserializing from config
-	public RecipeUtil.Ingredient deserializeItemFromConfig(FileConfiguration file, Recipe recipe, String item, String abbreviation) {
+	public RecipeUtil.Ingredient deserializeItemFromConfig(FileConfiguration file, Recipe recipe, String item,
+			String abbreviation) {
 		String configPath = item + ".Ingredients." + abbreviation;
 		List<String> list = file.getStringList(configPath + ".Materials");
 		String material = !list.isEmpty() ? list.get(0) : file.getString(configPath + ".Material");
@@ -235,14 +237,17 @@ public class ItemFactory {
 			lore.add(ChatColor.translateAlternateColorCodes('&', line));
 		}
 
-		String ingredientName = file.getString(configPath + ".Name");
+		String displayName = Optional.ofNullable(file.getString(configPath + ".Name"))
+				.filter(s -> !s.isEmpty() && !s.equals("none")).orElse("false");
+		String itemName = file.getString(configPath + ".Item-Name", "false");
 		String ingredientIdentifier = file.getString(configPath + ".Identifier");
 		int ingredientAmount = file.getInt(configPath + ".Amount", 1);
 		int ingredientCMD = file.getInt(configPath + ".Custom-Model-Data", -1);
 		String ingredientIM = file.getString(configPath + ".Item-Model");
 
 		RecipeUtil.Ingredient ingredient = new RecipeUtil.Ingredient(abbreviation, ingredientMaterial);
-		ingredient.setDisplayName(ingredientName);
+		ingredient.setDisplayName(ChatColor.translateAlternateColorCodes('&', displayName));
+		ingredient.setItemName(ChatColor.translateAlternateColorCodes('&', itemName));
 		ingredient.setCustomModelData(ingredientCMD);
 		ingredient.setItemModel(ingredientIM);
 		ingredient.setIdentifier(ingredientIdentifier);
@@ -261,7 +266,7 @@ public class ItemFactory {
 
 		return ingredient;
 	}
-	
+
 	void handleMaterialChoice(Recipe recipe, Ingredient ingredient, String path) {
 		List<String> list = getConfig().getStringList(path + ".Materials");
 		if (list == null || list.isEmpty())
@@ -273,7 +278,7 @@ public class ItemFactory {
 			ingredient.addMaterialChoice(rawMaterial.get().get());
 		}
 	}
-	
+
 	boolean hasItemDamage(String item, Optional<XMaterial> type) {
 		if (Main.getInstance().serverVersionAtLeast(1, 13))
 			return false;
@@ -295,7 +300,7 @@ public class ItemFactory {
 		}
 		return i;
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	ItemStack handleItemDamage(String item, Optional<XMaterial> type) {
 		try {
@@ -402,16 +407,21 @@ public class ItemFactory {
 	ItemMeta handleDisplayname(String item, ItemStack recipe, boolean useLegacyNames) {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
-		if (getConfig().isSet(item + ".Name")) {
-			String name = getConfig().getString(item + ".Name");
+		String name = getConfig().getString(item + ".Name", "none");
+		if (!name.equalsIgnoreCase("none")) {
+			logDebug("Applying display-name..", item);
+			logDebug("Name: " + name, item);
+			itemMeta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+		}
 
-			if (name.equalsIgnoreCase("none"))
-				return itemMeta;
+		if (!CompatibilityUtil.supportsItemName())
+			return itemMeta;
 
-			logDebug("Applying displayname..", item);
-			logDebug("Displayname: " + name, item);
-
-			itemMeta = CompatibilityUtil.setDisplayname(recipe, name, useLegacyNames);
+		String itemName = getConfig().getString(item + ".Item-Name", "none");
+		if (!itemName.equalsIgnoreCase("none")) {
+			logDebug("Applying item-name..", item);
+			logDebug("Name: " + name, item);
+			itemMeta.setItemName(ChatColor.translateAlternateColorCodes('&', itemName));
 		}
 		return itemMeta;
 	}
@@ -483,15 +493,15 @@ public class ItemFactory {
 
 	ItemMeta handleAttributes(String item, ItemMeta m) {
 		String logName = item.replaceAll(".Result", "");
-		if (!(Main.getInstance().serverVersionAtLeast(1, 14))) {
-			logError(
-					"Failed to apply attributes due to unsupported version. You must use NBT to apply the attributes. Skipping for now..",
-					logName);
-			return m;
-		}
-
 		if (getConfig().isSet(item + ".Attribute")) {
 			for (String split : getConfig().getStringList(item + ".Attribute")) {
+				if (!(Main.getInstance().serverVersionAtLeast(1, 14))) {
+					logError(
+							"Failed to apply attributes due to unsupported version. You must use NBT to apply the attributes. Skipping for now..",
+							logName);
+					return m;
+				}
+
 				String[] st = split.split(":");
 				String attribute = st[0];
 				double attributeAmount = Double.valueOf(st[1]);
@@ -519,7 +529,7 @@ public class ItemFactory {
 		}
 		return m;
 	}
-	
+
 	ItemStack handleHeadTexture(String material) {
 		if (material == null || material.isEmpty() || !XMaterial.matchXMaterial(material.split(":")[0]).isPresent())
 			return null;
@@ -576,7 +586,7 @@ public class ItemFactory {
 		head.setItemMeta(skullMeta);
 		return head;
 	}
-	
+
 	ItemStack applyNBT(ItemStack item, Object value, String... path) {
 		if (path == null || path.length == 0)
 			throw new IllegalArgumentException("NBT path cannot be null or empty");
@@ -594,7 +604,7 @@ public class ItemFactory {
 					"Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
 		}
 	}
-	
+
 	ItemStack applyAttributeModifier(ItemStack item, Map<String, Object> modifier) {
 		// Retrieve necessary fields
 		String name = (String) modifier.get("Name");
@@ -629,7 +639,7 @@ public class ItemFactory {
 		item = NBTEditor.getItemFromTag(compound);
 		return item;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	List<Map<String, Object>> getCustomTags(String recipe) {
 		List<Map<?, ?>> rawList = getConfig().getMapList(recipe + ".Custom-Tags");
@@ -641,7 +651,7 @@ public class ItemFactory {
 
 		return castedList;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	ItemStack applyCustomTags(ItemStack item, String recipe) {
 		try {
@@ -774,7 +784,7 @@ public class ItemFactory {
 			return item;
 		}
 	}
-	
+
 	@SuppressWarnings("deprecation")
 	public ItemStack handlePotions(String configPath) {
 		// Material
@@ -912,7 +922,7 @@ public class ItemFactory {
 
 		return null;
 	}
-	
+
 	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind, String bagTexture,
 			String item) {
 
@@ -936,18 +946,12 @@ public class ItemFactory {
 		bagData.setModeldata(bagCMD);
 
 		ItemStack bagItem = HavenBagsAPI.generateBagItem(bagData);
-		bagItem = handleIdentifier(bagItem, item);
 		return bagItem;
 	}
-	
-	public ItemStack handleIdentifier(ItemStack i, String item) {
-		if (!getConfig().isSet(item + ".Identifier"))
-			return i;
 
-		String identifier = getConfig().getString(item.replaceAll(".Result", "") + ".Identifier");
-
-		if (getConfig().getBoolean(item + ".Custom-Tagged"))
-			i = NBTEditor.set(i, identifier, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+	public ItemStack handleIdentifier(Recipe recipe, ItemStack i, String item) {
+		if (getConfig().getBoolean(item + ".Custom-Tagged") || getConfig().getBoolean(item + ".custom-tagged"))
+			recipe.setTagged(true);
 
 		return i;
 	}

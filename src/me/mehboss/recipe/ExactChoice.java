@@ -25,11 +25,12 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
-import me.mehboss.utils.libs.CompatibilityUtil;
 
 public class ExactChoice {
-	RecipeBuilder recipeManager = Main.getInstance().recipeManager;
 
+	RecipeBuilder getRecipeBuilder() {
+		return Main.getInstance().recipeBuilder;
+	}
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
@@ -65,7 +66,10 @@ public class ExactChoice {
 			ItemMeta exactMeta = exactItem.getItemMeta();
 
 			if (item.hasDisplayName())
-				exactMeta = CompatibilityUtil.setDisplayname(exactItem, item.getDisplayName(), recipe.isLegacyNames());
+				exactMeta.setDisplayName(item.getDisplayName());
+			
+			if (item.hasItemName())
+				exactMeta.setItemName(item.getDisplayName());
 
 			if (item.hasCustomModelData())
 				exactMeta.setCustomModelData(item.getCustomModelData());
@@ -79,7 +83,7 @@ public class ExactChoice {
 	}
 
 	ShapelessRecipe createShapelessRecipe(CraftingRecipeData recipe) {
-		ShapelessRecipe shapelessRecipe = new ShapelessRecipe(recipeManager.createNamespacedKey(recipe),
+		ShapelessRecipe shapelessRecipe = new ShapelessRecipe(getRecipeBuilder().createNamespacedKey(recipe),
 				recipe.getResult());
 
 		for (RecipeUtil.Ingredient ingredient : recipe.getIngredients()) {
@@ -110,7 +114,7 @@ public class ExactChoice {
 	}
 
 	ShapedRecipe createShapedRecipe(CraftingRecipeData recipe) {
-		ShapedRecipe shapedRecipe = new ShapedRecipe(recipeManager.createNamespacedKey(recipe), recipe.getResult());
+		ShapedRecipe shapedRecipe = new ShapedRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult());
 		ArrayList<String> ingredients = new ArrayList<String>();
 
 		shapedRecipe.shape(recipe.getRow(1), recipe.getRow(2), recipe.getRow(3));
@@ -150,18 +154,18 @@ public class ExactChoice {
 
 		if (Main.getInstance().serverVersionAtLeast(1, 14)) {
 			try {
-				furnaceRecipe = new FurnaceRecipe(recipeManager.createNamespacedKey(recipe), recipe.getResult(),
+				furnaceRecipe = new FurnaceRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult(),
 						findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 				furnaceRecipe.setCategory(CookingBookCategory.valueOf(recipe.getBookCategory()));
 			} catch (NoClassDefFoundError e) {
 				furnaceRecipe = null;
 			}
 		} else {
-			furnaceRecipe = new FurnaceRecipe(recipeManager.createNamespacedKey(recipe), recipe.getResult(),
+			furnaceRecipe = new FurnaceRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult(),
 					recipe.getSlot(1).getMaterial(), recipe.getExperience(), recipe.getCookTime());
 		}
 
-		recipeManager.setFurnaceSource(recipe);
+		getRecipeBuilder().setFurnaceSource(recipe);
 		return furnaceRecipe;
 	}
 
@@ -173,7 +177,7 @@ public class ExactChoice {
 			return null;
 		}
 
-		BlastingRecipe blastRecipe = new BlastingRecipe(recipeManager.createNamespacedKey(recipe), recipe.getResult(),
+		BlastingRecipe blastRecipe = new BlastingRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult(),
 				findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 
 		try {
@@ -190,7 +194,7 @@ public class ExactChoice {
 			return null;
 		}
 
-		SmokingRecipe smokingRecipe = new SmokingRecipe(recipeManager.createNamespacedKey(recipe), recipe.getResult(),
+		SmokingRecipe smokingRecipe = new SmokingRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult(),
 				findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 		try {
 			smokingRecipe.setCategory(CookingBookCategory.valueOf(recipe.getBookCategory()));

@@ -55,11 +55,11 @@ public class RecipeBuilder {
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
-	
+
 	ItemFactory getItemFactory() {
 		return Main.getInstance().itemFactory;
 	}
-	
+
 	FileConfiguration getConfig() {
 		return recipeConfig;
 	}
@@ -81,7 +81,7 @@ public class RecipeBuilder {
 	}
 
 	void handleRecipeFlags(String item, Recipe recipe) {
-		if (getConfig().getBoolean(item + ".Custom-Tagged"))
+		if (getConfig().getBoolean(item + ".Custom-Tagged") || getConfig().getBoolean(item + ".custom-tagged"))
 			recipe.setTagged(true);
 
 		if (getConfig().isBoolean(item + ".Enabled"))
@@ -145,8 +145,10 @@ public class RecipeBuilder {
 		CookingRecipeData furnace = (CookingRecipeData) recipe;
 		if (getConfig().isInt(configPath + ".Cook-Time"))
 			furnace.setCookTime(getConfig().getInt(configPath + ".Cook-Time"));
-		if (getConfig().isInt(configPath + ".Experience"))
-			furnace.setExperience(getConfig().getInt(configPath + ".Experience"));
+		if (getConfig().isDouble(configPath + ".Experience")) {
+			double experience = getConfig().getDouble(configPath + ".Experience");
+			furnace.setExperience((float) experience);
+		}
 	}
 
 	void handleAnvilData(Recipe recipe, String configPath) {
@@ -157,8 +159,10 @@ public class RecipeBuilder {
 
 	void handleGrindstoneData(Recipe recipe, String configPath) {
 		WorkstationRecipeData grindstone = (WorkstationRecipeData) recipe;
-		if (getConfig().isInt(configPath + ".Experience"))
-			grindstone.setExperience(getConfig().getInt(configPath + ".Experience"));
+		if (getConfig().isDouble(configPath + ".Experience")) {
+			double experience = getConfig().getDouble(configPath + ".Experience");
+			grindstone.setExperience((float) experience);
+		}
 	}
 
 	void handleStonecutterData(Recipe recipe, String configPath) {
@@ -239,7 +243,7 @@ public class RecipeBuilder {
 
 		recipe.setSource(source);
 	}
-	
+
 	public void addRecipes(String name) {
 		File recipeFolder = new File(Main.getInstance().getDataFolder(), "recipes");
 		if (!recipeFolder.exists()) {
@@ -372,7 +376,7 @@ public class RecipeBuilder {
 			boolean useLegacyNames = getConfig().getBoolean(item + ".Use-Display-Name", true);
 			String resultPath = getConfig().isConfigurationSection(item + ".Result") ? item + ".Result" : item;
 			String identifier = getConfig().getString(item + ".Identifier");
-			
+
 			recipe.setKey(identifier);
 
 			// Checks for a custom item and attempts to set it
@@ -408,12 +412,12 @@ public class RecipeBuilder {
 			}
 
 			i = getItemFactory().handleDurability(i, resultPath);
-			i = getItemFactory().handleIdentifier(i, item);
 
 			int amount = getConfig().getInt(resultPath + ".Amount", i.getAmount());
 			i.setAmount(amount);
 
 			recipe.setResult(i);
+			getItemFactory().handleIdentifier(recipe, i, resultPath);
 			handleRecipeFlags(item, recipe);
 			handleCommand(item, recipe);
 
@@ -467,14 +471,16 @@ public class RecipeBuilder {
 				}
 
 				// Try to deserialize using XItemstack (Deserializer)
-				Optional<ItemStack> deserializedItem = getItemFactory().deserializeItemFromPath(recipeConfig, item + ".Ingredients." + abbreviation);
+				Optional<ItemStack> deserializedItem = getItemFactory().deserializeItemFromPath(recipeConfig,
+						item + ".Ingredients." + abbreviation);
 				if (deserializedItem.isPresent()) {
 					ItemStack stack = deserializedItem.get();
 					recipeIngredient = new RecipeUtil.Ingredient(abbreviation, stack.getType());
 					recipeIngredient.setItem(stack);
 					logDebug("Loading ingredient '" + abbreviation + "' from ItemStack..", recipe.getName());
 				} else {
-					recipeIngredient = getItemFactory().deserializeItemFromConfig(recipeConfig, recipe, item, abbreviation);
+					recipeIngredient = getItemFactory().deserializeItemFromConfig(recipeConfig, recipe, item,
+							abbreviation);
 					if (recipeIngredient == null) {
 						continue recipeLoop;
 					}

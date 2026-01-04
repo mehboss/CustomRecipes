@@ -9,7 +9,7 @@ import org.bukkit.inventory.ItemStack;
 
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Recipe;
-import me.mehboss.utils.libs.ItemBuilder;
+import me.mehboss.utils.libs.ItemManager;
 
 public class CommandGive {
 
@@ -36,7 +36,7 @@ public class CommandGive {
 			return true;
 		}
 
-		if (recipe == null && ItemBuilder.get(command.args[2]) == null) {
+		if (recipe == null && ItemManager.get(command.args[2]) == null) {
 			p.sendMessage(
 					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Recipe-Not-Found")));
 			return true;
@@ -59,7 +59,7 @@ public class CommandGive {
 			item = new ItemStack(recipe.getResult());
 		// custom item id
 		else
-			item = new ItemStack(ItemBuilder.get(command.args[2]));
+			item = new ItemStack(ItemManager.get(command.args[2]));
 
 		item.setAmount(amount);
 

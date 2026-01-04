@@ -65,7 +65,7 @@ public class GuiListener implements Listener {
 		GuiView view = GuiRegistry.get(player.getUniqueId());
 		boolean viewMatches = view != null && e.getInventory().equals(view.getInventory());
 		boolean hasChatSession = ChatEditManager.get().hasSession(player.getUniqueId());
-		
+
 		// Only unregister if the *closed* top inventory is the one our view is using
 		if (viewMatches && !hasChatSession)
 			GuiRegistry.unregister(player.getUniqueId());

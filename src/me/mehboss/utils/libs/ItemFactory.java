@@ -949,11 +949,4 @@ public class ItemFactory {
 		ItemStack bagItem = HavenBagsAPI.generateBagItem(bagData);
 		return bagItem;
 	}
-
-	public ItemStack handleIdentifier(Recipe recipe, ItemStack i, String item) {
-		if (getConfig().getBoolean(item + ".Custom-Tagged") || getConfig().getBoolean(item + ".custom-tagged"))
-			recipe.setTagged(true);
-
-		return i;
-	}
 }

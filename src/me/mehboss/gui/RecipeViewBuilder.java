@@ -397,7 +397,7 @@ public class RecipeViewBuilder {
 		});
 
 		/*
-		 * Custom Tagged toggle (slot 7)
+		 * Legacy Names toggle (slot 7)
 		 */
 		view.addButton(new GuiToggleButton(7, recipe.isLegacyNames(), "Legacy-Names",
 				RecipeItemFactory.button(XMaterial.WHEAT, getValue("Recipe.Legacy-Names", "&fLegacy-Names"))) {

@@ -1076,10 +1076,11 @@ public class RecipeUtil {
 			if (key == null) {
 				throw new InvalidRecipeException(
 						"You must set a NameSpacedKey (setKey()) prior to calling setTagged()");
-			} else {
-				this.isTagged = tagged;
+			}
+			if (tagged) {
 				result = NBTEditor.set(result, key, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 			}
+			this.isTagged = tagged;
 		}
 
 		/**
@@ -1304,7 +1305,8 @@ public class RecipeUtil {
 		 * @param permission the permission required
 		 */
 		public void setPerm(String permission) {
-			if (permission == null) return;
+			if (permission == null)
+				return;
 			if (permission.equalsIgnoreCase("none"))
 				permission = null;
 

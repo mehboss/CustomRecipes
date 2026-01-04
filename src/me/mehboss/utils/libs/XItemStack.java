@@ -16,6 +16,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
+import me.mehboss.recipe.Main;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -49,6 +50,7 @@ import org.jetbrains.annotations.*;
 
 import java.util.*;
 import java.util.function.*;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -601,11 +603,8 @@ public final class XItemStack {
 			try {
 
 				if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
+					Main.getInstance().getLogger().log(Level.INFO, "Removing tags!");
 					item = NBTEditor.set(item, NBTEditor.DELETE, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
-				}
-
-				if (!NBTEditor.contains(item, NBTEditor.ITEMSTACK_COMPONENTS, NBTEditor.CUSTOM_DATA)) {
-					return;
 				}
 
 				NBTEditor.NBTCompound compound = NBTEditor.getNBTCompound(item, NBTEditor.ITEMSTACK_COMPONENTS,

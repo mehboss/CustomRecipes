@@ -80,8 +80,14 @@ public class RecipeBuilder {
 		logDebug("Successfully set commands: " + commands, item);
 	}
 
+	void handleIdentifier(String item, Recipe recipe) {
+		boolean isTagged = getConfig().getBoolean(item + ".Custom-Tagged")
+				|| getConfig().getBoolean(item + ".custom-tagged");
+		recipe.setTagged(isTagged);
+	}
+
 	void handleRecipeFlags(String item, Recipe recipe) {
-		if (getConfig().getBoolean(item + ".Custom-Tagged") || getConfig().getBoolean(item + ".custom-tagged"))
+		if (getConfig().getBoolean(item + ".Custom-Tagged"))
 			recipe.setTagged(true);
 
 		if (getConfig().isBoolean(item + ".Enabled"))
@@ -417,7 +423,7 @@ public class RecipeBuilder {
 			i.setAmount(amount);
 
 			recipe.setResult(i);
-			getItemFactory().handleIdentifier(recipe, i, resultPath);
+			handleIdentifier(resultPath, recipe);
 			handleRecipeFlags(item, recipe);
 			handleCommand(item, recipe);
 

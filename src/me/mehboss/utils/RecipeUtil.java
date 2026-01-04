@@ -1304,6 +1304,7 @@ public class RecipeUtil {
 		 * @param permission the permission required
 		 */
 		public void setPerm(String permission) {
+			if (permission == null) return;
 			if (permission.equalsIgnoreCase("none"))
 				permission = null;
 

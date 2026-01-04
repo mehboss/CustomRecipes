@@ -106,7 +106,6 @@ public class RecipeGUI {
 		/* -------- Update / Save Recipe (slot 50) -------- */
 		overrideOn(view, 50, (player, v, e) -> {
 			saver.saveRecipe(v, player, recipe);
-			player.sendMessage(ChatColor.GREEN + "Recipe updated.");
 		});
 
 		/* -------- Delete Recipe (slot 45) -------- */

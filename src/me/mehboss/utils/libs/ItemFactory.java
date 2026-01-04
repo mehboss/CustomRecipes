@@ -118,9 +118,10 @@ public class ItemFactory {
 				return false;
 
 			logError("Error loading recipe..", recipe);
-			logError("We are having trouble matching the material " + materialInput.toUpperCase()
-					+ " to a minecraft item or custom item. Please double check you have inputted the correct material enum into the 'Item'"
-					+ " section and try again. If this problem persists please contact Mehboss on Spigot!", recipe);
+			logError(
+					"Invalid material '" + materialInput.toUpperCase()
+							+ "'. Please double check that the material is valid before reaching out for support.",
+					recipe);
 			return false;
 		}
 		return true;

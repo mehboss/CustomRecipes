@@ -13,7 +13,7 @@ import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
 
-public class CommandRecipe {
+public class CommandCreate {
 
 	static RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
@@ -65,37 +65,10 @@ public class CommandRecipe {
 		// Optional permission
 		String permission = (args.length >= 4) ? args[3] : "none";
 
-		Recipe recipe;
-		switch (type) {
-
-		case SHAPED:
-		case SHAPELESS:
-			recipe = new CraftingRecipeData(id);
-			break;
-
-		case FURNACE:
-		case BLASTFURNACE:
-		case SMOKER:
-		case CAMPFIRE:
-			recipe = new CookingRecipeData(id);
-			break;
-
-		case STONECUTTER:
-		case GRINDSTONE:
-		case ANVIL:
-			recipe = new WorkstationRecipeData(id);
-			break;
-
-		case BREWING_STAND:
-			recipe = new BrewingRecipeData(id);
-			break;
-
-		default:
-			throw new IllegalArgumentException("Unsupported recipe type: " + type);
-		}
-
+		Recipe recipe = new Recipe(id);
 		recipe.setType(type);
 		recipe.setPerm(permission);
+		recipe.setKey(id);
 		
 		sender.sendMessage(
 				ChatColor.translateAlternateColorCodes('&', "&c[CustomRecipes] &fPreparing to create recipe:&r "));

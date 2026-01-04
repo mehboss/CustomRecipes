@@ -19,7 +19,6 @@ public class CommandGive {
 
 	public static boolean Run(CRCommand command) {
 
-		Recipe recipe = Main.getInstance().getRecipeUtil().getRecipeFromKey(command.args[2]);
 		CommandSender p = command.sender;
 		int amount = 1;
 
@@ -36,6 +35,7 @@ public class CommandGive {
 			return true;
 		}
 
+		Recipe recipe = Main.getInstance().getRecipeUtil().getRecipeFromKey(command.args[2]);
 		if (recipe == null && ItemManager.get(command.args[2]) == null) {
 			p.sendMessage(
 					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Recipe-Not-Found")));

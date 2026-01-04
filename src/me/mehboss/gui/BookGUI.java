@@ -178,9 +178,12 @@ public class BookGUI implements Listener {
 			default:
 				throw new IllegalArgumentException("Unsupported recipe type: " + type);
 			}
+			
 		}
 
 		recipe.setType(rawRecipe.getType());
+		recipe.setPerm(rawRecipe.getPerm());
+		recipe.setKey(rawRecipe.getKey());
 
 		if (viewing) {
 			gui.openViewing(player, recipe);

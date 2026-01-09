@@ -9,6 +9,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import com.cryptomorin.xseries.XMaterial;
+
 import me.mehboss.gui.framework.chat.ChatEditManager;
 import me.mehboss.recipe.Main;
 
@@ -126,6 +128,9 @@ public abstract class GuiButton {
 		public void updateIcon() {
 			if (icon == null)
 				return;
+
+			if (label.equalsIgnoreCase("Enabled"))
+				icon.setType(value ? XMaterial.SLIME_BALL.get() : XMaterial.SNOWBALL.get());
 
 			ItemMeta meta = icon.getItemMeta();
 			meta.setDisplayName(getParsedValue("Recipe." + label, label) + ": "

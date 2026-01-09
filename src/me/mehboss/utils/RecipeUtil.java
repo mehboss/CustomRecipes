@@ -1487,6 +1487,9 @@ public class RecipeUtil {
 				this.itemModel = CompatibilityUtil.supportsItemModel() && meta.hasItemModel()
 						? meta.getItemModel().toString()
 						: null;
+				
+				if (meta.hasLore())
+					this.lore = meta.getLore();
 			}
 			this.material = item.getType();
 			this.amount = item.getAmount();

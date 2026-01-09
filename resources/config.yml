@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v2.0.6.2                                                                                  #
+# Version v2.0.6.2.4                                                                                #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
@@ -64,8 +64,6 @@ gui:
     Cancel: '&cCancel'
     Delete: '&cDelete Recipe'
     Confirm-Delete: '&cConfirm Recipe Deletion'
-    Enabled: '&aEnabled'
-    Disabled: '&cDisabled'
     Toggle-True: '&atrue'
     Toggle-False: '&cfalse'
   Recipe:

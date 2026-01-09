@@ -17,6 +17,7 @@ import com.google.common.collect.Multimap;
 
 import io.github.bananapuncher714.nbteditor.NBTEditor;
 import me.mehboss.recipe.Main;
+import net.advancedplugins.ae.api.AEAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -597,22 +598,25 @@ public final class XItemStack {
 			recursiveMetaHandle(this, meta.getClass(), meta, SERIALIZE_META_HANDLERS, null);
 		}
 
+		Set<String> VANILLA_KEYS = Set.of("display", "Enchantments", "RepairCost", "AttributeModifiers", "HideFlags",
+				"Unbreakable", "Damage", "CustomModelData");
+
 		private void serializeCustomDataKeys() {
 			if (!SUPPORTS_NBTEDITOR)
 				return;
 			try {
-
 				if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-					Main.getInstance().getLogger().log(Level.INFO, "Removing tags!");
 					item = NBTEditor.set(item, NBTEditor.DELETE, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
 				}
-
 				NBTEditor.NBTCompound compound = NBTEditor.getNBTCompound(item, NBTEditor.ITEMSTACK_COMPONENTS,
 						NBTEditor.CUSTOM_DATA);
-
-				if (compound != null) {
-					String encoded = compound.toString();
-					config.set("custom-data", encoded);
+				try {
+					if (compound != null) {
+						String encoded = compound.toString();
+						config.set("custom-data", encoded);
+					}
+				} catch (NullPointerException e) {
+					config.set("custom-data", null);
 				}
 			} catch (Throwable t) {
 				t.printStackTrace();
@@ -841,7 +845,7 @@ public final class XItemStack {
 					@SuppressWarnings("removal")
 					PotionData potionData = meta.getBasePotionData();
 					// noinspection removal
-					config.set("base-effect", potionData.getType().name() + ", " + potionData.isExtended() + ", "
+					config.set("base-type", potionData.getType().name() + ", " + potionData.isExtended() + ", "
 							+ potionData.isUpgraded());
 				}
 
@@ -897,8 +901,24 @@ public final class XItemStack {
 
 		private void handleEnchantmentStorageMeta(EnchantmentStorageMeta meta) {
 			for (Map.Entry<Enchantment, Integer> enchant : meta.getStoredEnchants().entrySet()) {
-				String entry = "stored-enchants." + XEnchantment.of(enchant.getKey()).name();
-				config.set(entry, enchant.getValue());
+
+				String name;
+				XEnchantment x = XEnchantment.of(enchant.getKey());
+				if (x != null) {
+					name = x.name();
+				} else {
+					name = enchant.getKey().getName();
+				}
+				config.set("stored-enchants." + name, enchant.getValue());
+			}
+
+			if (Main.getInstance().hasAE) {
+				String book = AEAPI.getBookEnchantment(item);
+				int level = AEAPI.getBookEnchantmentLevel(item);
+
+				if (book != null) {
+					config.set("stored-enchants." + book, level);
+				}
 			}
 		}
 
@@ -955,8 +975,24 @@ public final class XItemStack {
 
 		private void handleEnchants() {
 			for (Map.Entry<Enchantment, Integer> enchant : meta.getEnchants().entrySet()) {
-				String entry = "enchants." + XEnchantment.of(enchant.getKey()).name();
+				XEnchantment x = XEnchantment.of(enchant.getKey());
+				String entry;
+
+				if (x != null) {
+					entry = "enchants." + x.name();
+				} else {
+					entry = "enchants." + enchant.getKey().getName();
+				}
+
 				config.set(entry, enchant.getValue());
+			}
+			if (Main.getInstance().hasAE) {
+				Map<String, Integer> ae = AEAPI.getEnchantmentsOnItem(item);
+				if (ae != null) {
+					for (Map.Entry<String, Integer> e : ae.entrySet()) {
+						config.set("enchants." + e.getKey().toLowerCase(), e.getValue());
+					}
+				}
 			}
 		}
 
@@ -1096,7 +1132,7 @@ public final class XItemStack {
 			recursiveMetaHandle(this, meta.getClass(), meta, DESERIALIZE_META_HANDLERS, null);
 
 			item.setItemMeta(meta);
-			applyCustomDataKeys();
+			deserializeCustomDataKeys();
 
 			return item;
 		}
@@ -1267,19 +1303,18 @@ public final class XItemStack {
 			}
 		}
 
-		private void applyCustomDataKeys() {
+		private void deserializeCustomDataKeys() {
 			if (!SUPPORTS_NBTEDITOR)
 				return;
 
 			String encoded = config.getString("custom-data");
-			if (encoded == null || encoded.isEmpty())
+			if (encoded == null)
 				return;
-			try {
-				NBTEditor.NBTCompound custom = NBTEditor.getNBTCompound(encoded);
-				item = NBTEditor.set(item, custom, NBTEditor.ITEMSTACK_COMPONENTS, "minecraft:custom_data");
-			} catch (Throwable t) {
-				t.printStackTrace();
-			}
+			NBTEditor.NBTCompound compound = NBTEditor.getNBTCompound(encoded);
+			if (compound == null)
+				return;
+
+			item = NBTEditor.set(item, compound, NBTEditor.ITEMSTACK_COMPONENTS, NBTEditor.CUSTOM_DATA);
 		}
 
 		private void itemFlags() {
@@ -1302,12 +1337,23 @@ public final class XItemStack {
 		}
 
 		private void handleEnchantmentStorageMeta(EnchantmentStorageMeta meta) {
+
 			ConfigurationSection enchantment = config.getConfigurationSection("stored-enchants");
 			if (enchantment != null) {
 				for (String ench : enchantment.getKeys(false)) {
-					Optional<XEnchantment> enchant = XEnchantment.of(ench);
-					enchant.ifPresent(
-							xEnchantment -> meta.addStoredEnchant(xEnchantment.get(), enchantment.getInt(ench), true));
+					int level = enchantment.getInt(ench);
+
+					// XEnchantment (vanilla)
+					Optional<XEnchantment> x = XEnchantment.of(ench);
+					if (x != null) {
+						meta.addStoredEnchant(x.get().get(), level, true);
+						continue;
+					}
+
+					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(ench)) {
+						ItemStack book = AEAPI.createEnchantmentBook(ench, level, 100, 0);
+						item = book;
+					}
 				}
 			}
 		}
@@ -1318,6 +1364,10 @@ public final class XItemStack {
 				for (String ench : enchants.getKeys(false)) {
 					Optional<XEnchantment> enchant = XEnchantment.of(ench);
 					enchant.ifPresent(xEnchantment -> meta.addEnchant(xEnchantment.get(), enchants.getInt(ench), true));
+
+					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(ench)) {
+						item = AEAPI.applyEnchant(ench, enchants.getInt(ench), item);
+					}
 				}
 			} else if (config.getBoolean("glow")) {
 				meta.addEnchant(XEnchantment.UNBREAKING.get(), 1, false);
@@ -1644,7 +1694,7 @@ public final class XItemStack {
 							potion.setBasePotionType(potionType);
 						} else {
 							// Format: Type, Extended, Upgraded
-							String[] components = baseType.split(",");
+							String[] components = baseType.split(", ");
 
 							XPotion effect = XPotion.of(components[0]).orElse(XPotion.HEALTH_BOOST);
 							boolean extended = Boolean.parseBoolean(components[1]);
@@ -1652,9 +1702,9 @@ public final class XItemStack {
 
 							String potionTypeStr = effect.getPotionType().name();
 							if (extended)
-								potionTypeStr = "STRONG_" + potionTypeStr;
-							else if (upgraded)
 								potionTypeStr = "LONG_" + potionTypeStr;
+							else if (upgraded)
+								potionTypeStr = "STRONG_" + potionTypeStr;
 
 							PotionType potionType;
 							try {
@@ -1682,7 +1732,7 @@ public final class XItemStack {
 							effect = XPotion.of(baseType).orElse(XPotion.HEALTH_BOOST).getPotionType();
 						} else {
 							// Format: Type, Extended, Upgraded
-							String[] components = baseType.split(",");
+							String[] components = baseType.split(", ");
 
 							effect = XPotion.of(components[0]).orElse(XPotion.HEALTH_BOOST).getPotionType();
 							extended = Boolean.parseBoolean(components[1]);

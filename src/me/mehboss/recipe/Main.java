@@ -130,7 +130,7 @@ public class Main extends JavaPlugin implements Listener {
 		case "itemsadder":
 			return Bukkit.getPluginManager().getPlugin("ItemsAdder") != null;
 		case "mythicmobs":
-			return Bukkit.getPluginManager().getPlugin("MythicMobs") != null;
+			return Bukkit.getPluginManager().getPlugin("MythicMobs") != null && serverVersionAtLeast(1, 16);
 		case "executableitems":
 			return Bukkit.getPluginManager().getPlugin("ExecutableItems") != null;
 		case "nexo":
@@ -217,7 +217,7 @@ public class Main extends JavaPlugin implements Listener {
 				saveResource("items/LuckyPickaxe.yml", false);
 			}
 		}
-		
+
 		if (ymlFile.exists() && ymlConfig != null) {
 			try {
 				ymlConfig.save(ymlFile);
@@ -282,9 +282,10 @@ public class Main extends JavaPlugin implements Listener {
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
 		getLogger().log(Level.INFO, "Loading Recipes..");
 
-		if (getConfig().isSet("firstLoad"))
-			isFirstLoad = getConfig().getBoolean("firstLoad");
-
+		isFirstLoad = getConfig().getBoolean("firstLoad");
+		debug = getConfig().getBoolean("Debug");
+		crafterdebug = getConfig().getBoolean("Crafter-Debug");
+		
 		saveCustomYml(customConfig, customYml);
 		saveCustomYml(cooldownConfig, cooldownYml);
 
@@ -294,11 +295,9 @@ public class Main extends JavaPlugin implements Listener {
 		getConfig().options().copyDefaults(true);
 		saveDefaultConfig();
 
-		if (isFirstLoad && getConfig().isSet("firstLoad"))
+		if (getConfig().getBoolean("firstLoad")) {
 			getConfig().set("firstLoad", false);
-
-		debug = getConfig().getBoolean("Debug");
-		crafterdebug = getConfig().getBoolean("Crafter-Debug");
+		}
 
 		saveAllCustomYml();
 		saveConfig();

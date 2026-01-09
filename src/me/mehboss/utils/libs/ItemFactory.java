@@ -17,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.attribute.AttributeModifier.Operation;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -37,6 +38,7 @@ import org.bukkit.potion.PotionType;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
 
+import com.cryptomorin.xseries.XAttribute;
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XPotion;
@@ -504,27 +506,36 @@ public class ItemFactory {
 				}
 
 				String[] st = split.split(":");
-				String attribute = st[0];
+				String rawAt = XAttribute.of(st[0]).isPresent() ? XAttribute.of(st[0]).get().name() : null;
 				double attributeAmount = Double.valueOf(st[1]);
 				String equipmentSlot = null;
+				Operation operation = AttributeModifier.Operation.ADD_NUMBER;
 
-				if (st.length > 2)
+				if (st.length == 3) {
 					equipmentSlot = st[2];
+				} else if (st.length > 3) {
+					equipmentSlot = st[3];
+					operation = AttributeModifier.Operation.valueOf(st[2]);
+				}
+
+				if (rawAt == null || operation == null) {
+					logError("Could not find attribute " + st[0] + ".. skipping attribute application.", logName);
+					continue;
+				}
 
 				try {
-					AttributeModifier modifier;
-					if (equipmentSlot == null) {
-						modifier = new AttributeModifier(attribute, attributeAmount,
-								AttributeModifier.Operation.ADD_NUMBER);
-					} else {
-						modifier = new AttributeModifier(UUID.randomUUID(), attribute, attributeAmount,
-								AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.valueOf(equipmentSlot));
-					}
+					AttributeModifier modifier = XAttribute.createModifier(rawAt, attributeAmount, operation,
+							EquipmentSlot.valueOf(equipmentSlot));
+					Optional<XAttribute> attribute = XAttribute.of(rawAt);
+					if (modifier == null || !attribute.isPresent())
+						continue;
 
-					m.addAttributeModifier(Attribute.valueOf(attribute), modifier);
+					XAttribute.createModifier(rawAt, attributeAmount, operation, EquipmentSlot.valueOf(equipmentSlot));
+					m.addAttributeModifier(attribute.get().get(), modifier);
 				} catch (Exception e) {
-					logError("Could not add attribute " + attribute + ", " + attributeAmount + ", " + equipmentSlot
+					logError("Could not add attribute " + rawAt + ", " + attributeAmount + ", " + equipmentSlot
 							+ ", skipping for now..", logName);
+					e.printStackTrace();
 				}
 			}
 		}

@@ -330,9 +330,9 @@ public class RecipeSaver {
 		if (name == null)
 			return true;
 		String lc = name.toLowerCase();
-		if (lc.contains("disabled"))
+		if (lc.contains(getParsedValue("Buttons.Toggle-False", "&cfalse")))
 			return false;
-		if (lc.contains("enabled"))
+		if (lc.contains(getParsedValue("Buttons.Toggle-True", "&atrue")))
 			return true;
 		return true;
 	}
@@ -348,9 +348,9 @@ public class RecipeSaver {
 		if (name == null)
 			return defaultVal;
 		String lc = name.toLowerCase();
-		if (lc.contains("true"))
+		if (lc.contains(getParsedValue("Buttons.Toggle-True", "&atrue")))
 			return true;
-		if (lc.contains("false"))
+		if (lc.contains(getParsedValue("Buttons.Toggle-False", "&cfalse")))
 			return false;
 		return defaultVal;
 	}
@@ -628,11 +628,24 @@ public class RecipeSaver {
 		return list;
 	}
 
+	String getValue(String path, String def) {
+		String val = getConfig().getString("gui." + path);
+		return (val == null || val.isEmpty()) ? def : val;
+	}
+
+	String getParsedValue(String msg, String def) {
+		return ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', getValue(msg, def)));
+	}
+
 	RecipeBuilder getRecipeBuilder() {
 		return Main.getInstance().recipeBuilder;
 	}
 
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
+	}
+
+	FileConfiguration getConfig() {
+		return Main.getInstance().getConfig();
 	}
 }

@@ -77,7 +77,7 @@ public class RecipeGUI {
 				if (root != null && root != view) {
 					root.open(player);
 				} else {
-					List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType());
+					List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType(), true);
 					if (types == null || types.isEmpty()) {
 						Main.getInstance().typeGUI.open(p);
 					} else {
@@ -120,7 +120,7 @@ public class RecipeGUI {
 		/* -------- Main Menu (slot 49) -------- */
 		overrideOn(view, 49, (p, v, e) -> {
 			p.closeInventory();
-			List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType());
+			List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType(), false);
 			if (types == null || types.isEmpty()) {
 				Main.getInstance().typeGUI.open(p);
 			} else {

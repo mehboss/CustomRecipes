@@ -187,6 +187,9 @@ public class RecipeViewBuilder {
 			base.setItemMeta(meta);
 		}
 
+		if (base == null)
+			return null;
+		
 		base.setAmount(ing.getAmount());
 		return base;
 	}
@@ -412,8 +415,8 @@ public class RecipeViewBuilder {
 		 */
 		view.addButton(new GuiToggleButton(53, recipe.isActive(), "Enabled",
 				RecipeItemFactory.button(recipe.isActive() ? XMaterial.SLIME_BALL : XMaterial.SNOWBALL,
-						recipe.isActive() ? getValue("Buttons.Enabled", "&aEnabled")
-								: getValue("Buttons.Disabled", "&cDisabled"))) {
+						recipe.isActive() ? getValue("Buttons.Toggle-True", "&atrue")
+								: getValue("Buttons.Toggle-False", "&cfalse"))) {
 
 			@Override
 			public void onToggle(Player p2, boolean val) {

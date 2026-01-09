@@ -62,7 +62,7 @@ public class BookGUI implements Listener {
 				getConfig().getString("gui.Displayname").replace("%page%", "1")));
 	}
 
-	public List<RecipeUtil.Recipe> buildRecipesFor(Player p, RecipeType type) {
+	public List<RecipeUtil.Recipe> buildRecipesFor(Player p, RecipeType type, Boolean isViewing) {
 		HashMap<String, RecipeUtil.Recipe> recipesMap = (type != null)
 				? Main.getInstance().recipeUtil.getRecipesFromType(type)
 				: Main.getInstance().recipeUtil.getAllRecipes();
@@ -70,8 +70,15 @@ public class BookGUI implements Listener {
 		if (recipesMap == null || recipesMap.isEmpty())
 			return new ArrayList<>();
 
-		return recipesMap.values().stream().filter(r -> r.isActive() && (!r.hasPerm() || p.hasPermission(r.getPerm())))
-				.collect(Collectors.toList());
+		List<Recipe> filtered = new ArrayList<>();
+
+		for (Recipe r : recipesMap.values()) {
+		    if ((r.hasPerm() && !p.hasPermission(r.getPerm()))) continue;
+		    if (isViewing && !r.isActive()) continue;
+		    filtered.add(r);
+		}
+
+		return filtered;
 	}
 
 	private ItemStack createTypeHeader(RecipeType type) {
@@ -215,6 +222,8 @@ public class BookGUI implements Listener {
 				if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 					return;
 
+				boolean isViewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
+				
 				ItemStack stained = createItem("stainedG", XMaterial.BLACK_STAINED_GLASS_PANE, " ");
 				if (!e.getCurrentItem().equals(stained) && (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
 					Recipe recipe = new Recipe("New Recipe");
@@ -239,7 +248,7 @@ public class BookGUI implements Listener {
 					int currentpage = view.getPage();
 					int newpage = currentpage;
 
-					List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
+					List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type, isViewing);
 
 					final int pageSize = 14;
 					int maxPage = Math.max(1, (int) Math.ceil(recipes.size() / (double) pageSize));
@@ -284,9 +293,8 @@ public class BookGUI implements Listener {
 				}
 
 				if (recipeName != null) {
-					boolean viewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
 					Recipe recipe = Main.getInstance().recipeUtil.getRecipe(recipeName);
-					showCreationMenu(p, recipe, false, viewing);
+					showCreationMenu(p, recipe, false, isViewing);
 				}
 			}
 		}
@@ -395,11 +403,11 @@ public class BookGUI implements Listener {
 	}
 
 	public void openType(Player p, RecipeType type) {
-		List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type);
-		boolean viewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
+		boolean isViewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
+		List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type, isViewing);
 
 		if (recipes.isEmpty()) {
-			if (!viewing) {
+			if (!isViewing) {
 				Recipe recipe = new Recipe("New Recipe");
 				recipe.setType(type);
 				showCreationMenu(p, recipe, true, false);

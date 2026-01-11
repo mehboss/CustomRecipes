@@ -115,15 +115,22 @@ public class ItemFactory {
 	}
 
 	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
+		String name = recipe.replaceAll(".Result", "");
 		if (type == null || !type.isPresent() || type.get().get() == null) {
+			if (type == null) {
+				logError("Error loading recipe..", name);
+				logError("Could not find a material for the result!", name);
+				return false;
+			}
+
 			if (isCustomItem(materialInput))
 				return false;
 
-			logError("Error loading recipe..", recipe);
+			logError("Error loading recipe..", name);
 			logError(
 					"Invalid material '" + materialInput.toUpperCase()
 							+ "'. Please double check that the material is valid before reaching out for support.",
-					recipe);
+					name);
 			return false;
 		}
 		return true;

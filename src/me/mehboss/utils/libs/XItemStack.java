@@ -598,9 +598,6 @@ public final class XItemStack {
 			recursiveMetaHandle(this, meta.getClass(), meta, SERIALIZE_META_HANDLERS, null);
 		}
 
-		Set<String> VANILLA_KEYS = Set.of("display", "Enchantments", "RepairCost", "AttributeModifiers", "HideFlags",
-				"Unbreakable", "Damage", "CustomModelData");
-
 		private void serializeCustomDataKeys() {
 			if (!SUPPORTS_NBTEDITOR)
 				return;
@@ -1302,19 +1299,23 @@ public final class XItemStack {
 				meta.setItemName(" ");
 			}
 		}
-
+		
 		private void deserializeCustomDataKeys() {
 			if (!SUPPORTS_NBTEDITOR)
 				return;
 
 			String encoded = config.getString("custom-data");
-			if (encoded == null)
+			if (encoded == null || encoded.isEmpty() || encoded.equals("{}"))
 				return;
-			NBTEditor.NBTCompound compound = NBTEditor.getNBTCompound(encoded);
-			if (compound == null)
-				return;
-
-			item = NBTEditor.set(item, compound, NBTEditor.ITEMSTACK_COMPONENTS, NBTEditor.CUSTOM_DATA);
+			try {
+				NBTEditor.NBTCompound compound = NBTEditor.getNBTCompound(encoded);
+				if (compound == null)
+					return;
+				
+				item = NBTEditor.set(item, compound, NBTEditor.ITEMSTACK_COMPONENTS, "minecraft:custom_data");
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
 		}
 
 		private void itemFlags() {

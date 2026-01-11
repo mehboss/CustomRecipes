@@ -189,7 +189,7 @@ public class RecipeViewBuilder {
 
 		if (base == null)
 			return null;
-		
+
 		base.setAmount(ing.getAmount());
 		return base;
 	}
@@ -440,10 +440,11 @@ public class RecipeViewBuilder {
 		/*
 		 * Experience (slot 52)
 		 */
+		if (cooking != null || recipe.getType() == RecipeType.GRINDSTONE) {
+			float experience = cooking == null ? workstation.getExperience() : cooking.getExperience();
 
-		if (cooking != null || recipe.getType() == RecipeType.GRINDSTONE)
 			view.addButton(new GuiStringButton(52, "Experience", RecipeItemFactory.button(XMaterial.EXPERIENCE_BOTTLE,
-					getValue("Workstation.Experience", "&fExperience"), String.valueOf(cooking.getExperience()))) {
+					getValue("Workstation.Experience", "&fExperience"), String.valueOf(experience))) {
 
 				@Override
 				public void onStringChange(Player player, String nv) {
@@ -459,6 +460,7 @@ public class RecipeViewBuilder {
 					}
 				}
 			});
+		}
 
 		/*
 		 * Fuel Set (slot 16)

@@ -365,15 +365,7 @@ public class RecipeBuilder {
 			if (!isVersionSupported(recipe.getType(), item))
 				continue;
 
-			// HavenBag detected, but converter is not SHAPED or SHAPELESS
 			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS) {
-				if (getItemFactory().isHavenBag(item)) {
-					logError("Error loading recipe..", recipe.getName());
-					logError("Got " + recipe.getType() + ", but the recipe is a havenbag recipe! Skipping..",
-							recipe.getName());
-					continue;
-				}
-
 				if (name == null) {
 					delayedRecipes.add(item);
 					continue;

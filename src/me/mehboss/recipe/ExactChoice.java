@@ -25,12 +25,14 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
 
 public class ExactChoice {
 
 	RecipeBuilder getRecipeBuilder() {
 		return Main.getInstance().recipeBuilder;
 	}
+
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
@@ -52,34 +54,38 @@ public class ExactChoice {
 			}
 		}
 
-		if (item.hasIdentifier() && getRecipeUtil().getRecipeFromKey(item.getIdentifier()) != null) {
-			return new RecipeChoice.ExactChoice(getRecipeUtil().getRecipeFromKey(item.getIdentifier()).getResult());
-
-		} else if (item.hasIdentifier() && getRecipeUtil().getResultFromKey(item.getIdentifier()) != null) {
-			return new RecipeChoice.ExactChoice(getRecipeUtil().getResultFromKey(item.getIdentifier()));
-
-		} else if (item.hasItem()) {
-			return new RecipeChoice.ExactChoice(item.getItem());
-			
-		} else {
-			ItemStack exactItem = new ItemStack(item.getMaterial());
-			ItemMeta exactMeta = exactItem.getItemMeta();
-
-			if (item.hasDisplayName())
-				exactMeta.setDisplayName(item.getDisplayName());
-			
-			if (item.hasItemName())
-				exactMeta.setItemName(item.getDisplayName());
-
-			if (item.hasCustomModelData())
-				exactMeta.setCustomModelData(item.getCustomModelData());
-			
-			if (item.hasLore())
-				exactMeta.setLore(item.getLore());
-
-			exactItem.setItemMeta(exactMeta);
-			return new RecipeChoice.ExactChoice(exactItem);
+		if (item.hasIdentifier()) {
+			Recipe matchedItem = getRecipeUtil().getRecipeFromKey(item.getIdentifier());
+			ItemStack result = matchedItem != null ? matchedItem.getResult()
+					: getRecipeUtil().getResultFromKey(item.getIdentifier());
+			if (result != null)
+				return new RecipeChoice.ExactChoice(result);
 		}
+
+		if (item.hasItem()) {
+			return new RecipeChoice.ExactChoice(item.getItem());
+		}
+
+		ItemStack exactItem = new ItemStack(item.getMaterial());
+		ItemMeta exactMeta = exactItem.getItemMeta();
+
+		if (item.hasDisplayName() && !recipe.getIgnoreNames())
+			exactMeta.setDisplayName(item.getDisplayName());
+
+		if (item.hasItemName() && !recipe.getIgnoreNames())
+			exactMeta.setItemName(item.getDisplayName());
+
+		if (item.hasCustomModelData() && !recipe.getIgnoreModelData())
+			exactMeta.setCustomModelData(item.getCustomModelData());
+
+		if (item.hasLore() && !recipe.getIgnoreLore())
+			exactMeta.setLore(item.getLore());
+
+		if (CompatibilityUtil.supportsItemModel() && item.hasItemModel() && !recipe.getIgnoreItemModel())
+			exactMeta.setItemModel(NamespacedKey.fromString(item.getItemModel()));
+
+		exactItem.setItemMeta(exactMeta);
+		return new RecipeChoice.ExactChoice(exactItem);
 	}
 
 	ShapelessRecipe createShapelessRecipe(CraftingRecipeData recipe) {
@@ -114,7 +120,8 @@ public class ExactChoice {
 	}
 
 	ShapedRecipe createShapedRecipe(CraftingRecipeData recipe) {
-		ShapedRecipe shapedRecipe = new ShapedRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult());
+		ShapedRecipe shapedRecipe = new ShapedRecipe(getRecipeBuilder().createNamespacedKey(recipe),
+				recipe.getResult());
 		ArrayList<String> ingredients = new ArrayList<String>();
 
 		shapedRecipe.shape(recipe.getRow(1), recipe.getRow(2), recipe.getRow(3));
@@ -177,8 +184,8 @@ public class ExactChoice {
 			return null;
 		}
 
-		BlastingRecipe blastRecipe = new BlastingRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult(),
-				findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
+		BlastingRecipe blastRecipe = new BlastingRecipe(getRecipeBuilder().createNamespacedKey(recipe),
+				recipe.getResult(), findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 
 		try {
 			blastRecipe.setCategory(CookingBookCategory.valueOf(recipe.getBookCategory()));
@@ -194,8 +201,8 @@ public class ExactChoice {
 			return null;
 		}
 
-		SmokingRecipe smokingRecipe = new SmokingRecipe(getRecipeBuilder().createNamespacedKey(recipe), recipe.getResult(),
-				findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
+		SmokingRecipe smokingRecipe = new SmokingRecipe(getRecipeBuilder().createNamespacedKey(recipe),
+				recipe.getResult(), findExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 		try {
 			smokingRecipe.setCategory(CookingBookCategory.valueOf(recipe.getBookCategory()));
 		} catch (NoClassDefFoundError e) {

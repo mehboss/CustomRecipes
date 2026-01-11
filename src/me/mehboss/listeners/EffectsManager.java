@@ -17,7 +17,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 
@@ -62,8 +63,9 @@ public class EffectsManager implements Listener {
 			String identifier = null;
 			String configName = null;
 
-			if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER"))
-				identifier = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+			ReadWriteNBT nbt = NBT.itemStackToNBT(item);
+			if (nbt.hasTag("CUSTOM_ITEM_IDENTIFER"))
+				identifier = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 
 			if (identifier != null && recipeUtil.getRecipeFromKey(identifier) != null)
 				foundItem = recipeUtil.getRecipeFromKey(identifier).getResult();

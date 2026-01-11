@@ -171,13 +171,16 @@ public class ShapedChecks {
 			}
 
 			if (ingredient.hasItem()) {
-				if (!ingredient.getItem().isSimilar(stack)) {
+				if (ingredient.getItem().isSimilar(stack)) {
+					logDebug("[handleShaped] Passed 'ITEM' checks for the ingredient in slot " + i, recipe.getName());
+					continue;
+				}
+
+				if (!recipe.hasIgnoreTag()) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug("[handleShaped] Ingredient has item, and item found does not match.", recipe.getName());
 					return false;
 				}
-				logDebug("[handleShaped] Passed 'ITEM' checks for the ingredient in slot " + i, recipe.getName());
-				continue;
 			}
 
 			logDebug("[handleShaped] Ingredient slot " + i + " does not have an identifier..", recipe.getName());

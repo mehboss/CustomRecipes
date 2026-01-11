@@ -28,8 +28,8 @@ import com.nexomc.nexo.api.NexoItems;
 import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
 import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
 
+import de.tr7zw.changeme.nbtapi.NBT;
 import dev.lone.itemsadder.api.CustomStack;
-import io.github.bananapuncher714.nbteditor.NBTEditor;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.th0rgal.oraxen.api.OraxenItems;
 import me.mehboss.recipe.Main;
@@ -476,11 +476,8 @@ public class RecipeUtil {
 		if (item == null || item.getType() == Material.AIR)
 			return null;
 
-		String id = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				? NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				: "none";
-
-		if (!id.equals("none"))
+		String id = NBT.get(item, nbt -> (String) nbt.getString("CUSTOM_ITEM_IDENTIFIER"));
+		if (id != null)
 			return getRecipeFromKey(id);
 
 		for (Recipe recipe : recipes.values()) {
@@ -789,6 +786,7 @@ public class RecipeUtil {
 		private boolean ignoreItemModel = false;
 		private boolean ignoreModelData = false;
 		private boolean ignoreNames = false;
+		private boolean ignoreLore = false;
 		private boolean isTagged = true;
 		private boolean discoverable = false;
 		private boolean useLegacyNames = true;
@@ -1078,8 +1076,11 @@ public class RecipeUtil {
 						"You must set a NameSpacedKey (setKey()) prior to calling setTagged()");
 			}
 			if (tagged) {
-				result = NBTEditor.set(result, key, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+				NBT.modify(result, nbt -> {
+					nbt.setString("CUSTOM_ITEM_IDENTIFIER", key);
+				});
 			}
+
 			this.isTagged = tagged;
 		}
 
@@ -1147,6 +1148,15 @@ public class RecipeUtil {
 		}
 
 		/**
+		 * Getter for if an ingredient has an ignore tag.
+		 * 
+		 * @returns true of the recipe ignores something, false otherwise
+		 */
+		public boolean hasIgnoreTag() {
+			return ignoreData || ignoreLore || ignoreNames || ignoreModelData || ignoreItemModel;
+		}
+		
+		/**
 		 * Setter for if the recipe ignores MetaData
 		 * 
 		 * @param ignoreData true to ignore, otherwise false
@@ -1164,6 +1174,24 @@ public class RecipeUtil {
 			return ignoreData;
 		}
 
+		/**
+		 * Setter for if the recipe ignores lore
+		 * 
+		 * @param ignoreLore true to ignore, otherwise false
+		 */
+		public void setIgnoreLore(boolean ignoreLore) {
+			this.ignoreLore = ignoreLore;
+		}
+
+		/**
+		 * Getter for ignoreLore
+		 * 
+		 * @returns true of the recipe ignores lore, false otherwise
+		 */
+		public boolean getIgnoreLore() {
+			return ignoreLore;
+		}
+		
 		/**
 		 * Setter for if the recipe ignores names
 		 * 
@@ -1487,7 +1515,7 @@ public class RecipeUtil {
 				this.itemModel = CompatibilityUtil.supportsItemModel() && meta.hasItemModel()
 						? meta.getItemModel().toString()
 						: null;
-				
+
 				if (meta.hasLore())
 					this.lore = meta.getLore();
 			}

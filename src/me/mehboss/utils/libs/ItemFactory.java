@@ -45,8 +45,8 @@ import com.cryptomorin.xseries.XPotion;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
-import io.github.bananapuncher714.nbteditor.NBTEditor.NBTCompound;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
@@ -606,59 +606,6 @@ public class ItemFactory {
 		return head;
 	}
 
-	ItemStack applyNBT(ItemStack item, Object value, String... path) {
-		if (path == null || path.length == 0)
-			throw new IllegalArgumentException("NBT path cannot be null or empty");
-
-		if (value instanceof Number) {
-			Number num = (Number) value;
-			if (num.intValue() == 0 || num.intValue() == 1)
-				value = num.byteValue();
-		}
-
-		try {
-			return NBTEditor.set(item, value, (Object[]) path);
-		} catch (Exception ex) {
-			throw new RuntimeException(
-					"Failed to apply NBT at path " + String.join(".", path) + " with value: " + value, ex);
-		}
-	}
-
-	ItemStack applyAttributeModifier(ItemStack item, Map<String, Object> modifier) {
-		// Retrieve necessary fields
-		String name = (String) modifier.get("Name");
-		String attributeName = (String) modifier.get("AttributeName");
-
-		double amount = (double) modifier.get("Amount");
-		int operation = (int) modifier.get("Operation");
-		String slot = (String) modifier.get("Slot");
-
-		// Debugging output
-		logDebug("Applying attribute modifier:", "");
-		logDebug("Name: " + name + ", AttributeName: " + attributeName + ", Amount: " + amount + ", Operation: "
-				+ operation + ", Slot: " + slot, "");
-
-		int[] uuid = { 0, 0, 0, 0 };
-		NBTCompound compound = NBTEditor.getNBTCompound(item);
-		compound = NBTEditor.set(compound, attributeName, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers",
-				NBTEditor.NEW_ELEMENT, "AttributeName");
-		compound = NBTEditor.set(compound, name, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Name");
-		compound = NBTEditor.set(compound, amount, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Amount");
-		compound = NBTEditor.set(compound, operation, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0,
-				"Operation");
-
-		if (slot != null)
-			compound = NBTEditor.set(compound, slot, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "Slot");
-
-		compound = NBTEditor.set(compound, uuid, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "UUID");
-		compound = NBTEditor.set(compound, 99L, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0, "UUIDMost");
-		compound = NBTEditor.set(compound, 77530600L, NBTEditor.ITEMSTACK_COMPONENTS, "AttributeModifiers", 0,
-				"UUIDLeast");
-
-		item = NBTEditor.getItemFromTag(compound);
-		return item;
-	}
-
 	@SuppressWarnings("unchecked")
 	List<Map<String, Object>> getCustomTags(String recipe) {
 		List<Map<?, ?>> rawList = getConfig().getMapList(recipe + ".Custom-Tags");
@@ -682,14 +629,7 @@ public class ItemFactory {
 				logDebug("Handling tag path " + path.get(0) + "..", recipe);
 
 				// Check if this is an AttributeModifier entry
-				if (path.get(0).equalsIgnoreCase("AttributeModifiers")) {
-					List<Map<String, Object>> modifiers = (List<Map<String, Object>>) value;
-
-					for (Map<String, Object> modifier : modifiers) {
-						// Apply attribute modifier
-						item = applyAttributeModifier(item, modifier);
-					}
-				} else if (path.get(0).equalsIgnoreCase("SpawnerID")) {
+				if (path.get(0).equalsIgnoreCase("SpawnerID")) {
 					logDebug("Attempting to apply path tags now..", recipe);
 
 					if (XMaterial.matchXMaterial(item.getType()) != XMaterial.SPAWNER)
@@ -756,44 +696,40 @@ public class ItemFactory {
 					try {
 						if (value instanceof Map) {
 							Map<String, Object> compound = (Map<String, Object>) value;
+							NBT.modify(item, nbt -> {
+								// Get or create the EntityTag compound
+								ReadWriteNBT entityTag = nbt.getOrCreateCompound("EntityTag");
 
-							// Invisible (boolean)
-							if (compound.containsKey("Invisible")) {
-								boolean invisible = Boolean.parseBoolean(String.valueOf(compound.get("Invisible")));
-								item = NBTEditor.set(item, invisible, "EntityTag", "Invisible");
-							}
+								// Invisible (boolean)
+								if (compound.containsKey("Invisible")) {
+									boolean invisible = Boolean.parseBoolean(String.valueOf(compound.get("Invisible")));
+									entityTag.setBoolean("Invisible", invisible);
+								}
 
-							// Glowing (boolean)
-							if (compound.containsKey("Glowing")) {
-								boolean glowing = Boolean.parseBoolean(String.valueOf(compound.get("Glowing")));
-								item = NBTEditor.set(item, glowing, "EntityTag", "Glowing");
-							}
+								// Glowing (boolean)
+								if (compound.containsKey("Glowing")) {
+									boolean glowing = Boolean.parseBoolean(String.valueOf(compound.get("Glowing")));
+									entityTag.setBoolean("Glowing", glowing);
+								}
 
-							// Fixed (boolean)
-							if (compound.containsKey("Fixed")) {
-								boolean fixed = Boolean.parseBoolean(String.valueOf(compound.get("Fixed")));
-								item = NBTEditor.set(item, fixed, "EntityTag", "Fixed");
-							}
+								// Fixed (boolean)
+								if (compound.containsKey("Fixed")) {
+									boolean fixed = Boolean.parseBoolean(String.valueOf(compound.get("Fixed")));
+									entityTag.setBoolean("Fixed", fixed);
+								}
 
-							// Facing (byte)
-							if (compound.containsKey("Facing")) {
-								byte facing = ((Number) compound.get("Facing")).byteValue();
-								item = NBTEditor.set(item, facing, "EntityTag", "Facing");
-							}
-						} else {
-							logDebug("EntityTag value must be a map. Skipping.", recipe);
+								// Facing (byte)
+								if (compound.containsKey("Facing")) {
+									byte facing = ((Number) compound.get("Facing")).byteValue();
+									entityTag.setByte("Facing", facing);
+								}
+							});
 						}
-
-						return item;
-
 					} catch (Throwable t) {
 						logError("Failed to apply EntityTag to item frame with NBTEditor.", recipe);
 						t.printStackTrace();
 						return item;
 					}
-				} else {
-					// Apply general NBT tag
-					item = applyNBT(item, value, path.toArray(new String[0]));
 				}
 			}
 			return item;

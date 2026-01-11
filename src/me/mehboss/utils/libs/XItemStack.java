@@ -15,7 +15,8 @@ import com.google.common.base.Enums;
 import com.google.common.base.Strings;
 import com.google.common.collect.Multimap;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import net.advancedplugins.ae.api.AEAPI;
 import net.kyori.adventure.text.Component;
@@ -102,12 +103,12 @@ public final class XItemStack {
 	private static final XMaterial DEFAULT_MATERIAL = XMaterial.BARRIER;
 	private static final boolean SUPPORTS_UNBREAKABLE, SUPPORTS_POTION_COLOR, SUPPORTS_Inventory_getStorageContents,
 			SUPPORTS_CUSTOM_MODEL_DATA, SUPPORTS_ADVANCED_CUSTOM_MODEL_DATA, SUPPORTS_ITEM_MODEL, SUPPORTS_ITEM_NAME,
-			SUPPORTS_NBTEDITOR;
+			SUPPORTS_NBTAPI;
 
 	static {
 		boolean supportsPotionColor = false, supportsUnbreakable = false, supportsGetStorageContents = false,
 				supportSCustomModelData = false, supportsAdvancedCustomModelData = false, supportsItemModel = false,
-				supportsItemName = false, supportsNBTEditor = false;
+				supportsItemName = false, supportsNBTAPI = false;
 
 		try {
 			ItemMeta.class.getDeclaredMethod("setUnbreakable", boolean.class);
@@ -140,8 +141,8 @@ public final class XItemStack {
 		}
 
 		try {
-			Class.forName("io.github.bananapuncher714.nbteditor.NBTEditor");
-			supportsNBTEditor = true;
+			Class.forName("de.tr7zw.changeme.nbtapi.NBT");
+			supportsNBTAPI = true;
 		} catch (ClassNotFoundException ignored) {
 		}
 
@@ -164,7 +165,7 @@ public final class XItemStack {
 		SUPPORTS_ADVANCED_CUSTOM_MODEL_DATA = supportsAdvancedCustomModelData;
 		SUPPORTS_ITEM_MODEL = supportsItemModel;
 		SUPPORTS_ITEM_NAME = supportsItemName;
-		SUPPORTS_NBTEDITOR = supportsNBTEditor;
+		SUPPORTS_NBTAPI = supportsNBTAPI;
 	}
 
 	private interface MetaHandler<M extends ItemMeta> {
@@ -599,24 +600,21 @@ public final class XItemStack {
 		}
 
 		private void serializeCustomDataKeys() {
-			if (!SUPPORTS_NBTEDITOR)
+			if (!SUPPORTS_NBTAPI)
 				return;
 			try {
-				if (NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-					item = NBTEditor.set(item, NBTEditor.DELETE, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+				NBT.modify(item, nbt -> {
+					if (nbt.hasTag("CUSTOM_ITEM_IDENTIFIER"))
+						nbt.removeKey("CUSTOM_ITEM_IDENTIFIER");
+				});
+
+				ReadWriteNBT nbt = NBT.itemStackToNBT(item);
+				if (nbt != null) {
+					String encoded = nbt.toString();
+					config.set("custom-data", encoded);
 				}
-				NBTEditor.NBTCompound compound = NBTEditor.getNBTCompound(item, NBTEditor.ITEMSTACK_COMPONENTS,
-						NBTEditor.CUSTOM_DATA);
-				try {
-					if (compound != null) {
-						String encoded = compound.toString();
-						config.set("custom-data", encoded);
-					}
-				} catch (NullPointerException e) {
-					config.set("custom-data", null);
-				}
-			} catch (Throwable t) {
-				t.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -1299,22 +1297,23 @@ public final class XItemStack {
 				meta.setItemName(" ");
 			}
 		}
-		
+
 		private void deserializeCustomDataKeys() {
-			if (!SUPPORTS_NBTEDITOR)
+			if (!SUPPORTS_NBTAPI)
 				return;
 
 			String encoded = config.getString("custom-data");
 			if (encoded == null || encoded.isEmpty() || encoded.equals("{}"))
 				return;
+
 			try {
-				NBTEditor.NBTCompound compound = NBTEditor.getNBTCompound(encoded);
-				if (compound == null)
-					return;
-				
-				item = NBTEditor.set(item, compound, NBTEditor.ITEMSTACK_COMPONENTS, "minecraft:custom_data");
-			} catch (Throwable t) {
-				t.printStackTrace();
+				ReadWriteNBT nbt = NBT.parseNBT(encoded);
+				ItemStack itemStack = NBT.itemStackFromNBT(nbt);
+				if (itemStack != null) {
+					item = itemStack;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 

@@ -23,7 +23,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionData;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.gui.framework.GuiButton;
 import me.mehboss.gui.framework.GuiButton.GuiStringButton;
 import me.mehboss.gui.framework.GuiButton.GuiToggleButton;
@@ -233,6 +234,7 @@ public class RecipeSaver {
 		Serializer serializer = XItemStack.serializer().fromItem(resultItem);
 		if (resultHasID.get()) {
 			result.put("Item", material);
+			result.put("Amount", resultAmount);
 
 		} else if (serializer != null) {
 			Map<String, Object> serializedMap = serializer.writeToMap();
@@ -483,6 +485,7 @@ public class RecipeSaver {
 			} else {
 				LinkedHashMap<String, Object> ing = new LinkedHashMap<>();
 				ing.put("Material", stack.getType().name());
+				ing.put("Amount", stack.getAmount());
 				ing.put("Identifier", identifier);
 				out.put(letter, ing);
 			}
@@ -605,8 +608,12 @@ public class RecipeSaver {
 	}
 
 	public String getCustomIdentifier(ItemStack itemStack) {
-		if (itemStack != null && NBTEditor.contains(itemStack, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-			return NBTEditor.getString(itemStack, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+		if (itemStack == null)
+			return "none";
+
+		ReadWriteNBT nbt = NBT.itemStackToNBT(itemStack);
+		if (nbt.hasTag("CUSTOM_ITEM_IDENTIFIER")) {
+			return nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 		}
 		return "none";
 	}

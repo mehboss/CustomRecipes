@@ -12,7 +12,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -30,10 +31,10 @@ public class BlockManager implements Listener {
 		String key = null;
 
 		ItemStack item = e.getItemInHand();
+		ReadWriteNBT nbt = NBT.itemStackToNBT(item);
 
-		if (item.getType() != Material.AIR && item.hasItemMeta()
-				&& NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-			key = NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+		if (item.getType() != Material.AIR && item.hasItemMeta() && nbt.hasTag("CUSTOM_ITEM_IDENTIFER")) {
+			key = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 		}
 
 		if (key != null && recipeUtil.getRecipeFromKey(key) != null)

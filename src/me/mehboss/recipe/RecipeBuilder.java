@@ -111,6 +111,7 @@ public class RecipeBuilder {
 		recipe.setIgnoreNames(getConfig().getBoolean(item + ".Flags.Ignore-Name"));
 		recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Flags.Ignore-Model-Data"));
 		recipe.setIgnoreItemModel(getConfig().getBoolean(item + ".Flags.Ignore-Item-Model"));
+		recipe.setIgnoreLore(getConfig().getBoolean(item + ".Flags.Ignore-Lore"));
 		recipe.setExactChoice(getConfig().getBoolean(item + ".Exact-Choice"));
 		recipe.setDiscoverable(getConfig().getBoolean(item + ".Auto-Discover-Recipe"));
 		recipe.setLegacyNames(getConfig().getBoolean(item + ".Use-Display-Name", true));

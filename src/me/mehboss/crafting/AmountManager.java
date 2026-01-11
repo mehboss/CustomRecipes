@@ -24,7 +24,8 @@ import org.bukkit.inventory.ShapelessRecipe;
 
 import com.cryptomorin.xseries.XMaterial;
 
-import io.github.bananapuncher714.nbteditor.NBTEditor;
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
@@ -213,8 +214,9 @@ public class AmountManager implements Listener {
 		HashMap<String, Recipe> types = isShapeless ? getRecipeUtil().getRecipesFromType(RecipeType.SHAPELESS)
 				: getRecipeUtil().getRecipesFromType(RecipeType.SHAPED);
 
-		if (NBTEditor.contains(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")) {
-			String foundID = NBTEditor.getString(inv.getResult(), NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER");
+		ReadWriteNBT nbt = NBT.itemStackToNBT(inv.getResult());
+		if (nbt.hasTag("CUSTOM_ITEM_IDENTIFER")) {
+			String foundID = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 			Recipe keyedRecipe = getRecipeUtil().getRecipeFromKey(foundID);
 			if (keyedRecipe != null)
 				findName = keyedRecipe.getName();

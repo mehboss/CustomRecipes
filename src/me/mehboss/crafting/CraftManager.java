@@ -42,7 +42,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import com.cryptomorin.xseries.XMaterial;
-import io.github.bananapuncher714.nbteditor.NBTEditor;
+
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.crafting.ShapedChecks.AlignedResult;
 import me.mehboss.recipe.Main;
@@ -321,11 +323,10 @@ public class CraftManager implements Listener {
 			return true;
 
 		ItemMeta itemM = item.getItemMeta();
-		String recipeIdentifier = NBTEditor.contains(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				? NBTEditor.getString(item, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")
-				: "none";
+		ReadWriteNBT nbt = NBT.itemStackToNBT(item);
+		String id = nbt.hasTag("CUSTOM_ITEM_IDENTIFIER") ? nbt.getString("CUSTOM_ITEM_IDENTIFIER") : "none";
 
-		if (hasIdentifier && identifier.equals(recipeIdentifier))
+		if (hasIdentifier && identifier.equals(id))
 			return true;
 
 		if (debug)
@@ -464,8 +465,9 @@ public class CraftManager implements Listener {
 	public boolean hasVanillaIngredients(Inventory inv, ItemStack result) {
 
 		if (result != null) {
+			ReadWriteNBT nbt = NBT.itemStackToNBT(result);
 			if (result.hasItemMeta() && (result.getItemMeta().hasDisplayName() || result.getItemMeta().hasLore()
-					|| NBTEditor.contains(result, NBTEditor.CUSTOM_DATA, "CUSTOM_ITEM_IDENTIFIER")))
+					|| nbt.hasTag("CUSTOM_ITEM_IDENTIFIER")))
 				return false;
 
 			// vanilla ingredients, but matched to a custom recipe result, so still check

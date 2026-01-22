@@ -94,7 +94,7 @@ public class CookingManager implements Listener {
 
 				if (hasCooldown) {
 					Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
-					sendMessages(p, "crafting-limit", timeLeft);
+					sendMessage(p, "crafting-limit", timeLeft);
 					e.setCancelled(true);
 					return;
 				}
@@ -193,10 +193,10 @@ public class CookingManager implements Listener {
 	void sendNoPermsMessage(Player p, String recipe) {
 		logDebug("[sendNoPermsMessage] Player " + p.getName()
 				+ " does not have required recipe crafting permissions for recipe " + recipe);
-		Main.getInstance().sendnoPerms(p);
+		Main.getInstance().sendMessage(p, "no-permission-message", 0);
 	}
 
-	void sendMessages(Player p, String s, long seconds) {
-		Main.getInstance().sendMessages(p, s, seconds);
+	void sendMessage(Player p, String s, long seconds) {
+		Main.getInstance().sendMessage(p, s, seconds);
 	}
 }

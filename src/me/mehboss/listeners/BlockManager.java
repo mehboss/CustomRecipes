@@ -24,7 +24,7 @@ public class BlockManager implements Listener {
 
 	@EventHandler
 	public void onPlace(BlockPlaceEvent e) {
-		if (e.getItemInHand() == null)
+		if (e.getItemInHand() == null || e.getItemInHand().getType() == Material.AIR)
 			return;
 
 		Recipe recipe = null;

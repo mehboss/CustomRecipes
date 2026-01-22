@@ -608,11 +608,10 @@ public final class XItemStack {
 						nbt.removeKey("CUSTOM_ITEM_IDENTIFIER");
 				});
 
-				ReadWriteNBT nbt = NBT.itemStackToNBT(item);
-				if (nbt != null) {
-					String encoded = nbt.toString();
+				String encoded = NBT.get(item, nbt -> (String) nbt.toString());
+				if (encoded != null)
 					config.set("custom-data", encoded);
-				}
+
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -675,14 +674,21 @@ public final class XItemStack {
 				MaterialData data = item.getData();
 				if (data instanceof SpawnEgg) {
 					SpawnEgg spawnEgg = (SpawnEgg) data;
-					config.set("creature", spawnEgg.getSpawnedType().getName());
+					try {
+						config.set("creature", spawnEgg.getSpawnedType().getName());
+					} catch (UnsupportedOperationException ex) {
+						config.set("creature", EntityType.PIG.getName());
+					}
 				}
 			}
 		}
 
 		@SuppressWarnings("deprecation")
 		private void handleSpawnEggMeta(SpawnEggMeta spawnEgg) {
-			config.set("creature", spawnEgg.getSpawnedType().getName());
+			try {
+				config.set("creature", spawnEgg.getSpawnedType().getName());
+			} catch (UnsupportedOperationException ex) {
+			}
 		}
 
 		private void handleSuspiciousStewMeta(SuspiciousStewMeta stew) {
@@ -1003,6 +1009,7 @@ public final class XItemStack {
 				config.set("damage", item.getDurability());
 			}
 		}
+
 	}
 
 	/**
@@ -1303,17 +1310,15 @@ public final class XItemStack {
 				return;
 
 			String encoded = config.getString("custom-data");
-			if (encoded == null || encoded.isEmpty() || encoded.equals("{}"))
-				return;
-
-			try {
-				ReadWriteNBT nbt = NBT.parseNBT(encoded);
-				ItemStack itemStack = NBT.itemStackFromNBT(nbt);
-				if (itemStack != null) {
-					item = itemStack;
+			if (encoded != null && !encoded.isEmpty() && !encoded.equals("{}")) {
+				try {
+					NBT.modify(item, nbt -> {
+						ReadWriteNBT newNBT = NBT.parseNBT(encoded);
+						nbt.mergeCompound(newNBT);
+					});
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-			} catch (Exception e) {
-				e.printStackTrace();
 			}
 		}
 

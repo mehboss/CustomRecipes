@@ -229,7 +229,7 @@ public class ItemFactory {
 
 		if (material == null) {
 			logError("Error loading recipe..", recipe.getName());
-			logError("Could not find valid ingredient 'Material(s)' section! Skipping..", recipe.getName());
+			logError("Could not deserialize recipe! Skipping..", recipe.getName());
 			return null;
 		}
 

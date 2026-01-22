@@ -3,7 +3,6 @@ package me.mehboss.gui;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -117,7 +116,7 @@ public class RecipeViewBuilder {
 			if (index >= slots.length)
 				break;
 
-			ItemStack icon = ingredientItem(ingredient, p, recipe.isLegacyNames());
+			ItemStack icon = ingredientItem(ingredient, p);
 			if (icon == null)
 				icon = null; // leave AIR
 
@@ -144,7 +143,7 @@ public class RecipeViewBuilder {
 		view.getInventory().setItem(slot, requiredItem);
 	}
 
-	private ItemStack ingredientItem(Ingredient ing, Player p, boolean isLegacyNames) {
+	private ItemStack ingredientItem(Ingredient ing, Player p) {
 
 		if (ing == null || ing.isEmpty())
 			return null;
@@ -170,10 +169,7 @@ public class RecipeViewBuilder {
 
 			ItemMeta meta = base.getItemMeta();
 			if (ing.hasDisplayName()) {
-				if (!isLegacyNames && CompatibilityUtil.supportsItemName())
-					meta.setItemName(ing.getDisplayName());
-				else
-					meta.setDisplayName(ing.getDisplayName());
+				meta.setDisplayName(ing.getDisplayName());
 			}
 
 			if (CompatibilityUtil.supportsItemModel() && meta.hasItemModel())
@@ -400,10 +396,10 @@ public class RecipeViewBuilder {
 		});
 
 		/*
-		 * Legacy Names toggle (slot 7)
+		 * Uses ID toggle (slot 7)
 		 */
-		view.addButton(new GuiToggleButton(7, recipe.isLegacyNames(), "Legacy-Names",
-				RecipeItemFactory.button(XMaterial.WHEAT, getValue("Recipe.Legacy-Names", "&fLegacy-Names"))) {
+		view.addButton(new GuiToggleButton(7, recipe.usesID(), "Uses-ID",
+				RecipeItemFactory.button(XMaterial.WHEAT, getValue("Recipe.Uses-ID", "&fUses-ID"))) {
 
 			@Override
 			public void onToggle(Player p2, boolean val) {

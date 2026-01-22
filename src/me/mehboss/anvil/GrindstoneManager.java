@@ -230,7 +230,7 @@ public class GrindstoneManager implements Listener {
 
 			if (hasCooldown) {
 				Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(player.getUniqueId(), recipe.getKey());
-				sendMessages(player, "crafting-limit", timeLeft);
+				sendMessage(player, "crafting-limit", timeLeft);
 				matchedByPlayer.remove(pid);
 				if (hadCustomLastTick)
 					clearResultSlot(g);
@@ -407,10 +407,10 @@ public class GrindstoneManager implements Listener {
 
 	void sendNoPermsMessage(Player p, String recipe) {
 		logDebug("Player " + p.getName() + " does not have required recipe crafting permissions.", recipe);
-		Main.getInstance().sendnoPerms(p);
+		Main.getInstance().sendMessage(p, "no-permission-message", 0);
 	}
 
-	void sendMessages(Player p, String s, long seconds) {
-		Main.getInstance().sendMessages(p, s, seconds);
+	void sendMessage(Player p, String s, long seconds) {
+		Main.getInstance().sendMessage(p, s, seconds);
 	}
 }

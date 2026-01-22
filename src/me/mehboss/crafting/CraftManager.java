@@ -107,14 +107,14 @@ public class CraftManager implements Listener {
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}
 
-	void sendMessages(Player p, String s, long seconds) {
-		Main.getInstance().sendMessages(p, s, seconds);
+	void sendMessage(Player p, String s, long seconds) {
+		Main.getInstance().sendMessage(p, s, seconds);
 	}
 
 	void sendNoPermsMessage(Player p, String recipe) {
 		logDebug("[sendNoPermsMessage] Player " + p.getName()
 				+ " does not have required recipe crafting permissions for recipe", recipe, p.getUniqueId());
-		Main.getInstance().sendnoPerms(p);
+		Main.getInstance().sendMessage(p, "no-permission-message", 0);
 	}
 
 	public boolean matchedRecipe(CraftingInventory inv, UUID id) {
@@ -282,7 +282,7 @@ public class CraftManager implements Listener {
 				}
 
 				logDebug("[isBlacklisted] Vanilla recipe blocked: " + entry, "", pID);
-				sendMessages(p, perm, 0);
+				sendMessage(p, "no-permission-message", 0);
 				return true;
 			}
 
@@ -308,7 +308,7 @@ public class CraftManager implements Listener {
 				}
 
 				logDebug("[isBlacklisted] Custom recipe blocked: " + entry, "", pID);
-				sendMessages(p, perm, 0);
+				sendMessage(p, "no-permission-message", 0);
 				return true;
 			}
 		}
@@ -383,7 +383,6 @@ public class CraftManager implements Listener {
 		ArrayList<String> leftOvers = new ArrayList<>();
 		for (RecipeUtil.Ingredient ingredient : recipeIngredients) {
 			if (!ingredient.isEmpty()) {
-
 				if (getRecipeUtil().getRecipeFromKey(ingredient.getIdentifier()) != null) {
 					ingMaterials.add(getRecipeUtil().getRecipeFromKey(ingredient.getIdentifier()).getResult().getType()
 							.toString());
@@ -657,7 +656,7 @@ public class CraftManager implements Listener {
 		// WORLD DISABLED
 		if (!allowWorld) {
 			inv.setResult(new ItemStack(Material.AIR));
-			sendMessages(p, "none", 0);
+			sendMessage(p, "recipe-disabled-message", 0);
 			return;
 		}
 

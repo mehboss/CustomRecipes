@@ -48,8 +48,8 @@ public class AmountManager implements Listener {
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
 	}
 
-	void sendMessages(Player p, String s, long seconds) {
-		Main.getInstance().sendMessages(p, s, seconds);
+	void sendMessage(Player p, String s, long seconds) {
+		Main.getInstance().sendMessage(p, s, seconds);
 	}
 	
 	CooldownManager getCooldownManager() {
@@ -247,7 +247,7 @@ public class AmountManager implements Listener {
 		if (hasCooldown) {
 			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
 			e.setCancelled(true);
-			sendMessages(p, "crafting-limit", timeLeft);
+			sendMessage(p, "crafting-limit", timeLeft);
 			return;
 		}
 		

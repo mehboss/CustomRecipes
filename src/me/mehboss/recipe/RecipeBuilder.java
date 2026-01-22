@@ -96,6 +96,9 @@ public class RecipeBuilder {
 		if (getConfig().isString(item + ".Permission"))
 			recipe.setPerm(getConfig().getString(item + ".Permission"));
 
+		if (getConfig().isBoolean(item + ".Uses-ID"))
+			recipe.setUsesID(getConfig().getBoolean(item + ".Uses-ID"));
+		
 		if (getConfig().isInt(item + ".Cooldown") && getConfig().getInt(item + ".Cooldown") != -1)
 			recipe.setCooldown(getConfig().getInt(item + ".Cooldown"));
 
@@ -106,7 +109,7 @@ public class RecipeBuilder {
 			for (String world : getConfig().getStringList(item + ".Disabled-Worlds"))
 				recipe.addDisabledWorld(world);
 		}
-
+		
 		recipe.setIgnoreData(getConfig().getBoolean(item + ".Flags.Ignore-Data"));
 		recipe.setIgnoreNames(getConfig().getBoolean(item + ".Flags.Ignore-Name"));
 		recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Flags.Ignore-Model-Data"));
@@ -114,7 +117,6 @@ public class RecipeBuilder {
 		recipe.setIgnoreLore(getConfig().getBoolean(item + ".Flags.Ignore-Lore"));
 		recipe.setExactChoice(getConfig().getBoolean(item + ".Exact-Choice"));
 		recipe.setDiscoverable(getConfig().getBoolean(item + ".Auto-Discover-Recipe"));
-		recipe.setLegacyNames(getConfig().getBoolean(item + ".Use-Display-Name", true));
 
 		if (getConfig().isSet(item + ".Book-Category")) {
 			try {

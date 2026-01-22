@@ -133,7 +133,7 @@ public class RecipeSaver {
 		boolean shapeless = readBooleanToggle(view, "Shapeless", false);
 		boolean exactChoice = readBooleanToggle(view, "Exact-Choice", true);
 		boolean placeable = readBooleanToggle(view, "Placeable", false);
-		boolean isLegacyNames = readBooleanToggle(view, "Legacy-Names", true);
+		boolean usesID = readBooleanToggle(view, "Uses-ID", false);
 		boolean isCustomTagged = readBooleanToggle(view, "Custom-Tagged", true);
 
 		// ====== Textual fields ======
@@ -143,14 +143,14 @@ public class RecipeSaver {
 		if ("none".equalsIgnoreCase(group))
 			group = "";
 
-		String displayNameColored = readNameColored(resultItem, isLegacyNames);
+		String displayNameColored = readNameColored(resultItem);
 		// ====== Effects (currently unused, keep as empty list) ======
 		List<String> effects = new ArrayList<>(); // or from button "Effects" later
 
 		// ====== Enchantments & lore ======
 		List<String> enchantList = readEnchantList(resultItem);
 		AtomicBoolean resultHasID = new AtomicBoolean(false);
-		String material = getItemValue(resultItem, identifier, resultHasID);
+		String material = getItemValue(resultItem, identifier, resultHasID, usesID);
 		List<String> lore = getItemLoreList(resultItem);
 		if (lore == null)
 			lore = new ArrayList<>();
@@ -159,7 +159,7 @@ public class RecipeSaver {
 		Map<ItemStack, String> letters = setItemLetters(inventory, ingredientSlots);
 		List<String> itemCrafting = generateItemCrafting(letters, inventory, ingredientSlots);
 		LinkedHashMap<String, Object> ingredients = buildIngredientsFromLetters(inventory, letters, ingredientSlots,
-				isLegacyNames);
+				usesID);
 
 		String converterType = (type == RecipeType.SHAPED || type == RecipeType.SHAPELESS) ? "none" : type.toString();
 
@@ -179,7 +179,7 @@ public class RecipeSaver {
 
 		cfg.put("Cooldown", -1);
 		cfg.put("Placeable", placeable);
-		cfg.put("Use-Display-Name", isLegacyNames);
+		cfg.put("Uses-ID", usesID);
 		cfg.put("Exact-Choice", exactChoice);
 		cfg.put("Identifier", identifier);
 
@@ -443,20 +443,19 @@ public class RecipeSaver {
 		}
 	}
 
-	private String readNameColored(ItemStack item, boolean isLegacyNames) {
+	private String readNameColored(ItemStack item) {
 		if (item == null || item.getType() == Material.AIR || item.getItemMeta() == null)
 			return null;
 		ItemMeta im = item.getItemMeta();
-		String customName = CompatibilityUtil.hasDisplayname(im, isLegacyNames)
-				? CompatibilityUtil.getDisplayname(im, isLegacyNames)
-				: "none";
-		String displayName = im.hasDisplayName() ? im.getDisplayName() : "none";
+		boolean hasItemName = CompatibilityUtil.supportsItemName() && im.hasItemName();
+		String Name = im.hasDisplayName() ? im.getDisplayName() : "none";
+		String ItemName = hasItemName ? im.getItemName() : "none";
 
-		return (displayName != null && !"none".equals(displayName)) ? displayName : customName;
+		return (!ItemName.equals("none") ? ItemName : Name);
 	}
 
 	private LinkedHashMap<String, Object> buildIngredientsFromLetters(Inventory inv, Map<ItemStack, String> letters,
-			int[] ingredientSlots, boolean isLegacyNames) {
+			int[] ingredientSlots, boolean usesID) {
 		LinkedHashMap<String, Object> out = new LinkedHashMap<>();
 		Set<String> seen = new HashSet<>();
 
@@ -474,7 +473,7 @@ public class RecipeSaver {
 			seen.add(letter);
 
 			// Get the identifier for the ingredient
-			String identifier = findIngredientIdentifier(stack);
+			String identifier = usesID ? findIngredientIdentifier(stack) : "none";
 			if (identifier == null || identifier.isEmpty() || identifier.equals("none")) {
 				Serializer serializer = XItemStack.serializer().fromItem(stack);
 				if (serializer == null)
@@ -568,13 +567,13 @@ public class RecipeSaver {
 		}
 	}
 
-	private String getItemValue(ItemStack item, String id, AtomicBoolean hasID) {
+	private String getItemValue(ItemStack item, String id, AtomicBoolean hasID, boolean usesID) {
 		if (item == null || item.getType() == Material.AIR)
 			return "AIR"; // fallback for empty slots
 
 		// Try custom key from RecipeUtil (for plugin-based custom items)
 		String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
-		if (key != null && !key.isEmpty() && !key.equals(id)) {
+		if (usesID && key != null && !key.isEmpty() && !key.equals(id)) {
 			hasID.set(true);
 			return key;
 		}

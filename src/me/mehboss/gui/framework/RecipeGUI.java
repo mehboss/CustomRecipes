@@ -12,6 +12,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.cryptomorin.xseries.XMaterial;
+
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
 import me.mehboss.commands.CommandRemove;
 import me.mehboss.gui.RecipeSaver;
 import me.mehboss.gui.RecipeViewBuilder;
@@ -44,7 +47,15 @@ public class RecipeGUI {
 			return;
 
 		// Look up recipe from the API
-		Recipe linked = Main.getInstance().recipeUtil.getRecipeFromResult(clickedItem);
+		Recipe linked = null;
+		ReadableNBT nbt = NBT.readNbt(clickedItem);
+		if (nbt.hasTag("CUSTOM_ITEM_IDENTIFIER")) {
+			String key = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
+			linked = Main.getInstance().getRecipeUtil().getRecipeFromKey(key);
+		} else {
+			linked = Main.getInstance().recipeUtil.getRecipeFromResult(clickedItem);
+		}
+
 		if (linked == null)
 			return;
 

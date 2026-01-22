@@ -4,6 +4,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
@@ -72,22 +73,24 @@ public class MetaChecks {
 
 			// Checks displayname requirements only
 		} else {
+			if (item.hasItemMeta()) {
+				ItemMeta meta = item.getItemMeta();
 
-			if (ingredient.hasDisplayName() && (!item.hasItemMeta()
-					|| !CompatibilityUtil.hasDisplayname(item.getItemMeta(), recipe.isLegacyNames()))) {
-				logDebug("Ingredient has displayname, item in slot does not have one", recipeName);
-				return false;
-			}
+				if ((ingredient.hasItemName() && !meta.hasItemName())
+						|| (ingredient.hasDisplayName() && !meta.hasDisplayName())) {
+					logDebug("Ingredient has displayname, item in slot does not have one", recipeName);
+					return false;
+				}
 
-			if (ingredient.hasDisplayName() && !(CompatibilityUtil
-					.getDisplayname(item.getItemMeta(), recipe.isLegacyNames()).equals(ingredient.getDisplayName()))) {
-				logDebug("Displaynames do not match", recipeName);
-				logDebug(
-						"Slot displayname - "
-								+ CompatibilityUtil.getDisplayname(item.getItemMeta(), recipe.isLegacyNames()),
-						recipeName);
-				logDebug("Ingredient displayname - " + ingredient.getDisplayName(), recipeName);
-				return false;
+				if ((ingredient.hasItemName() && !meta.getDisplayName().equals(ingredient.getDisplayName()))
+						|| (ingredient.hasDisplayName()
+								&& !meta.getDisplayName().equals(ingredient.getDisplayName()))) {
+					logDebug("Skipping recipe..", recipeName);
+					logDebug("Displaynames do not match:", recipeName);
+					logDebug("Ingredient: " + ingredient.getDisplayName(), recipeName);
+					logDebug("Item: " + meta.getDisplayName(), recipeName);
+					return false;
+				}
 			}
 		}
 		return true;

@@ -285,7 +285,7 @@ public class Main extends JavaPlugin implements Listener {
 		isFirstLoad = getConfig().getBoolean("firstLoad");
 		debug = getConfig().getBoolean("Debug");
 		crafterdebug = getConfig().getBoolean("Crafter-Debug");
-		
+
 		saveCustomYml(customConfig, customYml);
 		saveCustomYml(cooldownConfig, cooldownYml);
 
@@ -620,7 +620,6 @@ public class Main extends JavaPlugin implements Listener {
 		return cls != null && cls.isInstance(obj);
 	}
 
-	/** Java-8 friendly type filter (no switch expressions). */
 	private static boolean matchesType(String typeKey, Recipe r) {
 		String t = (typeKey == null ? "" : typeKey.toLowerCase(java.util.Locale.ROOT));
 		switch (t) {
@@ -678,62 +677,38 @@ public class Main extends JavaPlugin implements Listener {
 		return message;
 	}
 
-	public void sendMessages(Player p, String s, long seconds) {
+	public void sendMessage(Player player, String basePath, long seconds) {
 
-		String send = null;
-
-		if (s.equalsIgnoreCase("none")) {
-			send = "recipe-disabled-message.";
-		} else if (s.equalsIgnoreCase("crafting-limit")) {
-			send = "crafting-limit.";
-		} else {
-			send = "no-permission-message.";
-		}
-
-		if (customConfig.getBoolean(send + "actionbar-message.enabled")) {
+		// ACTION BAR
+		if (customConfig.getBoolean(basePath + ".actionbar-message.enabled")) {
 			try {
 				String message = ChatColor.translateAlternateColorCodes('&',
-						customConfig.getString(send + "actionbar-message.message"));
-				p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+						customConfig.getString(basePath + ".actionbar-message.message", ""));
+
+				player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
 			} catch (Exception e) {
-				getLogger().log(Level.SEVERE, "Error while sending action bar message");
+				getLogger().log(Level.SEVERE, "Error while sending action bar message", e);
 			}
 		}
 
-		if (customConfig.getBoolean(send + "chat-message.enabled")) {
-			String message = ChatColor.translateAlternateColorCodes('&',
-					customConfig.getString(send + "chat-message.message"));
+		// CHAT MESSAGE
+		if (customConfig.getBoolean(basePath + ".chat-message.enabled")) {
+			String message;
 
-			if (send.equals("crafting-limit."))
+			if (basePath.equalsIgnoreCase("crafting-limit")) {
 				message = getCooldownMessage(seconds);
-
-			p.sendMessage(message);
-		}
-
-		if (customConfig.getBoolean(send + "close-inventory"))
-			p.closeInventory();
-	}
-
-	public void sendnoPerms(Player p) {
-
-		if (getConfig().getBoolean("action-bar.enabled")) {
-			try {
-				String message = ChatColor.translateAlternateColorCodes('&',
-						getConfig().getString("action-bar.message"));
-
-				p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-			} catch (Exception e) {
-				getLogger().log(Level.SEVERE, "Error while sending action bar message");
+			} else {
+				message = ChatColor.translateAlternateColorCodes('&',
+						customConfig.getString(basePath + ".chat-message.message", ""));
 			}
+
+			player.sendMessage(message);
 		}
 
-		if (getConfig().getBoolean("chat-message.enabled")) {
-			String message = ChatColor.translateAlternateColorCodes('&', getConfig().getString("chat-message.message"));
-			p.sendMessage(message);
+		// CLOSE INVENTORY
+		if (customConfig.getBoolean(basePath + ".close-inventory")) {
+			player.closeInventory();
 		}
-
-		if (getConfig().getBoolean("chat-message.close-inventory"))
-			p.closeInventory();
 	}
 
 	@EventHandler

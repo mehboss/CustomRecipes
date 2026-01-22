@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v2.0.6.2.6                                                                                #
+# Version v2.0.6.2.7                                                                                #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
@@ -36,13 +36,6 @@ Messages:
   Give-Recipe: '&aSuccessfully given player item!'
   Reloading: '&cReloading.. please wait'
   Reload: '&aSuccessfully reloaded Custom Recipes with&c %recipes% &arecipes!'
-action-bar:
-  enabled: true
-  message: '&4You are not allowed to craft this item!'
-chat-message: 
-  enabled: true
-  close-inventory: true
-  message: '&cYou must be a donor to craft this recipe!'  
 add:
   Add-Recipe: '&cPlease type the display name of the recipe you would like to add!'
   Recipe-Capture: '&cCaptured desired new recipe name! Opening menu..'

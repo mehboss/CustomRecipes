@@ -95,7 +95,7 @@ public class AnvilManager implements Listener {
 
 			if (hasCooldown) {
 				Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), matchedRecipe.getKey());
-				sendMessages(p, "crafting-limit", timeLeft);
+				sendMessage(p, "crafting-limit", timeLeft);
 				inv.setItem(2, null);
 				return;
 			}
@@ -162,13 +162,13 @@ public class AnvilManager implements Listener {
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 
-	void sendMessages(Player p, String s, long seconds) {
-		Main.getInstance().sendMessages(p, s, seconds);
+	void sendMessage(Player p, String s, long seconds) {
+		Main.getInstance().sendMessage(p, s, seconds);
 	}
 
 	void sendNoPermsMessage(Player p, String recipe) {
 		logDebug("[sendNoPermsMessage] Player " + p.getName()
 				+ " does not have required recipe crafting permissions for recipe " + recipe);
-		Main.getInstance().sendnoPerms(p);
+		Main.getInstance().sendMessage(p, "no-permission-message", 0);
 	}
 }

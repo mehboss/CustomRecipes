@@ -472,17 +472,16 @@ public class RecipeUtil {
 	 * @return the Recipe that is found, can be null
 	 */
 	public Recipe getRecipeFromResult(ItemStack item) {
-
 		if (item == null || item.getType() == Material.AIR)
 			return null;
 
-		String id = NBT.get(item, nbt -> (String) nbt.getString("CUSTOM_ITEM_IDENTIFIER"));
+		String id = NBT.get(item,
+				nbt -> nbt.hasTag("CUSTOM_ITEM_IDENTIFIER") ? (String) nbt.getString("CUSTOM_ITEM_IDENTIFIER") : null);
 		if (id != null)
 			return getRecipeFromKey(id);
 
 		for (Recipe recipe : recipes.values()) {
 			ItemStack result = recipe.getResult();
-
 			if (result.equals(item) || result.isSimilar(item))
 				return recipe;
 
@@ -789,7 +788,7 @@ public class RecipeUtil {
 		private boolean ignoreLore = false;
 		private boolean isTagged = true;
 		private boolean discoverable = false;
-		private boolean useLegacyNames = true;
+		private boolean usesID = true;
 
 		private boolean hasCommands = false;
 		private boolean isGrantItem = true;
@@ -838,22 +837,21 @@ public class RecipeUtil {
 		}
 
 		/**
-		 * Getter for whether or not a recipe uses legacy names.
+		 * Getter for whether or not a recipe uses an ID reference
 		 * 
-		 * @return true if the recipe uses display name, false if the recipe/item uses
-		 *         the newer item_name
+		 * @return true if the recipe uses ID, false otherwise
 		 */
-		public boolean isLegacyNames() {
-			return useLegacyNames;
+		public boolean usesID() {
+			return usesID;
 		}
 
 		/**
-		 * Sets whether the recipe uses display_name or uses item_name
+		 * Sets whether the recipe uses NBT or the custom item reference
 		 * 
-		 * @param legacy true if the recipe uses legacy, false otherwise.
+		 * @param usesID true if the recipe uses the item reference, false otherwise
 		 */
-		public void setLegacyNames(boolean legacy) {
-			this.useLegacyNames = legacy;
+		public void setUsesID(boolean usesID) {
+			this.usesID = usesID;
 		}
 
 		/**
@@ -1155,7 +1153,7 @@ public class RecipeUtil {
 		public boolean hasIgnoreTag() {
 			return ignoreData || ignoreLore || ignoreNames || ignoreModelData || ignoreItemModel;
 		}
-		
+
 		/**
 		 * Setter for if the recipe ignores MetaData
 		 * 
@@ -1191,7 +1189,7 @@ public class RecipeUtil {
 		public boolean getIgnoreLore() {
 			return ignoreLore;
 		}
-		
+
 		/**
 		 * Setter for if the recipe ignores names
 		 * 
@@ -1722,6 +1720,18 @@ public class RecipeUtil {
 		 */
 		public boolean hasDisplayName() {
 			return (displayName != null && !displayName.equals("false"));
+		}
+
+		/**
+		 * Getter for the ingredient ItemName
+		 * 
+		 * @returns the ItemName of the ingredient, can be null
+		 */
+		public String getItemName() {
+			if (itemName != null && !itemName.equals("false"))
+				return ChatColor.translateAlternateColorCodes('&', itemName);
+
+			return "false";
 		}
 
 		/**

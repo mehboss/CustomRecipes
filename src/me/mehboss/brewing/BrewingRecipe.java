@@ -344,13 +344,13 @@ public class BrewingRecipe {
 	}
 
 	static void sendMessages(Player p, String s, long seconds) {
-		Main.getInstance().sendMessages(p, s, seconds);
+		Main.getInstance().sendMessage(p, s, seconds);
 	}
 
 	static void sendNoPermsMessage(Player p, String recipe) {
 		logDebug("[sendNoPermsMessage] Player " + p.getName()
 				+ " does not have required recipe crafting permissions for recipe " + recipe);
-		Main.getInstance().sendnoPerms(p);
+		Main.getInstance().sendMessage(p, "no-permission-message", 0);
 	}
 
 	static void logDebug(String st) {

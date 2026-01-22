@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -36,6 +35,8 @@ import org.bukkit.plugin.Plugin;
 
 import com.cryptomorin.xseries.XMaterial;
 
+import de.tr7zw.changeme.nbtapi.NBT;
+import de.tr7zw.changeme.nbtapi.iface.ReadableNBT;
 import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.gui.framework.GuiView;
 import me.mehboss.gui.framework.GuiView.GuiRegistry;
@@ -73,9 +74,11 @@ public class BookGUI implements Listener {
 		List<Recipe> filtered = new ArrayList<>();
 
 		for (Recipe r : recipesMap.values()) {
-		    if ((r.hasPerm() && !p.hasPermission(r.getPerm()))) continue;
-		    if (isViewing && !r.isActive()) continue;
-		    filtered.add(r);
+			if ((r.hasPerm() && !p.hasPermission(r.getPerm())))
+				continue;
+			if (isViewing && !r.isActive())
+				continue;
+			filtered.add(r);
 		}
 
 		return filtered;
@@ -223,7 +226,7 @@ public class BookGUI implements Listener {
 					return;
 
 				boolean isViewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
-				
+
 				ItemStack stained = createItem("stainedG", XMaterial.BLACK_STAINED_GLASS_PANE, " ");
 				if (!e.getCurrentItem().equals(stained) && (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
 					Recipe recipe = new Recipe("New Recipe");
@@ -283,17 +286,14 @@ public class BookGUI implements Listener {
 				if (e.getRawSlot() < 19 || e.getRawSlot() > 34 || e.getRawSlot() == 26 || e.getRawSlot() == 27)
 					return;
 
-				String recipeName = null;
-
-				for (Recipe recipe : Main.getInstance().recipeUtil.getRecipesFromType(type).values()) {
-					if (recipe.getResult().isSimilar(e.getCurrentItem())) {
-						recipeName = recipe.getName();
-						break;
-					}
+				Recipe recipe = null;
+				ReadableNBT nbt = NBT.readNbt(e.getCurrentItem());
+				if (nbt.hasTag("CUSTOM_ITEM_IDENTIFIER")) {
+					String key = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
+					recipe = Main.getInstance().getRecipeUtil().getRecipeFromKey(key);
 				}
 
-				if (recipeName != null) {
-					Recipe recipe = Main.getInstance().recipeUtil.getRecipe(recipeName);
+				if (recipe != null) {
 					showCreationMenu(p, recipe, false, isViewing);
 				}
 			}
@@ -328,9 +328,11 @@ public class BookGUI implements Listener {
 					continue;
 
 				ItemStack item = result.clone();
-				ItemMeta itemM = item.getItemMeta();
-				if (itemM != null)
-					item.setItemMeta(itemM);
+				NBT.modify(item, nbt -> {
+					if (!nbt.hasTag("CUSTOM_ITEM_IDENTIFIER")) {
+						nbt.setString("CUSTOM_ITEM_IDENTIFIER", rObj.getKey());
+					}
+				});
 
 				inv.setItem(slotPositions[slot], item);
 			} catch (Exception e) {

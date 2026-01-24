@@ -190,9 +190,6 @@ public class CrafterManager implements Listener {
 				if (ing.isEmpty())
 					continue;
 
-				final Material mat = ing.getMaterial();
-				final String name = ing.getDisplayName();
-				final boolean hasID = ing.hasIdentifier();
 				int requiredAmount = Math.max(1, ing.getAmount());
 
 				for (int i = 0; i < 9; i++) {
@@ -203,7 +200,7 @@ public class CrafterManager implements Listener {
 					if (item == null || item.getType() == Material.AIR || crafter.isSlotDisabled(i))
 						continue;
 
-					if (!AmountManager().matchesIngredient(item, recipeName, ing, mat, name, hasID))
+					if (!AmountManager().matchesIngredient(item, recipeName, ing))
 						continue;
 
 					handlesItemRemoval(inv, recipe, item, ing, i, itemsToRemove, itemsToAdd, requiredAmount);
@@ -220,8 +217,7 @@ public class CrafterManager implements Listener {
 
 		String recipeName = recipe.getName();
 
-		if (!AmountManager().matchesIngredient(item, recipeName, ingredient, ingredient.getMaterial(),
-				ingredient.getDisplayName(), ingredient.hasIdentifier()))
+		if (!AmountManager().matchesIngredient(item, recipeName, ingredient))
 			return;
 
 		itemsToRemove = (itemsToAdd * requiredAmount) - 1; // remove exact amount for the crafter

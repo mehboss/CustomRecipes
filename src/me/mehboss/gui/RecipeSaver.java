@@ -572,8 +572,14 @@ public class RecipeSaver {
 			return "AIR"; // fallback for empty slots
 
 		// Try custom key from RecipeUtil (for plugin-based custom items)
-		String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
+		List<String> keys = Main.getInstance().getRecipeUtil().getKeysFromResult(item);
+		String key = (keys != null && !keys.isEmpty()) ? keys.get(0) : null;
+
 		if (usesID && key != null && !key.isEmpty() && !key.equals(id)) {
+			Recipe recipe = Main.getInstance().getRecipeUtil().getRecipeFromKey(key);
+			if (recipe != null)
+				return item.getType().toString();
+
 			hasID.set(true);
 			return key;
 		}
@@ -593,14 +599,13 @@ public class RecipeSaver {
 		return null;
 	}
 
-	// Ingredient identifier (recipe ref or NBT), default "none"
 	private String findIngredientIdentifier(ItemStack item) {
 		if (item == null)
 			return "none";
 
-		String key = Main.getInstance().getRecipeUtil().getKeyFromResult(item);
-		if (key != null)
-			return key;
+		List<String> keys = Main.getInstance().getRecipeUtil().getKeysFromResult(item);
+		if (keys != null && !keys.isEmpty())
+			return keys.get(0);
 
 		String nbt = getCustomIdentifier(item);
 		return (nbt != null && !"none".equalsIgnoreCase(nbt)) ? nbt : "none";

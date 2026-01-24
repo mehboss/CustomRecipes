@@ -10,7 +10,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -61,7 +60,6 @@ public class ShapelessChecks {
 
 		for (int i = start; i < matrix.length; i++) {
 			ItemStack it = matrix[i];
-			ItemMeta im = it.getItemMeta();
 
 			if (it == null || it.getType() == Material.AIR || it.getAmount() <= 0) {
 				slotNames.add("null");
@@ -72,10 +70,11 @@ public class ShapelessChecks {
 				continue;
 			}
 
-			String key = getRecipeUtil().getKeyFromResult(it);
-			if (key == null)
-				key = "null";
-			slotIDs.add(key);
+			ItemMeta im = it.getItemMeta();
+			List<String> keys = getRecipeUtil().getKeysFromResult(it);
+			if (keys.isEmpty())
+				keys.add("null");
+			slotIDs.addAll(keys);
 
 			if (CompatibilityUtil.supportsCustomModelData()) {
 				if (it.hasItemMeta() && im.hasCustomModelData()) {

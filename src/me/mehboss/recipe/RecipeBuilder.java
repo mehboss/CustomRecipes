@@ -98,7 +98,7 @@ public class RecipeBuilder {
 
 		if (getConfig().isBoolean(item + ".Uses-ID"))
 			recipe.setUsesID(getConfig().getBoolean(item + ".Uses-ID"));
-		
+
 		if (getConfig().isInt(item + ".Cooldown") && getConfig().getInt(item + ".Cooldown") != -1)
 			recipe.setCooldown(getConfig().getInt(item + ".Cooldown"));
 
@@ -109,7 +109,7 @@ public class RecipeBuilder {
 			for (String world : getConfig().getStringList(item + ".Disabled-Worlds"))
 				recipe.addDisabledWorld(world);
 		}
-		
+
 		recipe.setIgnoreData(getConfig().getBoolean(item + ".Flags.Ignore-Data"));
 		recipe.setIgnoreNames(getConfig().getBoolean(item + ".Flags.Ignore-Name"));
 		recipe.setIgnoreModelData(getConfig().getBoolean(item + ".Flags.Ignore-Model-Data"));
@@ -253,6 +253,20 @@ public class RecipeBuilder {
 		recipe.setSource(source);
 	}
 
+	public ArrayList<String> validateKeys(File[] recipeFiles) {
+		ArrayList<String> keys = new ArrayList<String>();
+		for (File recipeFile : recipeFiles) {
+			FileConfiguration recipe = YamlConfiguration.loadConfiguration(recipeFile);
+			String item = recipeFile.getName().replace(".yml", "");
+
+			if (!recipe.isConfigurationSection(item))
+				continue;
+			if (recipe.isString(item + ".Identifier"))
+				keys.add(recipe.getString(item + ".Identifier"));
+		}
+		return keys;
+	}
+
 	public void addRecipes(String name) {
 		File recipeFolder = new File(Main.getInstance().getDataFolder(), "recipes");
 		if (!recipeFolder.exists()) {
@@ -279,6 +293,7 @@ public class RecipeBuilder {
 			}
 		}
 
+		ArrayList<String> keys = validateKeys(recipeFiles);
 		recipeLoop: for (File recipeFile : recipeFiles) {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
 			String item = recipeFile.getName().replace(".yml", "");
@@ -392,12 +407,13 @@ public class RecipeBuilder {
 
 			// Attach recipe name ONLY for debug purposes
 			ItemStack i = getRecipeUtil().getResultFromKey(rawItem + ":" + recipe.getName());
-
-			// handle custom item stacks
-			if (i != null)
-				recipe.setCustomItem(rawItem);
-
 			if (i == null) {
+				if (keys.contains(rawItem)) {
+					// found custom item, but recipe isn't active yet so it must be added last.
+					delayedRecipes.add(item);
+					continue;
+				}
+
 				ItemStack stackFromConfig = getConfig().getItemStack(resultPath + ".Item");
 				if (stackFromConfig != null) {
 					// handle itemstack checks
@@ -410,10 +426,13 @@ public class RecipeBuilder {
 
 					i = built.get();
 				}
+			} else {
+				// handle custom item stacks
+				recipe.setCustomItem(rawItem);
 			}
 
 			i = getItemFactory().handleDurability(i, resultPath);
-
+			
 			int amount = getConfig().getInt(resultPath + ".Amount", i.getAmount());
 			i.setAmount(amount);
 
@@ -497,7 +516,7 @@ public class RecipeBuilder {
 			}
 
 			logDebug("Recipe Type: " + recipe.getType(), recipe.getName());
-			logDebug("Successfully added " + item + " with the amount output of " + i.getAmount(), recipe.getName());
+			logDebug("Successfully added " + item + " with the amount output of " + recipe.getResult().getAmount(), recipe.getName());
 
 			getRecipeUtil().createRecipe(recipe);
 			if (delayedRecipes.isEmpty() && name != null) {
@@ -509,7 +528,6 @@ public class RecipeBuilder {
 		if (!delayedRecipes.isEmpty() && name == null) {
 			for (String recipe : delayedRecipes)
 				addRecipes(recipe);
-
 			delayedRecipes.clear();
 		}
 

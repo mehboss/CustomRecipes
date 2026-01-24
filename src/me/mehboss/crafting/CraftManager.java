@@ -24,6 +24,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Keyed;
@@ -49,6 +51,7 @@ import me.clip.placeholderapi.PlaceholderAPI;
 import me.mehboss.crafting.ShapedChecks.AlignedResult;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CraftingRecipeData;
@@ -153,10 +156,13 @@ public class CraftManager implements Listener {
 		ItemStack exactMatch = null;
 		boolean matchesIdentifier = false;
 		boolean matchesTags = tagsMatch(ingredient, item);
+		boolean matchesItems = false;
 
 		// since getResultFromKey is so resource heavy, try to check tags first for
 		// custom items.
-		if (!matchesTags) {
+		if (!matchesTags)
+			matchesItems = ingredient.hasItem() && item.isSimilar(ingredient.getItem());
+		if (!matchesItems) {
 			exactMatch = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
 					: recipeResult;
 			matchesIdentifier = ingredient.hasIdentifier() && item.isSimilar(exactMatch);
@@ -168,10 +174,11 @@ public class CraftManager implements Listener {
 		boolean matchesMaterial = item.getType() == ingredient.getMaterial();
 		boolean matchesMaterialChoice = ingredient.hasMaterialChoices()
 				&& ingredient.getMaterialChoices().contains(item.getType());
-		boolean matchesSingleMaterialWithName = matchesMaterial && hasMatchingDisplayName(recipeName, item,
-				ingredient.getDisplayName(), ingredient.getIdentifier(), ingredient.hasIdentifier(), false);
+		boolean matchesSingleMaterialWithName = matchesMaterial
+				&& hasMatchingDisplayName(recipeName, item, ingredient, false);
 
-		if (matchesIdentifier || matchesTags || matchesMaterialChoice || matchesSingleMaterialWithName) {
+		if (matchesTags || matchesItems || matchesIdentifier || matchesMaterialChoice
+				|| matchesSingleMaterialWithName) {
 
 			if (debug)
 				logDebug("[amountsMatch] Checking slot " + slot + " for required amounts.. ", recipeName);
@@ -201,6 +208,7 @@ public class CraftManager implements Listener {
 			List<RecipeUtil.Ingredient> recipeIngredients, boolean debug, UUID id) {
 
 		logDebug("[amountsMatch] Checking recipe amounts..", recipeName, id);
+		Boolean isCrafting = inv.getType() == InventoryType.CRAFTING || inv.getType() == InventoryType.WORKBENCH;
 		RecipeType type = getRecipeUtil().getRecipe(recipeName).getType();
 		ItemStack[] matrix = inv.getContents();
 
@@ -232,6 +240,9 @@ public class CraftManager implements Listener {
 
 				for (ItemStack item : matrix) {
 					slot++;
+
+					if (isCrafting && slot == 0)
+						continue;
 					if (usedSlots[slot] || item == null || item.getType() == Material.AIR)
 						continue;
 					if (validateItem(item, ingredient, recipeName, slot, debug, false)) {
@@ -316,35 +327,42 @@ public class CraftManager implements Listener {
 		return false;
 	}
 
-	public boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
-			boolean hasIdentifier, boolean debug) {
+	public boolean hasMatchingDisplayName(String recipeName, ItemStack item, Ingredient ingredient, boolean debug) {
 		Recipe recipe = getRecipeUtil().getRecipe(recipeName);
 		if (recipe.getIgnoreData() || recipe.getIgnoreNames())
 			return true;
 
-		ItemMeta itemM = item.getItemMeta();
+		ItemMeta meta = item.getItemMeta();
 		ReadWriteNBT nbt = NBT.itemStackToNBT(item);
 		String id = nbt.hasTag("CUSTOM_ITEM_IDENTIFIER") ? nbt.getString("CUSTOM_ITEM_IDENTIFIER") : "none";
 
-		if (hasIdentifier && identifier.equals(id))
+		if (ingredient.hasIdentifier() && ingredient.getIdentifier().equals(id))
 			return true;
 
 		if (debug)
 			logDebug("[hasMatchingDisplayName] Checking displayname..", recipeName);
 
-		if (displayName == null || displayName.equals("false") || displayName.equals("none")) {
+		String name = ingredient.getDisplayName();
+		if (name == null || name.equals("false") || name.equals("none")) {
 			if (debug)
 				logDebug("[hasMatchingDisplayName] Found that ingredient does not have a displayname to check",
 						recipeName);
-			return !item.hasItemMeta() || !itemM.hasDisplayName();
+			return !item.hasItemMeta()
+					|| (!meta.hasDisplayName() && (!CompatibilityUtil.supportsItemName() || !meta.hasItemName()));
 
 		} else {
+			if (!item.hasItemMeta())
+				return false;
+
+			String itemName = CompatibilityUtil.hasDisplayname(meta, ingredient.hasItemName())
+					? CompatibilityUtil.getDisplayname(meta, ingredient.hasItemName())
+					: null;
+
+			boolean nameMatches = itemName != null && name.equals(itemName);
 			if (debug)
-				logDebug("[hasMatchingDisplayName] Found displayname " + displayName
-						+ " and the match check came back: " + Boolean.valueOf(item.hasItemMeta()
-								&& item.getItemMeta().hasDisplayName() && itemM.getDisplayName().equals(displayName)),
-						recipeName);
-			return item.hasItemMeta() && itemM.hasDisplayName() && itemM.getDisplayName().equals(displayName);
+				logDebug("[hasMatchingDisplayName] Found displayname " + name + " and the match check came back: "
+						+ nameMatches, recipeName);
+			return nameMatches;
 		}
 	}
 
@@ -495,18 +513,17 @@ public class CraftManager implements Listener {
 	}
 
 	boolean tagsMatch(RecipeUtil.Ingredient ingredient, ItemStack item) {
-		String key = getRecipeUtil().getKeyFromResult(item);
-		String invID = key != null ? key.toLowerCase() : "none";
+		List<String> keys = getRecipeUtil().getKeysFromResult(item).stream().map(String::toLowerCase)
+				.collect(Collectors.toList());
 		String ingID = ingredient.hasIdentifier() ? ingredient.getIdentifier().toLowerCase() : "none";
 
-		logDebug("[tagsMatch] Inventory Tag: " + invID, "");
 		logDebug("[tagsMatch] Ingredient Tag: " + ingID, "");
-		if (invID.equals("none") && ingID.equals("none"))
-			return true;
-		if (!invID.equals("none") && invID.equals(ingID))
-			return true;
+		logDebug("[tagsMatch] Inventory Tags: " + keys, "");
 
-		return false;
+		if (keys.isEmpty())
+			return ingID.equals("none");
+
+		return keys.contains(ingID);
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)

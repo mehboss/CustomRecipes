@@ -366,50 +366,67 @@ public class RecipeUtil {
 	 * @param item the ItemStack
 	 * @return the key that is found, can be null
 	 */
-	public String getKeyFromResult(ItemStack item) {
+	public List<String> getKeysFromResult(ItemStack item) {
+		List<String> allKeys = new ArrayList<>();
 		if (item == null || !item.hasItemMeta())
-			return null;
+			return allKeys;
 
 		// First, try to get a key from normal recipes
-		Recipe recipe = getRecipeFromResult(item);
-		if (recipe != null && !recipe.isCustomItem())
-			return recipe.getKey();
-
+		for (Recipe list : recipes.values()) {
+			if (list.isCustomItem())
+				continue;
+			
+			ItemStack result = list.getResult();
+			if (result.isSimilar(item) || result.equals(item))
+				allKeys.add(list.getKey());
+		}
+		
+		if (!allKeys.isEmpty())
+			return allKeys;
+		
 		// Then, try for a custom item
 		String customID = ItemManager.get(item);
-		if (customID != null)
-			return customID;
-
+		if (customID != null) {
+			allKeys.add(customID);
+			return allKeys;
+		}
+		
 		if (Main.getInstance().hasCustomPlugin("itemsadder")) {
 			CustomStack ia = CustomStack.byItemStack(item);
 			if (ia != null) {
-				return "itemsadder:" + ia.getId();
+				allKeys.add("itemsadder:" + ia.getId());
+				return allKeys;
 			}
 		}
 
 		if (Main.getInstance().hasCustomPlugin("mythicmobs")) {
 			String mythicId = MythicBukkit.inst().getItemManager().getMythicTypeFromItem(item);
 			if (mythicId != null) {
-				return "mythicmobs:" + mythicId;
+				allKeys.add("mythicmobs:" + mythicId);
+				return allKeys;
 			}
 		}
 
 		if (Main.getInstance().hasCustomPlugin("executableitems")) {
 			Optional<ExecutableItemInterface> ei = ExecutableItemsAPI.getExecutableItemsManager()
 					.getExecutableItem(item);
-			if (ei.isPresent())
-				return "executableitems:" + ei.get().getId();
+			if (ei.isPresent()) {
+				allKeys.add("executableitems:" + ei.get().getId());
+				return allKeys;
+			}
 		}
 
 		if (Main.getInstance().hasCustomPlugin("oraxen")) {
 			if (OraxenItems.exists(item)) {
-				return "oraxen:" + OraxenItems.getIdByItem(item);
+				allKeys.add("oraxen:" + OraxenItems.getIdByItem(item));
+				return allKeys;
 			}
 		}
 
 		if (Main.getInstance().hasCustomPlugin("nexo")) {
 			if (NexoItems.idFromItem(item) != null) {
-				return "nexo:" + NexoItems.idFromItem(item);
+				allKeys.add("nexo:" + NexoItems.idFromItem(item));
+				return allKeys;
 			}
 		}
 
@@ -417,7 +434,8 @@ public class RecipeUtil {
 			String id = MMOItems.getID(item);
 			String type = MMOItems.getTypeName(item);
 			if (id != null && type != null) {
-				return "mmoitems:" + id + ":" + type;
+				allKeys.add("mmoitems:" + id + ":" + type);
+				return allKeys;
 			}
 		}
 
@@ -430,10 +448,11 @@ public class RecipeUtil {
 				int size = bagData.getSize();
 
 				// havenbags:size:material:customModelData:texture
-				return "havenbags:" + size + material + modelData + texture;
+				allKeys.add("havenbags:" + size + material + modelData + texture);
+				return allKeys;
 			}
 		}
-		return null;
+		return allKeys;
 	}
 
 	/**
@@ -482,6 +501,7 @@ public class RecipeUtil {
 
 		for (Recipe recipe : recipes.values()) {
 			ItemStack result = recipe.getResult();
+
 			if (result.equals(item) || result.isSimilar(item))
 				return recipe;
 
@@ -1264,7 +1284,7 @@ public class RecipeUtil {
 		 * @returns the ItemStack of the recipe result
 		 */
 		public ItemStack getResult() {
-			return result;
+			return result.clone();
 		}
 
 		/**

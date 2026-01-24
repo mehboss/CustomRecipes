@@ -51,7 +51,7 @@ public class AmountManager implements Listener {
 	void sendMessage(Player p, String s, long seconds) {
 		Main.getInstance().sendMessage(p, s, seconds);
 	}
-	
+
 	CooldownManager getCooldownManager() {
 		return Main.getInstance().cooldownManager;
 	}
@@ -69,9 +69,8 @@ public class AmountManager implements Listener {
 		return craftManager.hasAllIngredients(inv, recipes, recipeIngredients, id);
 	}
 
-	private boolean hasMatchingDisplayName(String recipeName, ItemStack item, String displayName, String identifier,
-			boolean hasIdentifier, boolean b) {
-		return craftManager.hasMatchingDisplayName(recipeName, item, displayName, identifier, hasIdentifier, b);
+	private boolean hasMatchingDisplayName(String recipeName, ItemStack item, Ingredient ingredient, boolean b) {
+		return craftManager.hasMatchingDisplayName(recipeName, item, ingredient, b);
 	}
 
 	// Helper method for the handleShiftClick method
@@ -82,8 +81,7 @@ public class AmountManager implements Listener {
 		String recipeName = recipe.getName();
 		logDebug("[handleShiftClicks] Checking slot " + slot + " for the recipe " + recipeName);
 
-		if (matchesIngredient(item, recipeName, ingredient, ingredient.getMaterial(), ingredient.getDisplayName(),
-				ingredient.hasIdentifier())) {
+		if (matchesIngredient(item, recipeName, ingredient)) {
 
 			itemsToRemove = itemsToAdd * requiredAmount;
 
@@ -150,16 +148,17 @@ public class AmountManager implements Listener {
 	}
 
 	// Helper method for the handleShiftClick method
-	boolean matchesIngredient(ItemStack item, String recipeName, RecipeUtil.Ingredient ingredient, Material material,
-			String displayName, boolean hasIdentifier) {
+	boolean matchesIngredient(ItemStack item, String recipeName, RecipeUtil.Ingredient ingredient) {
 		Recipe exactMatch = getRecipeUtil().getRecipeFromKey(ingredient.getIdentifier());
 		ItemStack customItem = ingredient.hasIdentifier() ? getRecipeUtil().getResultFromKey(ingredient.getIdentifier())
 				: null;
 
-		return (customItem != null && item.isSimilar(customItem)) || (craftManager.tagsMatch(ingredient, item)
-				|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
-				|| (item.getType() == material && hasMatchingDisplayName(recipeName, item, displayName,
-						ingredient.getIdentifier(), hasIdentifier, false)));
+		return (customItem != null && item.isSimilar(customItem))
+				|| (ingredient.hasItem() && item.isSimilar(ingredient.getItem()))
+				|| (craftManager.tagsMatch(ingredient, item)
+						|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
+						|| (item.getType() == ingredient.getMaterial()
+								&& hasMatchingDisplayName(recipeName, item, ingredient, false)));
 	}
 
 	boolean isCraftingRecipe(RecipeType type) {
@@ -242,7 +241,7 @@ public class AmountManager implements Listener {
 		boolean hasCooldown = p != null && recipe.hasCooldown()
 				&& getCooldownManager().hasCooldown(p.getUniqueId(), recipe.getKey())
 				&& !(recipe.hasPerm() && p.hasPermission(recipe.getPerm() + ".bypass"));
-		
+
 		// COOLDOWN
 		if (hasCooldown) {
 			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
@@ -250,7 +249,7 @@ public class AmountManager implements Listener {
 			sendMessage(p, "crafting-limit", timeLeft);
 			return;
 		}
-		
+
 		if (!recipe.isGrantItem()) {
 			if (e.getAction() == InventoryAction.DROP_ONE_SLOT || e.getAction() == InventoryAction.DROP_ALL_SLOT) {
 				logDebug("[handleShiftClicks] Denying craft due to drop request on an ungrantable item..");
@@ -325,8 +324,7 @@ public class AmountManager implements Listener {
 					if (slot == null || slot.getType() == Material.AIR)
 						continue;
 
-					if (!matchesIngredient(slot, findName, ing, ing.getMaterial(), ing.getDisplayName(),
-							ing.hasIdentifier()))
+					if (!matchesIngredient(slot, findName, ing))
 						continue;
 
 					int possible = slot.getAmount() / req;
@@ -376,9 +374,6 @@ public class AmountManager implements Listener {
 				if (ing.isEmpty())
 					continue;
 
-				final Material mat = ing.getMaterial();
-				final String name = ing.getDisplayName();
-				final boolean hasID = ing.hasIdentifier();
 				int req = Math.max(1, ing.getAmount());
 
 				// add 1 for inventory matrix
@@ -390,7 +385,7 @@ public class AmountManager implements Listener {
 					if (stack == null || stack.getType() == Material.AIR)
 						continue;
 
-					if (!matchesIngredient(stack, findName, ing, mat, name, hasID))
+					if (!matchesIngredient(stack, findName, ing))
 						continue;
 
 					handlesItemRemoval(e, inv, recipe, stack, ing, i, itemsToRemove, itemsToAdd, req, containerCraft);

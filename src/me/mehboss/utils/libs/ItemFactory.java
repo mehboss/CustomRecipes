@@ -42,6 +42,7 @@ import com.cryptomorin.xseries.XAttribute;
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XPotion;
+import com.google.common.base.Function;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 
@@ -52,6 +53,9 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import net.advancedplugins.ae.api.AEAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
 
@@ -206,6 +210,7 @@ public class ItemFactory {
 		try {
 			XItemStack.Deserializer deserializer = XItemStack.deserializer();
 			deserializer.fromConfig(section);
+
 			ItemStack item = deserializer.deserialize();
 
 			// Optional: treat AIR or BARRIER as "no item"

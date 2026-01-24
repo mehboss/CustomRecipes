@@ -20,6 +20,9 @@ import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import net.advancedplugins.ae.api.AEAPI;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
@@ -50,6 +53,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.jetbrains.annotations.*;
 
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.*;
 import java.util.logging.Level;
@@ -1273,14 +1277,35 @@ public final class XItemStack {
 			}
 		}
 
+		private boolean isPaperServer() {
+			String serverName = Bukkit.getServer().getName();
+			if (!serverName.contains("Paper"))
+				return false;
+			return true;
+		}
+
+		private void setDisplayName(ItemMeta meta, Component name, String string) {
+			try {
+				Method method = meta.getClass().getMethod("displayName", Component.class);
+				method.invoke(meta, name);
+			} catch (Exception ignored) {
+				String translated = translator.apply(string);
+				meta.setDisplayName(translated);
+			}
+		}
+
 		@SuppressWarnings("ConstantValue")
 		private void displayName() {
 			String name = config.getString("name");
 
 			if (!Strings.isNullOrEmpty(name)) {
-				if (miniMessageHandler != null) {
-					AdventureAPIFactory.setDisplayName(meta,
-							miniMessageHandler.apply(Collections.singletonList(name)).get(0));
+				if (isPaperServer()) {
+					LegacyComponentSerializer legacy = (name.indexOf('§') >= 0)
+							? LegacyComponentSerializer.legacySection()
+							: LegacyComponentSerializer.legacyAmpersand();
+
+					Component component = legacy.deserialize(name).compact();
+					setDisplayName(meta, component, name);
 					return;
 				}
 
@@ -1291,13 +1316,32 @@ public final class XItemStack {
 			}
 		}
 
+		private void setItemName(ItemMeta meta, Component name, String string) {
+			try {
+				Method itemNameMethod = meta.getClass().getMethod("itemName", Component.class);
+				itemNameMethod.setAccessible(true);
+				itemNameMethod.invoke(meta, name);
+			} catch (Exception ignored) {
+				String translated = translator.apply(string);
+				meta.setItemName(translated);
+			}
+		}
+
 		@SuppressWarnings("ConstantValue")
 		private void itemName() {
-			if (!SUPPORTS_ITEM_NAME)
-				return;
-
 			String itemName = config.getString("item-name");
+
 			if (!Strings.isNullOrEmpty(itemName)) {
+				if (isPaperServer()) {
+					LegacyComponentSerializer legacy = (itemName.indexOf('§') >= 0)
+							? LegacyComponentSerializer.legacySection()
+							: LegacyComponentSerializer.legacyAmpersand();
+
+					Component component = legacy.deserialize(itemName).compact();
+					setItemName(meta, component, itemName);
+					return;
+				}
+
 				String translated = translator.apply(itemName);
 				meta.setItemName(translated);
 			} else if (itemName != null && itemName.isEmpty()) {

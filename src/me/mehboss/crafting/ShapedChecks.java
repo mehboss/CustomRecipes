@@ -17,6 +17,7 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.libs.CompatibilityUtil;
+import me.mehboss.utils.libs.XItemStack;
 
 public class ShapedChecks {
 
@@ -68,6 +69,8 @@ public class ShapedChecks {
 			Ingredient ing = recipeIngredients.get(i);
 			if (ing.isEmpty())
 				recipeGrid[i] = new ItemStack(Material.AIR);
+			else if (ing.hasItem())
+				recipeGrid[i] = ing.getItem();
 			else if (ing.hasIdentifier())
 				recipeGrid[i] = getRecipeUtil().getResultFromKey(ing.getIdentifier());
 			else
@@ -157,9 +160,9 @@ public class ShapedChecks {
 			ItemMeta meta = stack.getItemMeta();
 			// IDENTIFIER CHECK
 			if (ingredient.hasIdentifier()) {
-				String invID = getRecipeUtil().getKeyFromResult(stack);
+				List<String> invID = getRecipeUtil().getKeysFromResult(stack);
 
-				if (invID == null || !invID.equals(ingredient.getIdentifier())) {
+				if (invID == null || !invID.contains(ingredient.getIdentifier())) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());
 					logDebug("[handleShaped] IDs do not match", recipe.getName());
 					logDebug("[handleShaped] IngID = " + ingredient.getIdentifier(), recipe.getName());
@@ -175,6 +178,8 @@ public class ShapedChecks {
 					logDebug("[handleShaped] Passed 'ITEM' checks for the ingredient in slot " + i, recipe.getName());
 					continue;
 				}
+				logDebug("[handleShaped] Ingredient Item: " + ingredient.getItem(), recipe.getName());
+				logDebug("[handleShaped] Slot Item: " + stack, recipe.getName());
 
 				if (!recipe.hasIgnoreTag()) {
 					logDebug("[handleShaped] Skipping recipe..", recipe.getName());

@@ -100,9 +100,7 @@ public class ItemManager {
 
 		itemConfig = cfg;
 		String resultPath = cfg.isConfigurationSection(section + ".Result") ? section + ".Result" : section;
-
-		boolean useLegacyName = cfg.getBoolean(resultPath + ".Use-Display-Name", true);
-		Optional<ItemStack> built = Main.getInstance().itemFactory.buildItem(resultPath, itemConfig, useLegacyName);
+		Optional<ItemStack> built = Main.getInstance().itemFactory.buildItem(resultPath, itemConfig);
 		if (!built.isPresent()) {
 			Main.getInstance().getLogger().warning("[CustomItemAPI] buildItem failed for section " + section);
 			return;

@@ -33,8 +33,10 @@ import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.SmithingRecipe;
 import org.bukkit.inventory.SmokingRecipe;
 import org.bukkit.inventory.StonecuttingRecipe;
+import org.bukkit.inventory.meta.ItemMeta;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -42,6 +44,8 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.data.SmithingRecipeData;
+import me.mehboss.utils.data.SmithingRecipeData.SmithingRecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
 import me.mehboss.utils.libs.ItemFactory;
 import me.mehboss.utils.libs.RecipeConditions;
@@ -87,9 +91,6 @@ public class RecipeBuilder {
 	}
 
 	void handleRecipeFlags(String item, Recipe recipe) {
-		if (getConfig().getBoolean(item + ".Custom-Tagged"))
-			recipe.setTagged(true);
-
 		if (getConfig().isBoolean(item + ".Enabled"))
 			recipe.setActive(getConfig().getBoolean(item + ".Enabled"));
 
@@ -203,6 +204,12 @@ public class RecipeBuilder {
 		}
 	}
 
+	void handleSmithingData(Recipe recipe, String configPath) {
+		SmithingRecipeData smithing = (SmithingRecipeData) recipe;
+		SmithingRecipeType type = SmithingRecipeType.fromString(getConfig().getString(configPath + ".Type"));
+		smithing.setSmithingType(type);
+	}
+
 	void checkIdentifiers() {
 		for (Recipe recipe : new ArrayList<>(getRecipeUtil().getAllRecipes().values())) {
 			for (Ingredient ingredient : recipe.getIngredients()) {
@@ -228,29 +235,88 @@ public class RecipeBuilder {
 		}
 	}
 
+	ItemStack buildItem(Ingredient ingredient) {
+		ItemStack item = null;
+
+		if (ingredient.hasIdentifier()) {
+			item = Main.getInstance().getRecipeUtil().getResultFromKey(ingredient.getIdentifier());
+		} else if (ingredient.hasItem()) {
+			ingredient.getItem();
+		}
+
+		if (item == null) {
+			item = new ItemStack(ingredient.getMaterial());
+			ItemMeta meta = item.getItemMeta();
+
+			if (ingredient.hasDisplayName())
+				meta.setDisplayName(ingredient.getDisplayName());
+
+			if (ingredient.hasCustomModelData())
+				meta.setCustomModelData(ingredient.getCustomModelData());
+
+			item.setItemMeta(meta);
+		}
+		return item;
+	}
+
 	void setBrewingItems(BrewingRecipeData recipe) {
-		recipe.setBrewIngredient(recipe.getSlot(1));
-		recipe.setBrewFuel(recipe.getSlot(2));
+		recipe.setBrewIngredient(buildItem(recipe.getSlot(1)));
+		recipe.setBrewFuel(buildItem(recipe.getSlot(2)));
 	}
 
 	void setFurnaceSource(CookingRecipeData recipe) {
-		Ingredient sourceItem = recipe.getSlot(1);
-		ItemStack source = null;
+		recipe.setFurnaceSource(buildItem(recipe.getSlot(1)));
+	}
 
-		if (sourceItem.hasIdentifier()) {
-			source = getRecipeUtil().getResultFromKey(sourceItem.getIdentifier());
+	void setSmithingItems(SmithingRecipeData recipe) {
+		recipe.setTemplate(buildItem(recipe.getSlot(1)));
+		recipe.setBase(buildItem(recipe.getSlot(2)));
+		recipe.setAddition(buildItem(recipe.getSlot(3)));
+		recipe.setTrimPattern(buildItem(recipe.getSlot(4)));
+	}
+
+	Optional<ItemStack> handleResult(String resultPath, Recipe recipe, ArrayList<String> keys) {
+		// Checks for a custom item and attempts to set it
+		String rawItem = getConfig().getString(resultPath + ".Item") == null
+				? getConfig().getString(resultPath + ".material")
+				: getConfig().getString(resultPath + ".Item");
+		if (rawItem == null) {
+			logError("Error loading recipe..", recipe.getName());
+			logError("The 'Item' section is missing or improperly formatted! Skipping..", recipe.getName());
+			return Optional.empty();
 		}
 
-		if (source == null) {
-			source = new ItemStack(sourceItem.getMaterial());
+		// Attach recipe name ONLY for debug purposes
+		ItemStack i = getRecipeUtil().getResultFromKey(rawItem + ":" + recipe.getName());
+		if (i == null) {
+			if (keys.contains(rawItem)) {
+				// found custom item, but recipe isn't active yet so it must be added last.
+				delayedRecipes.add(recipe.getName());
+				return Optional.empty();
+			}
 
-			if (sourceItem.hasDisplayName())
-				source.getItemMeta().setDisplayName(sourceItem.getDisplayName());
-			if (sourceItem.hasCustomModelData())
-				source.getItemMeta().setCustomModelData(sourceItem.getCustomModelData());
+			ItemStack stackFromConfig = getConfig().getItemStack(resultPath + ".Item");
+			if (stackFromConfig != null) {
+				// handle itemstack checks
+				i = stackFromConfig;
+			} else {
+				// handle material checks
+				Optional<ItemStack> built = getItemFactory().buildItem(resultPath, getConfig());
+				if (!built.isPresent())
+					return Optional.empty();
+
+				i = built.get();
+			}
+		} else {
+			// handle custom item stacks
+			recipe.setCustomItem(rawItem);
 		}
 
-		recipe.setSource(source);
+		i = getItemFactory().handleDurability(i, resultPath);
+
+		int amount = getConfig().getInt(resultPath + ".Amount", i.getAmount());
+		i.setAmount(amount);
+		return Optional.of(i);
 	}
 
 	public ArrayList<String> validateKeys(File[] recipeFiles) {
@@ -372,6 +438,12 @@ public class RecipeBuilder {
 				handleBrewingData(recipe, item);
 				amountRequirement = 2;
 				break;
+			case SMITHING:
+				recipe = new SmithingRecipeData(item);
+				recipe.setType(type);
+				handleSmithingData(recipe, item);
+				amountRequirement = 4;
+				break;
 			default:
 				recipe = new CraftingRecipeData(item);
 				recipe.setType(getConfig().getBoolean(item + ".Shapeless") ? RecipeType.SHAPELESS : RecipeType.SHAPED);
@@ -385,58 +457,20 @@ public class RecipeBuilder {
 
 			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS) {
 				if (name == null) {
-					delayedRecipes.add(item);
+					delayedRecipes.add(recipe.getName());
 					continue;
 				}
 			}
-			boolean useLegacyNames = getConfig().getBoolean(item + ".Use-Display-Name", true);
+
 			String resultPath = getConfig().isConfigurationSection(item + ".Result") ? item + ".Result" : item;
 			String identifier = getConfig().getString(item + ".Identifier");
-
 			recipe.setKey(identifier);
 
-			// Checks for a custom item and attempts to set it
-			String rawItem = getConfig().getString(resultPath + ".Item") == null
-					? getConfig().getString(resultPath + ".material")
-					: getConfig().getString(resultPath + ".Item");
-			if (rawItem == null) {
-				logError("Error loading recipe..", recipe.getName());
-				logError("The 'Item' section is missing or improperly formatted! Skipping..", recipe.getName());
+			Optional<ItemStack> result = handleResult(resultPath, recipe, keys);
+			if (!result.isPresent() && recipe.getType() != RecipeType.SMITHING)
 				continue;
-			}
 
-			// Attach recipe name ONLY for debug purposes
-			ItemStack i = getRecipeUtil().getResultFromKey(rawItem + ":" + recipe.getName());
-			if (i == null) {
-				if (keys.contains(rawItem)) {
-					// found custom item, but recipe isn't active yet so it must be added last.
-					delayedRecipes.add(item);
-					continue;
-				}
-
-				ItemStack stackFromConfig = getConfig().getItemStack(resultPath + ".Item");
-				if (stackFromConfig != null) {
-					// handle itemstack checks
-					i = stackFromConfig;
-				} else {
-					// handle material checks
-					Optional<ItemStack> built = getItemFactory().buildItem(resultPath, getConfig(), useLegacyNames);
-					if (!built.isPresent())
-						continue;
-
-					i = built.get();
-				}
-			} else {
-				// handle custom item stacks
-				recipe.setCustomItem(rawItem);
-			}
-
-			i = getItemFactory().handleDurability(i, resultPath);
-			
-			int amount = getConfig().getInt(resultPath + ".Amount", i.getAmount());
-			i.setAmount(amount);
-
-			recipe.setResult(i);
+			recipe.setResult(result.get());
 			handleIdentifier(resultPath, recipe);
 			handleRecipeFlags(item, recipe);
 			handleCommand(item, recipe);
@@ -516,7 +550,8 @@ public class RecipeBuilder {
 			}
 
 			logDebug("Recipe Type: " + recipe.getType(), recipe.getName());
-			logDebug("Successfully added " + item + " with the amount output of " + recipe.getResult().getAmount(), recipe.getName());
+			logDebug("Successfully added " + item + " with the amount output of " + recipe.getResult().getAmount(),
+					recipe.getName());
 
 			getRecipeUtil().createRecipe(recipe);
 			if (delayedRecipes.isEmpty() && name != null) {
@@ -559,6 +594,7 @@ public class RecipeBuilder {
 				BlastingRecipe blastRecipe = null;
 				SmokingRecipe smokerRecipe = null;
 				CampfireRecipe campfireRecipe = null;
+				SmithingRecipe smithingRecipe = null;
 
 				// Create recipes based on type
 				switch (recipe.getType()) {
@@ -617,11 +653,18 @@ public class RecipeBuilder {
 					}
 					break;
 
+				// Manual brewing events, since no official BrewingRecipe exists.
 				case BREWING_STAND:
 					setBrewingItems((BrewingRecipeData) recipe);
 					break;
 				default:
 					break;
+
+				case SMITHING:
+					if (Main.getInstance().serverVersionAtLeast(1, 20)) {
+						smithingRecipe = Main.getInstance().exactChoice
+								.createSmithingRecipe((SmithingRecipeData) recipe);
+					}
 				}
 
 				// Register recipes with the server
@@ -639,6 +682,8 @@ public class RecipeBuilder {
 					Bukkit.getServer().addRecipe(smokerRecipe);
 				if (campfireRecipe != null)
 					Bukkit.getServer().addRecipe(campfireRecipe);
+				if (smithingRecipe != null)
+					Bukkit.getServer().addRecipe(smithingRecipe);
 
 			} catch (Exception e) {
 				Main.getInstance().getLogger().log(Level.SEVERE, "Error loading recipe: " + e.getMessage(), e);
@@ -725,6 +770,7 @@ public class RecipeBuilder {
 	}
 
 	boolean isVersionSupported(RecipeType type, String item) {
+		List<RecipeType> v20_Types = Arrays.asList(RecipeType.SMITHING);
 		List<RecipeType> v16_Types = Arrays.asList(RecipeType.GRINDSTONE);
 		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS,
 				RecipeType.FURNACE);
@@ -738,6 +784,12 @@ public class RecipeBuilder {
 		if (Main.getInstance().serverVersionLessThan(1, 16) && v16_Types.contains(type)) {
 			logError("Error loading recipe..", item);
 			logError(">= 1.16 is required for " + type.toString() + " recipes!", item);
+			return false;
+		}
+
+		if (Main.getInstance().serverVersionLessThan(1, 20) && v20_Types.contains(type)) {
+			logError("Error loading recipe..", item);
+			logError(">= 1.20 is required for " + type.toString() + " recipes!", item);
 			return false;
 		}
 		return true;

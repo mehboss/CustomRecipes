@@ -15,7 +15,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.attribute.AttributeModifier.Operation;
 import org.bukkit.block.CreatureSpawner;
@@ -42,7 +41,6 @@ import com.cryptomorin.xseries.XAttribute;
 import com.cryptomorin.xseries.XEnchantment;
 import com.cryptomorin.xseries.XMaterial;
 import com.cryptomorin.xseries.XPotion;
-import com.google.common.base.Function;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 
@@ -53,9 +51,6 @@ import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import net.advancedplugins.ae.api.AEAPI;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
 
@@ -140,7 +135,7 @@ public class ItemFactory {
 		return true;
 	}
 
-	public Optional<ItemStack> buildItem(String item, FileConfiguration path, boolean useLegacyNames) {
+	public Optional<ItemStack> buildItem(String item, FileConfiguration path) {
 		Optional<ItemStack> result = deserializeItemFromPath(path, item);
 		file = path;
 
@@ -189,7 +184,7 @@ public class ItemFactory {
 		i = handleEnchants(i, item);
 		i = handleCustomEnchants(i, item);
 		i = applyCustomTags(i, item);
-		m = handleDisplayname(item, i, useLegacyNames);
+		m = handleDisplayname(item, i);
 		m = handleHideEnchants(item, m);
 		m = handleCustomModelData(item, m);
 		m = handleItemModel(item, m);
@@ -210,7 +205,6 @@ public class ItemFactory {
 		try {
 			XItemStack.Deserializer deserializer = XItemStack.deserializer();
 			deserializer.fromConfig(section);
-
 			ItemStack item = deserializer.deserialize();
 
 			// Optional: treat AIR or BARRIER as "no item"
@@ -419,7 +413,7 @@ public class ItemFactory {
 		return m;
 	}
 
-	ItemMeta handleDisplayname(String item, ItemStack recipe, boolean useLegacyNames) {
+	ItemMeta handleDisplayname(String item, ItemStack recipe) {
 		ItemMeta itemMeta = recipe.getItemMeta();
 
 		String name = getConfig().getString(item + ".Name", "none");

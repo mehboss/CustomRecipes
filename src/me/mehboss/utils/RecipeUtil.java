@@ -127,7 +127,8 @@ public class RecipeUtil {
 			throw new InvalidRecipeException(errorMessage);
 		}
 
-		if (recipe.getResult() == null || recipe.getResult().getType() == Material.AIR) {
+		if (recipe.getType() != RecipeType.SMITHING
+				&& (recipe.getResult() == null || recipe.getResult().getType() == Material.AIR)) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName()
 					+ ". The recipe result was null or not set.";
 			throw new InvalidRecipeException(errorMessage);
@@ -375,22 +376,22 @@ public class RecipeUtil {
 		for (Recipe list : recipes.values()) {
 			if (list.isCustomItem())
 				continue;
-			
+
 			ItemStack result = list.getResult();
 			if (result.isSimilar(item) || result.equals(item))
 				allKeys.add(list.getKey());
 		}
-		
+
 		if (!allKeys.isEmpty())
 			return allKeys;
-		
+
 		// Then, try for a custom item
 		String customID = ItemManager.get(item);
 		if (customID != null) {
 			allKeys.add(customID);
 			return allKeys;
 		}
-		
+
 		if (Main.getInstance().hasCustomPlugin("itemsadder")) {
 			CustomStack ia = CustomStack.byItemStack(item);
 			if (ia != null) {
@@ -820,7 +821,7 @@ public class RecipeUtil {
 
 		public enum RecipeType {
 			SHAPELESS(), SHAPED(), STONECUTTER(), FURNACE(), ANVIL(), BLASTFURNACE("BLAST", "BLAST_FURNACE"), SMOKER(),
-			CAMPFIRE(), GRINDSTONE(), BREWING_STAND("BREWING");
+			CAMPFIRE(), GRINDSTONE(), BREWING_STAND("BREWING"), SMITHING;
 
 			private final Set<String> aliases;
 
@@ -1086,9 +1087,9 @@ public class RecipeUtil {
 		 * @throws InvalidRecipeException if there is no key found
 		 */
 		public void setTagged(boolean tagged) {
-			if (result == null) {
-				throw new InvalidRecipeException("There was no result found to tag");
-			}
+			if (result == null)
+				return;
+
 			if (key == null) {
 				throw new InvalidRecipeException(
 						"You must set a NameSpacedKey (setKey()) prior to calling setTagged()");
@@ -1271,6 +1272,9 @@ public class RecipeUtil {
 		 */
 		public void setResult(ItemStack result) {
 			if (result == null || result.getType() == Material.AIR) {
+				if (recipeType == RecipeType.SMITHING)
+					return;
+
 				String errorMessage = "[CRAPI] The recipe result can not be set to null or air";
 				throw new InvalidRecipeException(errorMessage);
 			}

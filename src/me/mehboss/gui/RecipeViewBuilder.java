@@ -28,6 +28,7 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.data.SmithingRecipeData;
 import me.mehboss.utils.data.SmithingRecipeData.SmithingRecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
 import me.mehboss.utils.libs.CompatibilityUtil;
@@ -376,21 +377,21 @@ public class RecipeViewBuilder {
 		}
 
 		/*
-		 * Smithing toggle (slot 52)
-		 */
-		if (recipe.SmithingRecipeData.isTrim() == SmithingRecipeType.TRIM || recipe.SmithingRecipeData.isTransform()) {
+         * Smithing toggle (slot 52)
+         */
+        if (recipe instanceof SmithingRecipeData) {
+            SmithingRecipeData smithing = (SmithingRecipeData) recipe;
+            boolean isTrim = smithing.isTrim();
 
-			boolean isTrim = recipe.SmithingRecipeData.isTrim() == SmithingRecipeType.TRIM;
-
-			view.addButton(new GuiToggleButton(52, isTrim, "Trim",
-					RecipeItemFactory.button(XMaterial.SMITHING_TABLE, getValue("",""))) {
-				
-				@Override
-				public void onToggle(Player p2, boolean val) {
-					
-				}
-			});
-		}
+            view.addButton(new GuiToggleButton(52, isTrim, "Trim",
+                    RecipeItemFactory.button(XMaterial.SMITHING_TABLE, getValue("Smithing.Trim","&fTrim"))) {
+                
+                @Override
+                public void onToggle(Player p2, boolean val) {
+                    
+                }
+            });
+        }
 
 		/*
 		 * Exact Choice toggle (slot 18)

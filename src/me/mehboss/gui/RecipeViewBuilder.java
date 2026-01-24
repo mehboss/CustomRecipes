@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.SmithingRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.cryptomorin.xseries.XMaterial;
@@ -27,6 +28,7 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.data.SmithingRecipeData.SmithingRecipeType;
 import me.mehboss.utils.data.WorkstationRecipeData;
 import me.mehboss.utils.libs.CompatibilityUtil;
 
@@ -369,6 +371,23 @@ public class RecipeViewBuilder {
 
 				@Override
 				public void onToggle(Player p2, boolean val) {
+				}
+			});
+		}
+
+		/*
+		 * Smithing toggle (slot 52)
+		 */
+		if (recipe.SmithingRecipeData.isTrim() == SmithingRecipeType.TRIM || recipe.SmithingRecipeData.isTransform()) {
+
+			boolean isTrim = recipe.SmithingRecipeData.isTrim() == SmithingRecipeType.TRIM;
+
+			view.addButton(new GuiToggleButton(52, isTrim, "Trim",
+					RecipeItemFactory.button(XMaterial.SMITHING_TABLE, getValue("",""))) {
+				
+				@Override
+				public void onToggle(Player p2, boolean val) {
+					
 				}
 			});
 		}

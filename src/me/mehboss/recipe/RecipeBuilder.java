@@ -206,8 +206,13 @@ public class RecipeBuilder {
 
 	void handleSmithingData(Recipe recipe, String configPath) {
 		SmithingRecipeData smithing = (SmithingRecipeData) recipe;
+
 		SmithingRecipeType type = SmithingRecipeType.fromString(getConfig().getString(configPath + ".Type"));
 		smithing.setSmithingType(type);
+		boolean copyTrim = getConfig().getBoolean(configPath + ".Copy-Trim");
+		smithing.setCopyTrim(copyTrim);
+		boolean copyEnchants = getConfig().getBoolean(configPath + ".Copy-Enchants");
+		smithing.setCopyEnchants(copyEnchants);
 	}
 
 	void checkIdentifiers() {

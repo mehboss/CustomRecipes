@@ -49,6 +49,8 @@ public class SmithingRecipeData extends Recipe {
 	private ItemStack template;
 	private ItemStack base;
 	private ItemStack addition;
+	private boolean copyTrim = true;
+	private boolean copyEnchants = true;
 
 	public SmithingRecipeData(String name) {
 		super(name);
@@ -72,6 +74,16 @@ public class SmithingRecipeData extends Recipe {
 		return type == SmithingRecipeType.TRANSFORM;
 	}
 
+	/** Returns whether the transform recipe copies enchants to the output. */
+	public boolean copiesEnchants() {
+		return copyEnchants;
+	}
+
+	/** Returns whether the transform recipe copies trim to the output. */
+	public boolean copiesTrim() {
+		return copyTrim;
+	}
+
 	/**
 	 * Gets the smithing type assigned to this smithing recipe.
 	 *
@@ -79,6 +91,24 @@ public class SmithingRecipeData extends Recipe {
 	 */
 	public SmithingRecipeType getSmithingType() {
 		return type;
+	}
+
+	/**
+	 * Sets the copy trim setting for a transform recipe
+	 *
+	 * @param copy whether the recipe copies trim to the output
+	 */
+	public void setCopyTrim(boolean copy) {
+		this.copyTrim = copy;
+	}
+
+	/**
+	 * Sets the copy enchants setting for a transform recipe
+	 *
+	 * @param copy whether the recipe copies enchants to the output
+	 */
+	public void setCopyEnchants(boolean copy) {
+		this.copyEnchants = copy;
 	}
 
 	/**

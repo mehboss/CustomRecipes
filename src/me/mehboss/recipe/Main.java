@@ -36,6 +36,7 @@ import com.cryptomorin.xseries.XMaterial;
 import me.mehboss.anvil.AnvilManager;
 import me.mehboss.anvil.AnvilManager_1_8;
 import me.mehboss.anvil.GrindstoneManager;
+import me.mehboss.anvil.SmithingManager;
 import me.mehboss.brewing.BrewEvent;
 import me.mehboss.commands.CommandRecipes;
 import me.mehboss.commands.TabCompletion;
@@ -331,13 +332,15 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
+		Bukkit.getPluginManager().registerEvents(new SmithingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new BrewEvent(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
-		if (serverVersionAtLeast(1, 9))
+		if (serverVersionAtLeast(1, 9)) {
 			Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
-		else
+		} else {
 			Bukkit.getPluginManager().registerEvents(new AnvilManager_1_8(), this);
+		}
 
 		registerUpdateChecker();
 		registerBstats();

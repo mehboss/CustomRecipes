@@ -61,6 +61,9 @@ public class RecipeLayout {
         case BREWING_STAND:
             return new RecipeLayout(new int[] { 20, 22 }, 24, 40);
 
+        case SMITHING:
+            return new RecipeLayout(new int[] { 20, 21, 22}, null, 24);
+
         default:
             return new RecipeLayout(CRAFT_GRID, null, 24);
         }

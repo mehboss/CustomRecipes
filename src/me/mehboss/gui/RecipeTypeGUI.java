@@ -61,6 +61,9 @@ public class RecipeTypeGUI implements Listener {
 
 		// grindstone
 		setIfSupported(34, XMaterial.GRINDSTONE, "&eGrindstone", 1, 14, RecipeType.GRINDSTONE);
+
+		// smithing table
+		setIfSupported(40,XMaterial.SMITHING_TABLE, "&eSmithing Table", 1, 14, RecipeType.SMITHING);
 	}
 
 	private void setIfSupported(int slot, XMaterial mat, String name, int major, int minor, RecipeType type) {

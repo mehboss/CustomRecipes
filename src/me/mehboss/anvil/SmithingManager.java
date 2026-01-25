@@ -31,6 +31,7 @@ public class SmithingManager implements Listener {
 
 	private final HashMap<UUID, NamespacedKey> preCraftedRecipes = new HashMap<>();
 
+	@SuppressWarnings("deprecation")
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void handlePrepareSmithing(PrepareSmithingEvent event) {
 		SmithingInventory inventory = event.getInventory();
@@ -61,6 +62,10 @@ public class SmithingManager implements Listener {
 				continue;
 			if (recipe.getTemplate().test(templateItem) && recipe.getBase().test(baseItem)
 					&& recipe.getAddition().test(additionItem)) {
+
+				if (!passesChecks(smithing, recipe.getTemplate().getItemStack(), recipe.getBase().getItemStack(),
+						recipe.getAddition().getItemStack()))
+					event.setResult(null);
 
 				boolean copyTrim = smithing.copiesTrim();
 				boolean copyEnchants = smithing.copiesEnchants();
@@ -104,6 +109,16 @@ public class SmithingManager implements Listener {
 
 		smithingInventory.setResult(null);
 		player.getInventory().addItem(result);
+	}
+
+	private boolean passesChecks(SmithingRecipeData recipe, ItemStack template, ItemStack base, ItemStack addition) {
+		boolean templatePasses = Main.getInstance().metaChecks.itemsMatch(recipe, template,
+				recipe.getTemplateIngredient());
+		boolean basePasses = Main.getInstance().metaChecks.itemsMatch(recipe, base, recipe.getBaseIngredient());
+		boolean additionPasses = Main.getInstance().metaChecks.itemsMatch(recipe, addition,
+				recipe.getAdditionIngredient());
+
+		return templatePasses && basePasses && additionPasses;
 	}
 
 	private void applyMetaTransformations(ItemStack baseItem, ItemStack result, boolean copyEnchants,

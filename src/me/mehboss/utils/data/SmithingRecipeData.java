@@ -9,6 +9,7 @@ import org.bukkit.inventory.meta.trim.TrimPattern;
 
 import com.cryptomorin.xseries.XMaterial;
 
+import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 
 /**
@@ -121,6 +122,15 @@ public class SmithingRecipeData extends Recipe {
 	}
 
 	/**
+	 * Gets the trim pattern ingredient assigned to this smithing recipe.
+	 *
+	 * @return the trim pattern ingredient, or null if none is assigned
+	 */
+	public Ingredient getTrimPatternIngredient() {
+		return getSlot(4);
+	}
+
+	/**
 	 * Gets the trim pattern assigned to this smithing recipe.
 	 *
 	 * @return the trim pattern, or null if none is assigned
@@ -163,6 +173,15 @@ public class SmithingRecipeData extends Recipe {
 	}
 
 	/**
+	 * Gets the template ingredient for this smithing recipe.
+	 *
+	 * @return the smithing template ingredient
+	 */
+	public Ingredient getTemplateIngredient() {
+		return getSlot(1);
+	}
+
+	/**
 	 * Gets the template item for this smithing recipe.
 	 *
 	 * @return the smithing template item
@@ -181,9 +200,18 @@ public class SmithingRecipeData extends Recipe {
 	}
 
 	/**
-	 * Gets the base item for this smithing recipe.
+	 * Gets the base ingredinet for this smithing recipe.
 	 *
-	 * @return the base itemstack
+	 * @return the base ingredient
+	 */
+	public Ingredient getBaseIngredient() {
+		return getSlot(2);
+	}
+
+	/**
+	 * Gets the base ingredient for this smithing recipe.
+	 *
+	 * @return the base ingredient
 	 */
 	public ItemStack getBase() {
 		return base;
@@ -196,6 +224,15 @@ public class SmithingRecipeData extends Recipe {
 	 */
 	public void setBase(ItemStack base) {
 		this.base = base;
+	}
+
+	/**
+	 * Gets the addition ingredient for this smithing recipe.
+	 *
+	 * @return the addition ingredient
+	 */
+	public Ingredient getAdditionIngredient() {
+		return getSlot(3);
 	}
 
 	/**

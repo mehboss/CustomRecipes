@@ -3,6 +3,7 @@ package me.mehboss.utils.libs;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -39,6 +40,7 @@ public class MetaChecks {
 	 * @param ingredient expected ingredient definition
 	 * @return true if the item satisfies all required checks
 	 */
+	@SuppressWarnings("deprecation")
 	public Boolean itemsMatch(Recipe recipe, ItemStack item, Ingredient ingredient) {
 		String recipeName = recipe.getName();
 		// Null check first
@@ -62,7 +64,7 @@ public class MetaChecks {
 			ItemStack foundItem = getRecipeUtil().getResultFromKey(ingredient.getIdentifier());
 
 			if (foundItem == null) {
-				logDebug("Ingredient identifier does not match to a valid recipe", recipeName);
+				logDebug("Ingredient identifier does not match to a valid recipe/item", recipeName);
 				return false;
 			}
 
@@ -73,27 +75,45 @@ public class MetaChecks {
 
 			// Checks displayname requirements only
 		} else {
+			if (!recipe.hasIgnoreTag() && ingredient.hasItem() && ingredient.getItem().isSimilar(item))
+				return true;
+
 			if (item.hasItemMeta()) {
 				ItemMeta meta = item.getItemMeta();
 
-				if ((ingredient.hasItemName() && !meta.hasItemName())
-						|| (ingredient.hasDisplayName() && !meta.hasDisplayName())) {
-					logDebug("Ingredient has displayname, item in slot does not have one", recipeName);
-					return false;
+				if (!recipe.getIgnoreNames()) {
+					if ((ingredient.hasItemName() && !meta.hasItemName())
+							|| (ingredient.hasDisplayName() && !meta.hasDisplayName())) {
+						logDebug("Ingredient has displayname, item in slot does not have one", recipeName);
+						return false;
+					}
+
+					if ((ingredient.hasItemName() && !meta.getItemName().equals(ingredient.getDisplayName()))
+							|| (ingredient.hasDisplayName()
+									&& !meta.getDisplayName().equals(ingredient.getDisplayName()))) {
+						logDebug("Skipping recipe..", recipeName);
+						logDebug("Displaynames do not match:", recipeName);
+						logDebug("Ingredient: " + ingredient.getDisplayName(), recipeName);
+						logDebug("Item: " + meta.getDisplayName(), recipeName);
+						return false;
+					}
 				}
 
-				if ((ingredient.hasItemName() && !meta.getDisplayName().equals(ingredient.getDisplayName()))
-						|| (ingredient.hasDisplayName()
-								&& !meta.getDisplayName().equals(ingredient.getDisplayName()))) {
-					logDebug("Skipping recipe..", recipeName);
-					logDebug("Displaynames do not match:", recipeName);
-					logDebug("Ingredient: " + ingredient.getDisplayName(), recipeName);
-					logDebug("Item: " + meta.getDisplayName(), recipeName);
-					return false;
+				if (!recipe.getIgnoreModelData()) {
+					int cmd = ingredient.getCustomModelData();
+					if (ingredient.hasCustomModelData() && meta.getCustomModelData() != cmd)
+						return false;
+				}
+
+				if (CompatibilityUtil.supportsItemModel() && !recipe.getIgnoreItemModel()) {
+					String itemModel = ingredient.getItemModel();
+					if (ingredient.hasItemModel() && !itemModel.equals(meta.getItemModel().getKey()))
+						return false;
 				}
 			}
 		}
 		return true;
+
 	}
 
 	private void logDebug(String st, String recipeName) {

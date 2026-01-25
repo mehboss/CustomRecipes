@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CustomRecipe remastered by MehBoss                                                                #
-# Version v2.0.6.2.9                                                                                #
+# Version v2.0.6.3                                                                                  #
 #                                                                                                   #        
 # If you find a bug, send me a PM and it will be fixed! :)                                          #
 #                                                                                                   #
@@ -30,6 +30,7 @@ Messages:
   Invalid-Args: '&cInvalid args! (use: /crecipe give <player> <recipename> [amount])'
   Invalid-Perms: '&cYou are not allowed to use this command!'
   No-Perm-Place: '&cYou cannot place an unplaceable block!'
+  No-Result: '&cThis recipe type does not require a result!'
   Player-Not-Found: '&cERROR: player not found!'
   Recipe-Not-Found: '&cERROR: recipe not found!'
   Inventory-Full: '&cERROR: target''s inventory is full!'

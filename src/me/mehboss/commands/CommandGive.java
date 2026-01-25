@@ -23,51 +23,50 @@ public class CommandGive {
 		int amount = 1;
 
 		if (command.args.length > 4 || command.args.length < 3) {
-			p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Invalid-Args")));
+			p.sendMessage(getMessage("Messages.Invalid-Args",
+					"&cInvalid args! (use: /crecipe give <player> <recipename> [amount])"));
 			return true;
 		}
 
 		Player target = Bukkit.getPlayer(command.args[1]);
 
 		if (target == null) {
-			p.sendMessage(
-					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Player-Not-Found")));
+			p.sendMessage(getMessage("Messages.Player-Not-Found", "&cERROR: player not found!"));
 			return true;
 		}
 
 		Recipe recipe = Main.getInstance().getRecipeUtil().getRecipeFromKey(command.args[2]);
-		if (recipe == null && ItemManager.get(command.args[2]) == null) {
-			p.sendMessage(
-					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Recipe-Not-Found")));
+		ItemStack item = recipe == null ? ItemManager.get(command.args[2]) : recipe.getResult();
+
+		if (recipe == null && item == null) {
+			p.sendMessage(getMessage("Messages.Recipe-Not-Found", "&cERROR: recipe not found!"));
 			return true;
 		}
 
 		if (target.getInventory().firstEmpty() == -1) {
-			p.sendMessage(
-					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Inventory-Full")));
+			p.sendMessage(getMessage("Messages.Inventory-Full", "&cERROR: target''s inventory is full!"));
 			return true;
 		}
 
-		if (command.args.length == 4 && isInt(command.args[3])) {
-			amount = Integer.parseInt(command.args[3]);
+		if (recipe != null && !recipe.hasResult()) {
+			p.sendMessage(getMessage("Messages.No-Result", "&cThis recipe type does not require a result!"));
+			return true;
 		}
 
-		ItemStack item = null;
-
-		// recipe id
-		if (recipe != null)
-			item = new ItemStack(recipe.getResult());
-		// custom item id
-		else
-			item = new ItemStack(ItemManager.get(command.args[2]));
+		// amounts
+		if (command.args.length == 4 && isInt(command.args[3]))
+			amount = Integer.parseInt(command.args[3]);
 
 		item.setAmount(amount);
-
 		target.getInventory().addItem(item);
 
-		p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Give-Recipe")
-				.replaceAll("%itemname%", command.args[2]).replaceAll("%player%", target.getName())));
+		p.sendMessage(getMessage("Messages.Give-Recipe", "&aSuccessfully given player item!")
+				.replaceAll("%itemname%", command.args[2]).replaceAll("%player%", target.getName()));
 		return true;
+	}
+
+	private static String getMessage(String string, String fallback) {
+		return ChatColor.translateAlternateColorCodes('&', getConfig().getString(string, fallback));
 	}
 
 	public static boolean isInt(String text) {

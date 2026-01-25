@@ -186,7 +186,7 @@ public class AmountManager implements Listener {
 		// debounce
 		logDebug("[handleShiftClicks] Fired #1");
 
-		Recipe matched = getRecipeUtil().getRecipeFromResult(inv.getResult());
+		Recipe matched = getRecipeUtil().getRecipeFromResult(inv.getResult(), true);
 		Main.getInstance().debounceMap.put(id, System.currentTimeMillis());
 		if (matched == null)
 			return;

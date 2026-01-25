@@ -489,7 +489,7 @@ public class CraftManager implements Listener {
 
 			// vanilla ingredients, but matched to a custom recipe result, so still check
 			// amount requirements.
-			if (getRecipeUtil().getRecipeFromResult(result) != null)
+			if (getRecipeUtil().getRecipeFromResult(result, true) != null)
 				return false;
 		}
 

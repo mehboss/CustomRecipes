@@ -150,6 +150,23 @@ public class CommandEditItem {
 			return true;
 		}
 
+		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("itemname")) {
+			if (!CompatibilityUtil.supportsItemName())
+				return false;
+			
+			StringBuilder sb = new StringBuilder();
+
+			for (int i = 2; i < command.args.length; i++) {
+				if (i > 2)
+					sb.append(" ");
+				sb.append(command.args[i]);
+			}
+
+			it.setItemName(ChatColor.translateAlternateColorCodes('&', String.valueOf(sb)));
+			inhand.setItemMeta(it);
+			return true;
+		}
+		
 		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("modeldata")) {
 			if (!CompatibilityUtil.supportsCustomModelData()) {
 				p.sendMessage(ChatColor.RED + "Unsupported server version!");
@@ -221,6 +238,7 @@ public class CommandEditItem {
 		p.sendMessage(ChatColor.RED + "/cr edititem give <bukkit recipe>");
 		p.sendMessage(ChatColor.RED + "/cr edititem print");
 		p.sendMessage(ChatColor.RED + "/cr edititem name [name]");
+		p.sendMessage(ChatColor.RED + "/cr edititem itemname [name]");
 		p.sendMessage(ChatColor.RED + "/cr edititem modeldata [int]");
 		p.sendMessage(ChatColor.RED + "/cr edititem itemmodel namespace:string");
 		p.sendMessage(ChatColor.RED + "/cr edititem enchant add/remove [enchantment] [level]");

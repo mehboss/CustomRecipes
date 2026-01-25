@@ -23,7 +23,7 @@ public class SmithingRecipeData extends Recipe {
 
 	public enum SmithingRecipeType {
 		TRIM, TRANSFORM;
-		
+
 		private final Set<String> aliases;
 
 		SmithingRecipeType(String... aliases) {
@@ -52,6 +52,14 @@ public class SmithingRecipeData extends Recipe {
 
 	public SmithingRecipeData(String name) {
 		super(name);
+	}
+
+	/**
+	 * Returns whether or not this smithing recipe requires a result
+	 */
+	@Override
+	public boolean requiresResult() {
+		return isTransform();
 	}
 
 	/** Returns whether this is a trim recipe. */
@@ -106,14 +114,22 @@ public class SmithingRecipeData extends Recipe {
 	 * @param item the material pattern to assign, must be a trim pattern item
 	 */
 	public void setTrimPattern(ItemStack item) {
-		try {
-			String string = XMaterial.matchXMaterial(item).get().getKeyOrThrow().toString();
-			NamespacedKey key = NamespacedKey.fromString(string.replace("_ARMOR_TRIM_SMITHING_TEMPLATE", ""));
-			TrimPattern trimPattern = Registry.TRIM_PATTERN.getOrThrow(key);
-			this.trimPattern = trimPattern;
-		} catch (Exception e) {
-
+		if (item == null) {
+			return;
 		}
+
+		NamespacedKey templateKey = item.getType().getKey();
+		String keyPart = templateKey.getKey();
+
+		if (!keyPart.endsWith("_armor_trim_smithing_template")) {
+			return;
+		}
+
+		String patternId = keyPart.replace("_armor_trim_smithing_template", "");
+
+		NamespacedKey patternKey = new NamespacedKey(templateKey.getNamespace(), patternId);
+
+		this.trimPattern = Registry.TRIM_PATTERN.get(patternKey);
 	}
 
 	/**

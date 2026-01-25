@@ -1400,7 +1400,7 @@ public final class XItemStack {
 					}
 
 					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(ench)) {
-						ItemStack book = AEAPI.createEnchantmentBook(ench, level, 100, 0);
+						ItemStack book = AEAPI.createEnchantmentBook(ench, level, 100, 0, null);
 						item = book;
 					}
 				}

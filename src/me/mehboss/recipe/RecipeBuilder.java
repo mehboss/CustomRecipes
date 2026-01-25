@@ -280,9 +280,12 @@ public class RecipeBuilder {
 		String rawItem = getConfig().getString(resultPath + ".Item") == null
 				? getConfig().getString(resultPath + ".material")
 				: getConfig().getString(resultPath + ".Item");
+
 		if (rawItem == null) {
-			logError("Error loading recipe..", recipe.getName());
-			logError("The 'Item' section is missing or improperly formatted! Skipping..", recipe.getName());
+			if (recipe.requiresResult()) {
+				logError("Error loading recipe..", recipe.getName());
+				logError("The 'Item' section is missing or improperly formatted! Skipping..", recipe.getName());
+			}
 			return Optional.empty();
 		}
 
@@ -467,10 +470,12 @@ public class RecipeBuilder {
 			recipe.setKey(identifier);
 
 			Optional<ItemStack> result = handleResult(resultPath, recipe, keys);
-			if (!result.isPresent() && recipe.getType() != RecipeType.SMITHING)
+			if (result.isPresent()) {
+				recipe.setResult(result.get());
+			} else if (recipe.getType() != RecipeType.SMITHING) {
 				continue;
+			}
 
-			recipe.setResult(result.get());
 			handleIdentifier(resultPath, recipe);
 			handleRecipeFlags(item, recipe);
 			handleCommand(item, recipe);
@@ -549,9 +554,9 @@ public class RecipeBuilder {
 					break;
 			}
 
+			int amount = recipe.hasResult() ? recipe.getResult().getAmount() : 0;
 			logDebug("Recipe Type: " + recipe.getType(), recipe.getName());
-			logDebug("Successfully added " + item + " with the amount output of " + recipe.getResult().getAmount(),
-					recipe.getName());
+			logDebug("Successfully added " + item + " with the amount output of " + amount, recipe.getName());
 
 			getRecipeUtil().createRecipe(recipe);
 			if (delayedRecipes.isEmpty() && name != null) {

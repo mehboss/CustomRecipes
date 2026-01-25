@@ -244,6 +244,7 @@ public class ExactChoice {
 				returnExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 	}
 
+	@SuppressWarnings("deprecation")
 	SmithingRecipe createSmithingRecipe(SmithingRecipeData recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 20)) {
 			logError("Error loading recipe. Your server version does not support Smithing recipes!", recipe.getName());
@@ -251,10 +252,14 @@ public class ExactChoice {
 		}
 		getRecipeBuilder().setSmithingItems(recipe);
 
-		if (recipe.getSmithingType() == SmithingRecipeType.TRIM) {
+		if (recipe.isTrim()) {
+			if (Main.getInstance().serverVersionAtLeast(1, 21, 5))
+				return new SmithingTrimRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()),
+						returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
+						returnExactChoice(recipe.getAddition()), recipe.getTrimPattern());
 			return new SmithingTrimRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()),
 					returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
-					returnExactChoice(recipe.getAddition()), recipe.getTrimPattern());
+					returnExactChoice(recipe.getAddition()));
 		}
 		return new SmithingTransformRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
 				returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),

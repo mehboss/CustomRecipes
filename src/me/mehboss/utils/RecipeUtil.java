@@ -128,7 +128,7 @@ public class RecipeUtil {
 		}
 
 		if (recipe.getType() != RecipeType.SMITHING
-				&& (recipe.getResult() == null || recipe.getResult().getType() == Material.AIR)) {
+				&& (!recipe.hasResult() || recipe.getResult().getType() == Material.AIR)) {
 			String errorMessage = "[CRAPI] Could not add recipe: " + recipe.getName()
 					+ ". The recipe result was null or not set.";
 			throw new InvalidRecipeException(errorMessage);
@@ -374,7 +374,7 @@ public class RecipeUtil {
 
 		// First, try to get a key from normal recipes
 		for (Recipe list : recipes.values()) {
-			if (list.isCustomItem())
+			if (list.isCustomItem() || !list.hasResult())
 				continue;
 
 			ItemStack result = list.getResult();
@@ -488,10 +488,36 @@ public class RecipeUtil {
 	/**
 	 * Getter for a recipe from the result ItemStack
 	 * 
+	 * @param item  the ItemStack
+	 * @param exact whether the result match must having matching amounts
+	 * @return the Recipe that is found, can be null
+	 */
+	public Recipe getRecipeFromResult(ItemStack item, boolean exact) {
+		return runResultMatches(item, exact);
+	}
+
+	/**
+	 * <h4>Getter for a recipe from the result ItemStack</h4>
+	 * <ul>
+	 * <li>Ignores amounts when finding a match</li>
+	 * <p>
+	 * </p>
+	 * 
 	 * @param item the ItemStack
 	 * @return the Recipe that is found, can be null
 	 */
 	public Recipe getRecipeFromResult(ItemStack item) {
+		return runResultMatches(item, false);
+	}
+
+	/**
+	 * Helper for getRecipeFromResult.
+	 * 
+	 * @param item  the ItemStack
+	 * @param exact whether the result match must having matching amounts
+	 * @return the Recipe that is found, can be null
+	 */
+	private Recipe runResultMatches(ItemStack item, boolean exact) {
 		if (item == null || item.getType() == Material.AIR)
 			return null;
 
@@ -503,7 +529,9 @@ public class RecipeUtil {
 		for (Recipe recipe : recipes.values()) {
 			ItemStack result = recipe.getResult();
 
-			if (result.equals(item) || result.isSimilar(item))
+			if (!recipe.hasResult())
+				continue;
+			if (result.equals(item) || (!exact && result.isSimilar(item)))
 				return recipe;
 
 			// hacky fix for 1.8.8 issue of ItemMeta lazy population
@@ -1288,8 +1316,24 @@ public class RecipeUtil {
 		 * @returns the ItemStack of the recipe result
 		 */
 		public ItemStack getResult() {
-			return result.clone();
+			return result != null ? result.clone() : null;
 		}
+
+		/**
+		 * Getter for whether the recipe has a result
+		 * 
+		 * @returns true if the recipe has a result, false otherwise
+		 */
+		public boolean hasResult() {
+			return result != null;
+		}
+		
+	    /**
+	     * @return true if the recipe type requires a result
+	     */
+	    public boolean requiresResult() {
+	        return true;
+	    }
 
 		/**
 		 * Adds an Ingredient object to the recipe, required Requires 9 ingredients for
@@ -1552,7 +1596,7 @@ public class RecipeUtil {
 		 * @returns the ingredient itemstack
 		 */
 		public ItemStack getItem() {
-			return item;
+			return item != null ? item.clone() : null;
 		}
 
 		/**

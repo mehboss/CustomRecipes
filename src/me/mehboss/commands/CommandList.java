@@ -23,7 +23,7 @@ public class CommandList {
 			}
 		}
 
-		List<String> recipes = new ArrayList<>(Main.getInstance().getRecipeUtil().getRecipeNames());
+		List<String> recipes = new ArrayList<>(Main.getInstance().getRecipeUtil().getAllKeys());
 
 		// Sort the recipes alphabetically
 		Collections.sort(recipes, String.CASE_INSENSITIVE_ORDER);

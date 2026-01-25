@@ -1,8 +1,10 @@
 package me.mehboss.gui.framework;
 
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -29,21 +31,24 @@ public class GuiListener implements Listener {
 		if (view == null || e.getClickedInventory() == null)
 			return;
 
-		// Only block clicks inside the GUI inventory
-		if (!e.getClickedInventory().equals(view.getInventory()))
-			return;
-
+		boolean clickedInv = e.getClickedInventory().equals(view.getInventory());
+		boolean collectAction = e.getAction() == InventoryAction.COLLECT_TO_CURSOR;
+		boolean shiftIntoGUI = e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY;
 		GuiButton btn = view.getButton(e.getRawSlot());
 
 		// Cancel ALL clicks for booklet
 		if (!view.isEditing()) {
-			e.setCancelled(true);
 
-			if (btn == null) {
+			if (clickedInv || collectAction || shiftIntoGUI)
+				e.setCancelled(true);
+
+			if (clickedInv && btn == null) {
 				view.handleRecipeClick(player, e);
 			}
 		}
-		if (btn == null)
+
+		// Only block clicks inside the GUI inventory
+		if (!clickedInv || btn == null)
 			return;
 
 		// Forward the click to the GUI's handler

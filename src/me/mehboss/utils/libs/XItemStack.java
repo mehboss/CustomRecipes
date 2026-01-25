@@ -1,3 +1,24 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2026 Crypto Morin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 package me.mehboss.utils.libs;
 
 import com.cryptomorin.xseries.XAttribute;
@@ -20,7 +41,6 @@ import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import net.advancedplugins.ae.api.AEAPI;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import org.bukkit.*;
@@ -52,11 +72,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.jetbrains.annotations.*;
-
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.*;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -1277,38 +1294,11 @@ public final class XItemStack {
 			}
 		}
 
-		private boolean isPaperServer() {
-			String serverName = Bukkit.getServer().getName();
-			if (!serverName.contains("Paper"))
-				return false;
-			return true;
-		}
-
-		private void setDisplayName(ItemMeta meta, Component name, String string) {
-			try {
-				Method method = meta.getClass().getMethod("displayName", Component.class);
-				method.invoke(meta, name);
-			} catch (Exception ignored) {
-				String translated = translator.apply(string);
-				meta.setDisplayName(translated);
-			}
-		}
-
 		@SuppressWarnings("ConstantValue")
 		private void displayName() {
 			String name = config.getString("name");
 
 			if (!Strings.isNullOrEmpty(name)) {
-				if (isPaperServer()) {
-					LegacyComponentSerializer legacy = (name.indexOf('§') >= 0)
-							? LegacyComponentSerializer.legacySection()
-							: LegacyComponentSerializer.legacyAmpersand();
-
-					Component component = legacy.deserialize(name).compact();
-					setDisplayName(meta, component, name);
-					return;
-				}
-
 				String translated = translator.apply(name);
 				meta.setDisplayName(translated);
 			} else if (name != null && name.isEmpty()) {
@@ -1316,29 +1306,20 @@ public final class XItemStack {
 			}
 		}
 
-		private void setItemName(ItemMeta meta, Component name, String string) {
-			try {
-				Method itemNameMethod = meta.getClass().getMethod("itemName", Component.class);
-				itemNameMethod.setAccessible(true);
-				itemNameMethod.invoke(meta, name);
-			} catch (Exception ignored) {
-				String translated = translator.apply(string);
-				meta.setItemName(translated);
-			}
-		}
-
 		@SuppressWarnings("ConstantValue")
 		private void itemName() {
+			if (!SUPPORTS_ITEM_NAME)
+				return;
+			
 			String itemName = config.getString("item-name");
-
 			if (!Strings.isNullOrEmpty(itemName)) {
-				if (isPaperServer()) {
+				if (CompatibilityUtil.isPaperServer()) {
 					LegacyComponentSerializer legacy = (itemName.indexOf('§') >= 0)
 							? LegacyComponentSerializer.legacySection()
 							: LegacyComponentSerializer.legacyAmpersand();
 
 					Component component = legacy.deserialize(itemName).compact();
-					setItemName(meta, component, itemName);
+					CompatibilityUtil.setItemName(meta, component, itemName);
 					return;
 				}
 

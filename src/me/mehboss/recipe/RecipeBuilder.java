@@ -780,28 +780,29 @@ public class RecipeBuilder {
 	}
 
 	boolean isVersionSupported(RecipeType type, String item) {
-		List<RecipeType> v20_Types = Arrays.asList(RecipeType.SMITHING);
+		List<RecipeType> v16_2_Types = Arrays.asList(RecipeType.SMITHING);
 		List<RecipeType> v16_Types = Arrays.asList(RecipeType.GRINDSTONE);
 		List<RecipeType> legacyTypes = Arrays.asList(RecipeType.ANVIL, RecipeType.SHAPED, RecipeType.SHAPELESS,
 				RecipeType.FURNACE);
 
-		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type)
-				&& !v16_Types.contains(type)) {
+		if (!Main.getInstance().serverVersionAtLeast(1, 16, 2) && v16_2_Types.contains(type)) {
 			logError("Error loading recipe..", item);
-			logError(">= 1.14 is required for " + type.toString() + " recipes!", item);
+			logError(">= 1.16.2 is required for " + type.toString() + " recipes!", item);
 			return false;
 		}
+
 		if (Main.getInstance().serverVersionLessThan(1, 16) && v16_Types.contains(type)) {
 			logError("Error loading recipe..", item);
 			logError(">= 1.16 is required for " + type.toString() + " recipes!", item);
 			return false;
 		}
 
-		if (Main.getInstance().serverVersionLessThan(1, 20) && v20_Types.contains(type)) {
+		if (Main.getInstance().serverVersionLessThan(1, 14) && !legacyTypes.contains(type)) {
 			logError("Error loading recipe..", item);
-			logError(">= 1.20 is required for " + type.toString() + " recipes!", item);
+			logError(">= 1.14 is required for " + type.toString() + " recipes!", item);
 			return false;
 		}
+
 		return true;
 	}
 

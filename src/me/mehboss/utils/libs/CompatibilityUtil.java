@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Base64;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryEvent;
@@ -17,6 +18,7 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 
 import me.mehboss.recipe.Main;
+import net.kyori.adventure.text.Component;
 
 /**
  * Utility class providing cross-version compatibility helpers that rely on
@@ -168,6 +170,13 @@ public class CompatibilityUtil {
 	public static boolean supportsMaterialData() {
 		return Main.getInstance().serverVersionLessThan(1, 13);
 	}
+	
+	public static boolean isPaperServer() {
+		String serverName = Bukkit.getServer().getName();
+		if (!serverName.contains("Paper"))
+			return false;
+		return true;
+	}
 
 	/**
 	 * Checks if an item has a display name. Supports Bukkit name API changes
@@ -208,7 +217,7 @@ public class CompatibilityUtil {
 	 * @param name The new display name (supports color codes).
 	 * @return The updated ItemMeta with the new name applied.
 	 */
-	public static ItemMeta setDisplaname(ItemStack item, String name, boolean isLegacyNames) {
+	public static ItemMeta setDisplayname(ItemStack item, String name, boolean isLegacyNames) {
 		XMaterial[] itemTypes = { XMaterial.POTION, XMaterial.LINGERING_POTION, XMaterial.SPLASH_POTION };
 		XMaterial itemMaterial = XMaterial.matchXMaterial(item.getType());
 		ItemMeta itemM = item.getItemMeta();
@@ -221,5 +230,26 @@ public class CompatibilityUtil {
 
 		itemM.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
 		return itemM;
+	}
+	
+	public static void setDisplayName(ItemMeta meta, Component name, String string) {
+		try {
+			Method method = meta.getClass().getMethod("displayName", Component.class);
+			method.invoke(meta, name);
+		} catch (Exception ignored) {
+			String translated = string;
+			meta.setDisplayName(translated);
+		}
+	}
+	
+	public static void setItemName(ItemMeta meta, Component name, String string) {
+		try {
+			Method itemNameMethod = meta.getClass().getMethod("itemName", Component.class);
+			itemNameMethod.setAccessible(true);
+			itemNameMethod.invoke(meta, name);
+		} catch (Exception ignored) {
+			String translated = string;
+			meta.setItemName(translated);
+		}
 	}
 }

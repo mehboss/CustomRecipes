@@ -518,7 +518,7 @@ public class RecipeUtil {
 	 * @return the Recipe that is found, can be null
 	 */
 	private Recipe runResultMatches(ItemStack item, boolean exact) {
-		if (item == null || item.getType() == Material.AIR)
+		if (item == null || item.getType() == Material.AIR || item.getAmount() < 1)
 			return null;
 
 		String id = NBT.get(item,
@@ -1327,13 +1327,13 @@ public class RecipeUtil {
 		public boolean hasResult() {
 			return result != null;
 		}
-		
-	    /**
-	     * @return true if the recipe type requires a result
-	     */
-	    public boolean requiresResult() {
-	        return true;
-	    }
+
+		/**
+		 * @return true if the recipe type requires a result
+		 */
+		public boolean requiresResult() {
+			return true;
+		}
 
 		/**
 		 * Adds an Ingredient object to the recipe, required Requires 9 ingredients for

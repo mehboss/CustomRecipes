@@ -15,7 +15,6 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Keyed;
-import org.bukkit.NamespacedKey;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -432,13 +431,13 @@ public class Main extends JavaPlugin implements Listener {
 		clear();
 	}
 
-	private NamespacedKey createKey(String key) {
+	private org.bukkit.NamespacedKey createKey(String key) {
 		key = key.toLowerCase();
 
 		if (serverVersionAtLeast(1, 16, 5)) {
-			return NamespacedKey.fromString("customrecipes:" + key);
+			return org.bukkit.NamespacedKey.fromString("customrecipes:" + key);
 		}
-		return new NamespacedKey(this, key);
+		return new org.bukkit.NamespacedKey(this, key);
 	}
 
 	void handleAutoDiscover() {
@@ -451,7 +450,7 @@ public class Main extends JavaPlugin implements Listener {
 				if (!recipe.isDiscoverable())
 					continue;
 
-				NamespacedKey key = createKey(recipe.getKey());
+				org.bukkit.NamespacedKey key = createKey(recipe.getKey());
 				if (key == null)
 					continue;
 
@@ -507,7 +506,7 @@ public class Main extends JavaPlugin implements Listener {
 
 		for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
 			String key = recipe.getKey();
-			NamespacedKey npk = NamespacedKey.fromString("customrecipes:" + key.toLowerCase());
+			org.bukkit.NamespacedKey npk = org.bukkit.NamespacedKey.fromString("customrecipes:" + key.toLowerCase());
 
 			if (npk == null)
 				continue;
@@ -538,12 +537,12 @@ public class Main extends JavaPlugin implements Listener {
 					if (s.isEmpty())
 						continue;
 
-					NamespacedKey nk;
+					org.bukkit.NamespacedKey nk;
 
 					if (s.contains(":")) {
-						nk = NamespacedKey.fromString(s.toLowerCase());
+						nk = org.bukkit.NamespacedKey.fromString(s.toLowerCase());
 					} else {
-						nk = NamespacedKey.minecraft(s.toLowerCase());
+						nk = org.bukkit.NamespacedKey.minecraft(s.toLowerCase());
 					}
 
 					if (nk != null) {
@@ -585,7 +584,7 @@ public class Main extends JavaPlugin implements Listener {
 						if (!matchesType(typeKey, r))
 							continue;
 
-						NamespacedKey key = ((Keyed) r).getKey();
+						org.bukkit.NamespacedKey key = ((Keyed) r).getKey();
 						if (debug)
 							debug("[Blacklisted] Removing recipe " + key + " from the server..");
 						try {
@@ -735,7 +734,7 @@ public class Main extends JavaPlugin implements Listener {
 				if (!recipe.isDiscoverable())
 					continue;
 
-				NamespacedKey key = createKey(recipe.getKey());
+				org.bukkit.NamespacedKey key = createKey(recipe.getKey());
 				boolean shouldHave = recipe.isActive() && (!recipe.hasPerm() || p.hasPermission(recipe.getPerm()));
 
 				if (shouldHave) {

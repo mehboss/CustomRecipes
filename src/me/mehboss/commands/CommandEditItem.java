@@ -17,6 +17,9 @@ import me.mehboss.gui.framework.GuiButton.GuiLoreButton;
 import me.mehboss.gui.framework.chat.ChatEditManager;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.libs.CompatibilityUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class CommandEditItem {
 	@SuppressWarnings("deprecation")
@@ -145,7 +148,8 @@ public class CommandEditItem {
 				sb.append(command.args[i]);
 			}
 
-			it.setDisplayName(ChatColor.translateAlternateColorCodes('&', String.valueOf(sb)));
+			String name = String.valueOf(sb);
+			it.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
 			inhand.setItemMeta(it);
 			return true;
 		}
@@ -153,7 +157,7 @@ public class CommandEditItem {
 		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("itemname")) {
 			if (!CompatibilityUtil.supportsItemName())
 				return false;
-			
+
 			StringBuilder sb = new StringBuilder();
 
 			for (int i = 2; i < command.args.length; i++) {
@@ -162,11 +166,21 @@ public class CommandEditItem {
 				sb.append(command.args[i]);
 			}
 
-			it.setItemName(ChatColor.translateAlternateColorCodes('&', String.valueOf(sb)));
+			String name = String.valueOf(sb);
+			if (CompatibilityUtil.isPaperServer()) {
+				LegacyComponentSerializer legacy = (name.indexOf('§') >= 0) ? LegacyComponentSerializer.legacySection()
+						: LegacyComponentSerializer.legacyAmpersand();
+				Component component = legacy.deserialize(name).compact();
+
+				CompatibilityUtil.setItemName(it, component, name);
+			} else {
+				it.setItemName(ChatColor.translateAlternateColorCodes('&', name));
+			}
+
 			inhand.setItemMeta(it);
 			return true;
 		}
-		
+
 		if (command.args.length >= 3 && command.args[1].equalsIgnoreCase("modeldata")) {
 			if (!CompatibilityUtil.supportsCustomModelData()) {
 				p.sendMessage(ChatColor.RED + "Unsupported server version!");

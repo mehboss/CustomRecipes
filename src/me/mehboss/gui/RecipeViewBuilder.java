@@ -363,7 +363,7 @@ public class RecipeViewBuilder {
 		/*
 		 * Shapeless toggle (slot 52)
 		 */
-		if (recipe.getType() == RecipeType.SHAPED || recipe.getType() == RecipeType.SHAPELESS) {
+		if (crafting != null) {
 
 			boolean isShapeless = recipe.getType() == RecipeType.SHAPELESS;
 

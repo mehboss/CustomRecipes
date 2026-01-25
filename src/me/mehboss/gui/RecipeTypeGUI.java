@@ -42,7 +42,7 @@ public class RecipeTypeGUI implements Listener {
 		// right crafting table (shapeless)
 		inv.setItem(32, createItem(XMaterial.CRAFTING_TABLE, "&eShapeless Recipes"));
 
-		// furnace group
+		// cooking group
 		setIfSupported(20, XMaterial.FURNACE, "&eFurnace", 1, 8, RecipeType.FURNACE);
 		setIfSupported(28, XMaterial.BLAST_FURNACE, "&eBlast Furnace", 1, 14, RecipeType.BLASTFURNACE);
 		setIfSupported(10, XMaterial.SMOKER, "&eSmoker", 1, 14, RecipeType.SMOKER);
@@ -63,7 +63,7 @@ public class RecipeTypeGUI implements Listener {
 		setIfSupported(34, XMaterial.GRINDSTONE, "&eGrindstone", 1, 14, RecipeType.GRINDSTONE);
 
 		// smithing table
-		setIfSupported(40,XMaterial.SMITHING_TABLE, "&eSmithing Table", 1, 14, RecipeType.SMITHING);
+		setIfSupported(40, XMaterial.SMITHING_TABLE, "&eSmithing", 1, 16, RecipeType.SMITHING);
 	}
 
 	private void setIfSupported(int slot, XMaterial mat, String name, int major, int minor, RecipeType type) {

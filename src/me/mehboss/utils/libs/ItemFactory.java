@@ -50,6 +50,8 @@ import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
+import me.mehboss.utils.libs.XItemStack.UnknownMaterialCondition;
+import me.mehboss.utils.libs.XItemStack.UnAcceptableMaterialCondition;
 import net.advancedplugins.ae.api.AEAPI;
 import valorless.havenbags.api.HavenBagsAPI;
 import valorless.havenbags.datamodels.Data;
@@ -213,8 +215,11 @@ public class ItemFactory {
 			}
 
 			return Optional.of(item);
+		} catch (UnAcceptableMaterialCondition | UnknownMaterialCondition e) {
+			String material = file.getString(path + ".material");
+			validMaterial(path.split(",")[0], material, XMaterial.matchXMaterial(material));
+			return Optional.empty();
 		} catch (Exception e) {
-			// log if you want
 			return Optional.empty();
 		}
 	}

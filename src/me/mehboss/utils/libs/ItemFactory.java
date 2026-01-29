@@ -47,6 +47,8 @@ import com.mojang.authlib.properties.Property;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.DeserializeResult;
+import me.mehboss.utils.DeserializeResult.DeserializeReason;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -116,34 +118,34 @@ public class ItemFactory {
 	}
 
 	private boolean validMaterial(String recipe, String materialInput, Optional<XMaterial> type) {
-		String name = recipe.replaceAll(".Result", "");
+		String name = recipe.replace(".Result", "");
+
+		// Invalid or missing material
 		if (type == null || !type.isPresent() || type.get().get() == null) {
-			if (type == null) {
-				logError("Error loading recipe..", name);
-				logError("Could not find a material for the result!", name);
+
+			// Custom items silently fail
+			if (isCustomItem(materialInput)) {
 				return false;
 			}
 
-			if (isCustomItem(materialInput))
-				return false;
-
 			logError("Error loading recipe..", name);
-			logError(
-					"Invalid material '" + materialInput.toUpperCase()
-							+ "'. Please double check that the material is valid before reaching out for support.",
-					name);
+			logError("Invalid material found '" + materialInput.toUpperCase() + "'.", name);
+			logError("Double check that the material is valid before reaching out for support.", name);
 			return false;
 		}
+
 		return true;
 	}
 
 	public Optional<ItemStack> buildItem(String item, FileConfiguration path) {
-		Optional<ItemStack> result = deserializeItemFromPath(path, item);
+		DeserializeResult result = deserializeItemFromPath(path, item);
 		file = path;
 
-		if (result.isPresent()) {
+		if (result.getType() == DeserializeReason.SUCCESS) {
 			logDebug("Loading result from ItemStack..", item);
-			return Optional.of(result.get());
+			return Optional.of(result.getItem());
+		} else if (result.getType() == DeserializeReason.FAILED) {
+			return Optional.empty();
 		}
 
 		logDebug("Loading result from configuration settings..", item);
@@ -198,29 +200,22 @@ public class ItemFactory {
 		return Optional.of(i);
 	}
 
-	public Optional<ItemStack> deserializeItemFromPath(FileConfiguration file, String path) {
+	public DeserializeResult deserializeItemFromPath(FileConfiguration file, String path) {
 		ConfigurationSection section = file.getConfigurationSection(path);
-		if (section == null) {
-			return Optional.empty();
-		}
+		if (section == null)
+			return DeserializeResult.failed();
 
 		try {
 			XItemStack.Deserializer deserializer = XItemStack.deserializer();
 			deserializer.fromConfig(section);
 			ItemStack item = deserializer.deserialize();
-
-			// Optional: treat AIR or BARRIER as "no item"
-			if (item == null || item.getType() == Material.AIR || item.getType() == Material.BARRIER) {
-				return Optional.empty();
-			}
-
-			return Optional.of(item);
+			return DeserializeResult.success(item);
 		} catch (UnAcceptableMaterialCondition | UnknownMaterialCondition e) {
 			String material = file.getString(path + ".material");
-			validMaterial(path.split(",")[0], material, XMaterial.matchXMaterial(material));
-			return Optional.empty();
+			validMaterial(path.split("\\.")[0], material, XMaterial.matchXMaterial(material));
+			return DeserializeResult.failed();
 		} catch (Exception e) {
-			return Optional.empty();
+			return DeserializeResult.oldFormat();
 		}
 	}
 
@@ -232,8 +227,7 @@ public class ItemFactory {
 		String material = !list.isEmpty() ? list.get(0) : file.getString(configPath + ".Material");
 
 		if (material == null) {
-			logError("Error loading recipe..", recipe.getName());
-			logError("Could not deserialize recipe! Skipping..", recipe.getName());
+			logError("Missing valid 'Material(s) section! Skipping..", recipe.getName());
 			return null;
 		}
 

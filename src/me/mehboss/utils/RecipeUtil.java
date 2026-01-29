@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Keyed;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -32,6 +34,7 @@ import de.tr7zw.changeme.nbtapi.NBT;
 import dev.lone.itemsadder.api.CustomStack;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.th0rgal.oraxen.api.OraxenItems;
+import me.mehboss.recipe.Blacklist;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CookingRecipeData;
@@ -700,74 +703,118 @@ public class RecipeUtil {
 	 * @param recipe removes the recipe(s) from the bukkit registry, can be null
 	 */
 	private void clearDuplicates(Recipe recipe) {
-		if (Main.getInstance().serverVersionAtLeast(1, 15)) {
-			NamespacedKey customKey = null;
+
+		Blacklist bl = Main.getInstance().getBlacklistHandler();
+		boolean isModern = Main.getInstance().serverVersionAtLeast(1, 15);
+		boolean supportsKeyed = Main.getInstance().serverVersionAtLeast(1, 12);
+
+		if (isModern) {
 			if (recipe != null) {
-				String key = recipe.getKey().toLowerCase();
-				customKey = NamespacedKey.fromString("customrecipes:" + key);
-				if (customKey != null && Bukkit.getRecipe(customKey) != null)
+				NamespacedKey customKey = NamespacedKey.fromString("customrecipes:" + recipe.getKey().toLowerCase());
+
+				if (customKey != null && Bukkit.getRecipe(customKey) != null) {
 					Bukkit.removeRecipe(customKey);
+				}
+			} else {
+				for (String getKey : keyList) {
+					if (getKey == null)
+						continue;
+
+					NamespacedKey customKey = NamespacedKey.fromString("customrecipes:" + getKey.toLowerCase());
+
+					if (customKey != null && Bukkit.getRecipe(customKey) != null) {
+						Bukkit.removeRecipe(customKey);
+					}
+				}
+			}
+
+			if (bl.hasDisabledVanilla()) {
+				Bukkit.clearRecipes();
 				return;
 			}
 
-			for (String getKey : keyList) {
-				if (getKey == null)
-					continue;
-
-				String key = getKey.toLowerCase();
-				customKey = NamespacedKey.fromString("customrecipes:" + key);
-
-				if (customKey != null && Bukkit.getRecipe(customKey) != null)
-					Bukkit.removeRecipe(customKey);
+			for (NamespacedKey key : bl.getModernBlacklisted()) {
+				Bukkit.removeRecipe(key);
 			}
-		} else {
-			// recipeIterator# is immutable in 1.12, so we must resetRecipes unfortunately.
-			if (recipe != null) {
-				// Remove a single recipe safely
-				List<org.bukkit.inventory.Recipe> toLoad = new ArrayList<>();
-				Iterator<org.bukkit.inventory.Recipe> iter = Bukkit.recipeIterator();
-				while (iter.hasNext()) {
-					org.bukkit.inventory.Recipe r = iter.next();
-					if (r == null)
-						continue;
 
-					ItemStack result = r.getResult();
-					// Keep all recipes except the one we want to remove
-					if (result == null || !result.isSimilar(recipe.getResult())) {
-						toLoad.add(r);
+			return;
+		}
+
+		List<org.bukkit.inventory.Recipe> toLoad = new ArrayList<>();
+		Iterator<org.bukkit.inventory.Recipe> iter = Bukkit.recipeIterator();
+
+		while (iter.hasNext()) {
+			org.bukkit.inventory.Recipe r = iter.next();
+			if (r == null)
+				continue;
+
+			boolean remove = false;
+			ItemStack result = r.getResult();
+			if (result == null)
+				continue;
+
+			// 1) Remove duplicate key or result if a recipe is provided
+			if (supportsKeyed && r instanceof Keyed) {
+				if (recipe != null) {
+					String existingKey = ((Keyed) r).getKey().getKey();
+					String newKey = recipe.getKey();
+					if (existingKey != null && existingKey.equals(newKey)) {
+						remove = true;
 					}
-				}
 
-				// Reset all recipes and add back everything except the one we want removed
-				Bukkit.resetRecipes();
-				for (org.bukkit.inventory.Recipe r : toLoad) {
-					try {
-						Bukkit.addRecipe(r);
-					} catch (IllegalStateException ignored) {
-						// duplicates may throw this
+					if (!remove && result.isSimilar(recipe.getResult())) {
+						remove = true;
+					}
+				} else {
+					NamespacedKey key = ((Keyed) r).getKey();
+					if (key != null && key.getNamespace().equalsIgnoreCase("customrecipes")) {
+						remove = true;
 					}
 				}
 			} else {
-				List<org.bukkit.inventory.Recipe> toLoad = new ArrayList<>();
-				Iterator<org.bukkit.inventory.Recipe> iter = Bukkit.recipeIterator();
-				while (iter.hasNext()) {
-					org.bukkit.inventory.Recipe next = iter.next();
-					Recipe matched = getRecipeFromResult(next.getResult());
-					if (matched == null) {
-						toLoad.add(next);
+				if (recipe != null) {
+					if (result.isSimilar(recipe.getResult()))
+						remove = true;
+				} else {
+					Recipe matched = getRecipeFromResult(result);
+					if (matched != null)
+						remove = true;
+				}
+			}
+
+			// 3) Remove blacklisted legacy results
+			for (Map.Entry<String, Set<ItemStack>> entry : bl.getLegacyBlacklisted().entrySet()) {
+				String typeKey = entry.getKey();
+				Set<ItemStack> items = entry.getValue();
+
+				// Only consider this type if the recipe matches
+				if (bl.matchesType(typeKey, r)) {
+					for (ItemStack blacklisted : items) {
+						if (result.isSimilar(blacklisted)) {
+							remove = true;
+							break;
+						}
 					}
 				}
 
-				Bukkit.resetRecipes();
+				if (remove)
+					break;
+			}
 
-				// adds them all back except for yours
-				for (org.bukkit.inventory.Recipe rcp : toLoad) {
-					try {
-						Bukkit.addRecipe(rcp);
-					} catch (IllegalStateException ignored) {
-						// duplicates may throw this
-					}
-				}
+			if (!remove) {
+				toLoad.add(r);
+			}
+		}
+
+		// --- Reset all recipes and reload only the kept ones ---
+		Bukkit.clearRecipes();
+		if (bl.hasDisabledVanilla())
+			return;
+
+		for (org.bukkit.inventory.Recipe r : toLoad) {
+			try {
+				Bukkit.addRecipe(r);
+			} catch (IllegalStateException ignored) {
 			}
 		}
 	}

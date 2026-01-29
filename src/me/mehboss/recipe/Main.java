@@ -4,34 +4,21 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Keyed;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.inventory.FurnaceRecipe;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import com.cryptomorin.xseries.XMaterial;
-
 import me.mehboss.anvil.AnvilManager;
 import me.mehboss.anvil.AnvilManager_1_8;
 import me.mehboss.anvil.GrindstoneManager;
@@ -49,6 +36,7 @@ import me.mehboss.gui.RecipeTypeGUI;
 import me.mehboss.gui.framework.GuiListener;
 import me.mehboss.gui.framework.RecipeGUI;
 import me.mehboss.gui.BookGUI;
+import me.mehboss.listeners.AutoDiscover;
 import me.mehboss.listeners.BlockManager;
 import me.mehboss.listeners.EffectsManager;
 import me.mehboss.utils.Metrics;
@@ -81,6 +69,18 @@ public class Main extends JavaPlugin implements Listener {
 	public BookGUI recipes;
 	public RecipeTypeGUI typeGUI;
 	public CooldownManager cooldownManager;
+
+	private AutoDiscover autoDiscover;
+
+	public AutoDiscover getAutoDiscover() {
+		return autoDiscover;
+	}
+
+	private Blacklist handleBlacklist;
+
+	public Blacklist getBlacklistHandler() {
+		return handleBlacklist;
+	}
 
 	public RecipeGUI editItem;
 
@@ -253,6 +253,8 @@ public class Main extends JavaPlugin implements Listener {
 	public void onEnable() {
 
 		instance = this;
+		autoDiscover = new AutoDiscover();
+		handleBlacklist = new Blacklist();
 		itemFactory = new ItemFactory();
 		cooldownManager = new CooldownManager();
 		recipeUtil = new RecipeUtil();
@@ -301,10 +303,12 @@ public class Main extends JavaPlugin implements Listener {
 
 		saveAllCustomYml();
 		saveConfig();
-		removeRecipes();
+
 		addCooldowns();
 
-		disableRecipes();
+		getBlacklistHandler().removeCustomRecipes();
+		getBlacklistHandler().collectBlacklistedRecipes();
+		getBlacklistHandler().disableRecipes();
 
 		// Make task run later, for itemsadder plugin
 		Bukkit.getScheduler().runTaskLater(this, new Runnable() {
@@ -326,15 +330,25 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(typeGUI, this);
 		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
-		Bukkit.getPluginManager().registerEvents(new CrafterManager(), this);
-		Bukkit.getPluginManager().registerEvents(new AmountManager(craftManager), this);
+		Bukkit.getPluginManager().registerEvents(amountManager, this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
-		Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
-		Bukkit.getPluginManager().registerEvents(new SmithingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new BrewEvent(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
 
+		if (serverVersionAtLeast(1, 21)) {
+			Bukkit.getPluginManager().registerEvents(new CrafterManager(), this);
+		}
+		
+		if (serverVersionAtLeast(1, 14)) {
+			Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
+			Bukkit.getPluginManager().registerEvents(new SmithingManager(), this);
+		}
+
+		if (serverVersionAtLeast(1, 13)) {
+			Bukkit.getPluginManager().registerEvents(autoDiscover, this);
+		}
+		
 		if (serverVersionAtLeast(1, 9)) {
 			Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		} else {
@@ -384,17 +398,16 @@ public class Main extends JavaPlugin implements Listener {
 		typeGUI = new RecipeTypeGUI();
 
 		// Remove old recipes
-		removeCustomRecipes();
-		removeRecipes();
-
-		disableRecipes();
+		getBlacklistHandler().removeCustomRecipes();
+		getBlacklistHandler().collectBlacklistedRecipes();
+		getBlacklistHandler().disableRecipes();
 
 		// Re-add recipes immediately
 		ItemManager.reload();
 		recipeBuilder.addRecipes(null);
 		getLogger().log(Level.INFO, "Reloaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 
-		handleAutoDiscover();
+		getAutoDiscover().handleAutoDiscover();
 	}
 
 	@Override
@@ -431,43 +444,6 @@ public class Main extends JavaPlugin implements Listener {
 		clear();
 	}
 
-	private org.bukkit.NamespacedKey createKey(String key) {
-		key = key.toLowerCase();
-
-		if (serverVersionAtLeast(1, 16, 5)) {
-			return org.bukkit.NamespacedKey.fromString("customrecipes:" + key);
-		}
-		return new org.bukkit.NamespacedKey(this, key);
-	}
-
-	void handleAutoDiscover() {
-		if (!serverVersionAtLeast(1, 13, 2))
-			return;
-
-		for (Player p : Bukkit.getOnlinePlayers()) {
-			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
-
-				if (!recipe.isDiscoverable())
-					continue;
-
-				org.bukkit.NamespacedKey key = createKey(recipe.getKey());
-				if (key == null)
-					continue;
-
-				boolean shouldHave = recipe.isActive() && (!recipe.hasPerm() || p.hasPermission(recipe.getPerm()));
-				if (shouldHave) {
-					if (!p.hasDiscoveredRecipe(key))
-						p.discoverRecipe(key);
-
-				} else {
-					if (p.hasDiscoveredRecipe(key))
-						p.undiscoverRecipe(key);
-
-				}
-			}
-		}
-	}
-
 	void addCooldowns() {
 		if (cooldownConfig == null)
 			return;
@@ -496,167 +472,6 @@ public class Main extends JavaPlugin implements Listener {
 				// Create new cooldown with the remaining time
 				Cooldown cooldown = new Cooldown(recipeID, remainingSeconds);
 				cooldownManager.addCooldown(playerUUID, cooldown);
-			}
-		}
-	}
-
-	void removeCustomRecipes() {
-		if (!serverVersionAtLeast(1, 16) || recipeUtil.getAllRecipes().isEmpty())
-			return;
-
-		for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
-			String key = recipe.getKey();
-			org.bukkit.NamespacedKey npk = org.bukkit.NamespacedKey.fromString("customrecipes:" + key.toLowerCase());
-
-			if (npk == null)
-				continue;
-
-			Bukkit.removeRecipe(npk);
-		}
-	}
-
-	void removeRecipes() {
-		if (customConfig == null)
-			return;
-
-		if (!serverVersionAtLeast(1, 16)) {
-			debug("[Blacklisted] You must be on 1.16 or higher to utilize the blacklisted feature!");
-			return;
-		}
-
-		if (customConfig.isConfigurationSection("override-recipes")) {
-			ConfigurationSection sec = customConfig.getConfigurationSection("override-recipes");
-
-			for (String typeKey : sec.getKeys(false)) {
-				List<String> targets = sec.getStringList(typeKey);
-				if (targets == null || targets.isEmpty())
-					continue;
-
-				for (String entry : targets) {
-					String s = entry == null ? "" : entry;
-					if (s.isEmpty())
-						continue;
-
-					org.bukkit.NamespacedKey nk;
-
-					if (s.contains(":")) {
-						nk = org.bukkit.NamespacedKey.fromString(s.toLowerCase());
-					} else {
-						nk = org.bukkit.NamespacedKey.minecraft(s.toLowerCase());
-					}
-
-					if (nk != null) {
-						Recipe rec = Bukkit.getRecipe(nk);
-						if (rec == null) {
-							if (debug)
-								debug("[Blacklisted] Could not find recipe to remove for key " + nk);
-							continue;
-						}
-						if (!(rec instanceof Keyed))
-							continue; // sanity
-						if (!matchesType(typeKey, rec)) {
-							if (debug)
-								debug("[Blacklisted] Recipe key " + nk + " does not match type bucket " + typeKey);
-							continue;
-						}
-						if (debug)
-							debug("[Blacklisted] Removing recipe " + nk + " from the server..");
-						try {
-							Bukkit.removeRecipe(nk);
-						} catch (Exception ex) {
-							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + nk + ": "
-									+ ex.getMessage());
-						}
-						continue;
-					}
-
-					Optional<XMaterial> xm = XMaterial.matchXMaterial(s);
-					if (!xm.isPresent())
-						continue;
-
-					ItemStack result = xm.get().parseItem();
-					if (result == null)
-						continue;
-
-					for (Recipe r : Bukkit.getRecipesFor(result)) {
-						if (!(r instanceof Keyed))
-							continue;
-						if (!matchesType(typeKey, r))
-							continue;
-
-						org.bukkit.NamespacedKey key = ((Keyed) r).getKey();
-						if (debug)
-							debug("[Blacklisted] Removing recipe " + key + " from the server..");
-						try {
-							Bukkit.removeRecipe(key);
-						} catch (Exception ex) {
-							getLogger().warning("[Blacklisted] Could not remove recipe from the server.. " + key + ": "
-									+ ex.getMessage());
-						}
-					}
-				}
-			}
-		}
-
-		if (customConfig.getBoolean("disable-all-vanilla", false)) {
-			Bukkit.clearRecipes();
-		}
-	}
-
-	// --- Optional recipe classes; null if not present on this server ---
-	private static final Class<?> C_BLASTING = classOrNull("org.bukkit.inventory.BlastingRecipe");
-	private static final Class<?> C_SMOKING = classOrNull("org.bukkit.inventory.SmokingRecipe");
-	private static final Class<?> C_CAMPFIRE = classOrNull("org.bukkit.inventory.CampfireRecipe");
-	private static final Class<?> C_STONECUT = classOrNull("org.bukkit.inventory.StonecuttingRecipe");
-	private static final Class<?> C_COOKING = classOrNull("org.bukkit.inventory.CookingRecipe");
-
-	private static Class<?> classOrNull(String fqn) {
-		try {
-			return Class.forName(fqn);
-		} catch (Throwable t) {
-			return null;
-		}
-	}
-
-	private static boolean isInstance(Object obj, Class<?> cls) {
-		return cls != null && cls.isInstance(obj);
-	}
-
-	private static boolean matchesType(String typeKey, Recipe r) {
-		String t = (typeKey == null ? "" : typeKey.toLowerCase(java.util.Locale.ROOT));
-		switch (t) {
-		case "crafting":
-			return (r instanceof ShapedRecipe) || (r instanceof ShapelessRecipe);
-
-		case "furnace":
-		case "smelting":
-			return (r instanceof FurnaceRecipe) || isInstance(r, C_BLASTING) || isInstance(r, C_SMOKING)
-					|| isInstance(r, C_CAMPFIRE) || isInstance(r, C_COOKING); // broad fallback if present
-
-		case "stonecutter":
-		case "stonecutting":
-			return isInstance(r, C_STONECUT);
-
-		default:
-			return false;
-		}
-	}
-
-	public void disableRecipes() {
-		if (customConfig == null)
-			return;
-
-		disabledrecipe.clear();
-
-		if (customConfig.isConfigurationSection("vanilla-recipes")) {
-			for (String vanilla : customConfig.getConfigurationSection("vanilla-recipes").getKeys(false)) {
-				disabledrecipe.add(vanilla);
-			}
-		}
-
-		if (customConfig.isConfigurationSection("custom-recipes")) {
-			for (String custom : customConfig.getConfigurationSection("custom-recipes").getKeys(false)) {
-				disabledrecipe.add(custom);
 			}
 		}
 	}
@@ -724,30 +539,6 @@ public class Main extends JavaPlugin implements Listener {
 					"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate
 							+ ", &fyou are on version&c " + getDescription().getVersion() + "!"));
 		}
-
-		// Recipe discovery exists since 1.13
-		if (!serverVersionAtLeast(1, 13, 2))
-			return;
-
-		try {
-			for (RecipeUtil.Recipe recipe : recipeUtil.getAllRecipes().values()) {
-				if (!recipe.isDiscoverable())
-					continue;
-
-				org.bukkit.NamespacedKey key = createKey(recipe.getKey());
-				boolean shouldHave = recipe.isActive() && (!recipe.hasPerm() || p.hasPermission(recipe.getPerm()));
-
-				if (shouldHave) {
-					if (!p.hasDiscoveredRecipe(key))
-						p.discoverRecipe(key);
-				} else {
-					if (p.hasDiscoveredRecipe(key))
-						p.undiscoverRecipe(key);
-				}
-			}
-		} catch (Throwable t) {
-			Main.getInstance().getLogger().log(Level.WARNING, "Couldn't discover recipes upon player join.", t);
-		}
 	}
 
 	private int[] getServerVersionParts() {
@@ -799,10 +590,5 @@ public class Main extends JavaPlugin implements Listener {
 			return true;
 		}
 		return false;
-	}
-
-	public void debug(String st) {
-		Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
-
 	}
 }

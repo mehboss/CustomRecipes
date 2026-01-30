@@ -1,8 +1,8 @@
 package me.mehboss.gui.framework;
 
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -76,16 +76,15 @@ public class GuiListener implements Listener {
 			GuiRegistry.unregister(player.getUniqueId());
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onChat(AsyncPlayerChatEvent e) {
 
 		Player player = e.getPlayer();
 
 		if (!ChatEditManager.get().hasSession(player.getUniqueId()))
-			return; // Player not editing a field
-
-		e.setCancelled(true); // Prevent broadcast
+			return;
 
 		ChatEditManager.get().handleChat(e);
+		// handles cancellation internally
 	}
 }

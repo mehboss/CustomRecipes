@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 import me.mehboss.gui.framework.GuiButton.GuiLoreButton;
@@ -93,17 +95,12 @@ public class ChatEditManager {
 		Player player = e.getPlayer();
 		UUID uuid = player.getUniqueId();
 
-		if (!sessions.containsKey(uuid)) {
+		if (!hasSession(uuid)) {
 			return;
 		}
-
 		e.setCancelled(true);
 
 		ChatEditSession session = sessions.get(uuid);
-		if (session == null) {
-			return;
-		}
-
 		switch (session.getType()) {
 		case STRING:
 			handleStringChat(e, session);

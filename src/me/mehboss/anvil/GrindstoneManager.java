@@ -81,7 +81,6 @@ public class GrindstoneManager implements Listener {
 		Inventory clicked = event.getClickedInventory();
 
 		if (event.getSlot() == 0 || event.getSlot() == 1) {
-			// Let your helper handle left/right click semantics for inputs only
 			InventoryUtils.calculateClickedSlot(event);
 
 			// Recompute output on next tick (safer, avoids ghosting)
@@ -378,20 +377,8 @@ public class GrindstoneManager implements Listener {
 	}
 
 	/** Checks ingredient amount requirements. */
-	private boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
-		if (item == null || ingredient == null) {
-			logDebug("Item or Ingredient is null", recipeName);
-			logDebug("Item - " + item, recipeName);
-			logDebug("Ingredient - " + ingredient, recipeName);
-			return false;
-		}
-		if (item.getAmount() < ingredient.getAmount()) {
-			logDebug("Amount requirements not met", recipeName);
-			logDebug("Slot amount - " + item.getAmount(), recipeName);
-			logDebug("Ingredient amount - " + ingredient.getAmount(), recipeName);
-			return false;
-		}
-		return true;
+	boolean amountsMatch(String recipe, ItemStack item, Ingredient ingredient) {
+		return Main.getInstance().metaChecks.amountsMatch(recipe, item, ingredient);
 	}
 
 	/** Checks item similarity using metadata comparison handlers. */

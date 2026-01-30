@@ -47,8 +47,8 @@ import com.mojang.authlib.properties.Property;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
-import me.mehboss.utils.DeserializeResult;
-import me.mehboss.utils.DeserializeResult.DeserializeReason;
+import me.mehboss.utils.ItemResult;
+import me.mehboss.utils.ItemResult.ResultReason;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -138,13 +138,13 @@ public class ItemFactory {
 	}
 
 	public Optional<ItemStack> buildItem(String item, FileConfiguration path) {
-		DeserializeResult result = deserializeItemFromPath(path, item);
+		ItemResult result = deserializeItemFromPath(path, item);
 		file = path;
 
-		if (result.getType() == DeserializeReason.SUCCESS) {
+		if (result.getType() == ResultReason.SUCCESS) {
 			logDebug("Loading result from ItemStack..", item);
 			return Optional.of(result.getItem());
-		} else if (result.getType() == DeserializeReason.FAILED) {
+		} else if (result.getType() == ResultReason.FAILED) {
 			return Optional.empty();
 		}
 
@@ -200,22 +200,22 @@ public class ItemFactory {
 		return Optional.of(i);
 	}
 
-	public DeserializeResult deserializeItemFromPath(FileConfiguration file, String path) {
+	public ItemResult deserializeItemFromPath(FileConfiguration file, String path) {
 		ConfigurationSection section = file.getConfigurationSection(path);
 		if (section == null)
-			return DeserializeResult.failed();
+			return ItemResult.failed();
 
 		try {
 			XItemStack.Deserializer deserializer = XItemStack.deserializer();
 			deserializer.fromConfig(section);
 			ItemStack item = deserializer.deserialize();
-			return DeserializeResult.success(item);
+			return ItemResult.success(item);
 		} catch (UnAcceptableMaterialCondition | UnknownMaterialCondition e) {
 			String material = file.getString(path + ".material");
 			validMaterial(path.split("\\.")[0], material, XMaterial.matchXMaterial(material));
-			return DeserializeResult.failed();
+			return ItemResult.failed();
 		} catch (Exception e) {
-			return DeserializeResult.oldFormat();
+			return ItemResult.oldFormat();
 		}
 	}
 

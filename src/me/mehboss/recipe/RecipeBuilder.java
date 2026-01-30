@@ -38,8 +38,8 @@ import org.bukkit.inventory.SmokingRecipe;
 import org.bukkit.inventory.StonecuttingRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import me.mehboss.utils.DeserializeResult;
-import me.mehboss.utils.DeserializeResult.DeserializeReason;
+import me.mehboss.utils.ItemResult;
+import me.mehboss.utils.ItemResult.ResultReason;
 import me.mehboss.utils.RecipeUtil;
 import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
@@ -56,7 +56,6 @@ import me.mehboss.utils.libs.RecipeConditions;
 public class RecipeBuilder {
 
 	List<String> delayedRecipes = new ArrayList<>();
-	boolean allFinished = false;
 	FileConfiguration recipeConfig = null;
 
 	RecipeUtil getRecipeUtil() {
@@ -283,7 +282,7 @@ public class RecipeBuilder {
 		recipe.setTrimPattern(buildItem(recipe.getSlot(4)));
 	}
 
-	Optional<ItemStack> handleResult(String resultPath, Recipe recipe, ArrayList<String> keys) {
+	Optional<ItemStack> handleResult(String resultPath, Recipe recipe, ArrayList<String> keys, boolean registerAll) {
 		// Checks for a custom item and attempts to set it
 		String rawItem = getConfig().getString(resultPath + ".Item") == null
 				? getConfig().getString(resultPath + ".material")
@@ -300,7 +299,7 @@ public class RecipeBuilder {
 		// Attach recipe name ONLY for debug purposes
 		ItemStack i = getRecipeUtil().getResultFromKey(rawItem + ":" + recipe.getName());
 		if (i == null) {
-			if (keys.contains(rawItem)) {
+			if (keys.contains(rawItem) && registerAll) {
 				// found custom item, but recipe isn't active yet so it must be added last.
 				delayedRecipes.add(recipe.getName());
 				return Optional.empty();
@@ -356,7 +355,8 @@ public class RecipeBuilder {
 			return;
 		}
 
-		if (name != null) {
+		boolean registerAll = name == null;
+		if (!registerAll) {
 			if (!name.endsWith(".yml")) {
 				name = name + ".yml";
 			}
@@ -466,18 +466,11 @@ public class RecipeBuilder {
 			if (!isVersionSupported(recipe.getType(), item))
 				continue;
 
-			if (recipe.getType() != RecipeType.SHAPED && recipe.getType() != RecipeType.SHAPELESS) {
-				if (name == null) {
-					delayedRecipes.add(recipe.getName());
-					continue;
-				}
-			}
-
 			String resultPath = getConfig().isConfigurationSection(item + ".Result") ? item + ".Result" : item;
 			String identifier = getConfig().getString(item + ".Identifier");
 			recipe.setKey(identifier);
 
-			Optional<ItemStack> result = handleResult(resultPath, recipe, keys);
+			Optional<ItemStack> result = handleResult(resultPath, recipe, keys, registerAll);
 			if (result.isPresent()) {
 				recipe.setResult(result.get());
 			} else if (recipe.getType() != RecipeType.SMITHING) {
@@ -538,19 +531,22 @@ public class RecipeBuilder {
 				}
 
 				// Try to deserialize using XItemstack (Deserializer)
-				DeserializeResult deserializedItem = getItemFactory().deserializeItemFromPath(recipeConfig,
+				ItemResult ingResult = getItemFactory().deserializeItemFromPath(recipeConfig,
 						item + ".Ingredients." + abbreviation);
-				DeserializeReason failType = deserializedItem.getType();
-
-				if (failType == DeserializeReason.SUCCESS) {
-					ItemStack stack = deserializedItem.getItem();
+				ResultReason failType = ingResult.getType();
+				switch (failType) {
+				case SUCCESS:
+					ItemStack stack = ingResult.getItem();
 					recipeIngredient = new RecipeUtil.Ingredient(abbreviation, stack.getType());
 					recipeIngredient.setItem(stack);
 					logDebug("Loading ingredient '" + abbreviation + "' from ItemStack..", recipe.getName());
+					break;
 
-				} else if (failType == DeserializeReason.FAILED) {
+				case FAILED:
 					continue recipeLoop;
-				} else {
+
+				case OLD_FORMAT:
+				default:
 					recipeIngredient = getItemFactory().deserializeItemFromConfig(recipeConfig, recipe, item,
 							abbreviation);
 					if (recipeIngredient == null) {
@@ -558,6 +554,8 @@ public class RecipeBuilder {
 					}
 					logDebug("Loading ingredient '" + abbreviation + "' from configuration settings..",
 							recipe.getName());
+					break;
+
 				}
 
 				recipeIngredient.setSlot(slot);
@@ -572,20 +570,14 @@ public class RecipeBuilder {
 			logDebug("Successfully added " + item + " with the amount output of " + amount, recipe.getName());
 
 			getRecipeUtil().createRecipe(recipe);
-			if (delayedRecipes.isEmpty() && name != null) {
-				getRecipeUtil().registerRecipe(recipe);
-				return;
-			}
+			getRecipeUtil().registerRecipe(recipe);
 		}
 
-		if (!delayedRecipes.isEmpty() && name == null) {
-			for (String recipe : delayedRecipes)
+		if (registerAll) {
+			List<String> delayed = new ArrayList<>(delayedRecipes);
+			for (String recipe : delayed) {
 				addRecipes(recipe);
-			delayedRecipes.clear();
-		}
-
-		if (delayedRecipes.isEmpty()) {
-			getRecipeUtil().reloadRecipes();
+			}
 		}
 	}
 

@@ -20,7 +20,7 @@ commands:
 permissions:
   crecipe.recipes:
     description: Allows the recipe command
-    default: true
+    default: op
   crecipe.gui:
     description: Allows the gui command
     default: op
@@ -32,4 +32,4 @@ permissions:
     default: op
   crecipe.book:
     description: Allows the book command
-    default: true
+    default: op

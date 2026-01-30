@@ -2,8 +2,6 @@ package me.mehboss.utils.libs;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -116,6 +114,33 @@ public class MetaChecks {
 
 	}
 
+	/**
+	 * Checks whether the provided item satisfies the ingredient's required amount.
+	 *
+	 * @param recipeName Name of the recipe (used for debugging messages).
+	 * @param item       ItemStack inside the anvil.
+	 * @param ingredient Ingredient definition being compared to.
+	 * @return true if the item meets or exceeds the amount required; false
+	 *         otherwise.
+	 */
+	public Boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
+		if (item == null || ingredient == null) {
+			logDebug("Item or Ingredient is null", recipeName);
+			logDebug("Item - " + item, recipeName);
+			logDebug("Ingredient - " + ingredient, recipeName);
+			return false;
+		}
+
+		if (item.getAmount() < ingredient.getAmount()) {
+			logDebug("Amount requirements not met", recipeName);
+			logDebug("Slot amount - " + item.getAmount(), recipeName);
+			logDebug("Ingredient amount - " + ingredient.getAmount(), recipeName);
+			return false;
+		}
+
+		return true;
+	}
+	
 	private void logDebug(String st, String recipeName) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING,

@@ -5,7 +5,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -104,33 +103,6 @@ public class AnvilManager_1_8 implements Listener {
 		});
 	}
 
-	/**
-	 * Checks whether the provided item satisfies the ingredient's required amount.
-	 *
-	 * @param recipeName Name of the recipe (used for debugging messages).
-	 * @param item       ItemStack inside the anvil.
-	 * @param ingredient Ingredient definition being compared to.
-	 * @return true if the item meets or exceeds the amount required; false
-	 *         otherwise.
-	 */
-	Boolean amountsMatch(String recipeName, ItemStack item, Ingredient ingredient) {
-		if (item == null || ingredient == null) {
-			logDebug(recipeName + ": Item or Ingredient is null");
-			logDebug(recipeName + ": Item - " + item);
-			logDebug(recipeName + ": Ingredient - " + ingredient);
-			return false;
-		}
-
-		if (item.getAmount() < ingredient.getAmount()) {
-			logDebug(recipeName + ": Amount requirements not met");
-			logDebug(recipeName + ": Slot amount - " + item.getAmount());
-			logDebug(recipeName + ": Ingredient amount - " + ingredient.getAmount());
-			return false;
-		}
-
-		return true;
-	}
-
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
 	}
@@ -139,15 +111,10 @@ public class AnvilManager_1_8 implements Listener {
 		return Main.getInstance().cooldownManager;
 	}
 
-	/**
-	 * Checks if the given ItemStack matches the ingredient's item type and
-	 * metadata.
-	 *
-	 * @param recipeName Name of the recipe (used for debug logging).
-	 * @param item       ItemStack from the anvil input.
-	 * @param ingredient Ingredient to compare against.
-	 * @return true if items match according to MetaChecks; false otherwise.
-	 */
+	boolean amountsMatch(String recipe, ItemStack item, Ingredient ingredient) {
+		return Main.getInstance().metaChecks.amountsMatch(recipe, item, ingredient);
+	}
+	
 	boolean itemsMatch(Recipe recipe, ItemStack item, Ingredient ingredient) {
 		return Main.getInstance().metaChecks.itemsMatch(recipe, item, ingredient);
 	}

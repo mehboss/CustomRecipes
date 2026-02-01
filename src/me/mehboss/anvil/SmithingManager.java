@@ -47,7 +47,7 @@ public class SmithingManager implements Listener {
 			return;
 
 		HashMap<String, Recipe> recipes = getRecipeUtil().getRecipesFromType(RecipeType.SMITHING);
-		if (recipes.isEmpty())
+		if (recipes == null || recipes.isEmpty())
 			return;
 
 		for (Recipe all : recipes.values()) {

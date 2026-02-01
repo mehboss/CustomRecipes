@@ -60,10 +60,14 @@ import valorless.havenbags.datamodels.Data;
 
 public class ItemFactory {
 
-	FileConfiguration file;
+	private FileConfiguration file;
 
 	FileConfiguration getConfig() {
 		return file;
+	}
+
+	public void setConfig(FileConfiguration file) {
+		this.file = file;
 	}
 
 	RecipeUtil getRecipeUtil() {
@@ -139,7 +143,6 @@ public class ItemFactory {
 
 	public Optional<ItemStack> buildItem(String item, FileConfiguration path) {
 		ItemResult result = deserializeItemFromPath(path, item);
-		file = path;
 
 		if (result.getType() == ResultReason.SUCCESS) {
 			logDebug("Loading result from ItemStack..", item);
@@ -300,7 +303,7 @@ public class ItemFactory {
 
 	@SuppressWarnings("deprecation")
 	public ItemStack handleDurability(ItemStack i, String item) {
-		if (getConfig().isSet(item + ".Durability")) {
+		if (getConfig().isString(item + ".Durability")) {
 			String durability = getConfig().getString(item + ".Durability");
 			if (!durability.isEmpty() && !durability.equals("100") && !durability.equals("0")
 					&& !durability.equals("none"))

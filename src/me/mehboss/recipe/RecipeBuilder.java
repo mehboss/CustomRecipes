@@ -373,6 +373,8 @@ public class RecipeBuilder {
 		ArrayList<String> keys = validateKeys(recipeFiles);
 		recipeLoop: for (File recipeFile : recipeFiles) {
 			recipeConfig = YamlConfiguration.loadConfiguration(recipeFile);
+			getItemFactory().setConfig(recipeConfig);
+
 			String item = recipeFile.getName().replace(".yml", "");
 
 			if (!(recipeConfig.isConfigurationSection(item))) {

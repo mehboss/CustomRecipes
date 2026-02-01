@@ -25,6 +25,10 @@ public class ItemManager {
 		return new File(Main.getInstance().getDataFolder(), "items");
 	}
 
+	static ItemFactory getItemFactory() {
+		return Main.getInstance().itemFactory;
+	}
+	
 	/** Load all items from items folder */
 	public static void loadAll() {
 		BY_IDENTIFIER.clear();
@@ -87,6 +91,7 @@ public class ItemManager {
 
 	private static void loadOne(File ymlFile) {
 		FileConfiguration cfg = YamlConfiguration.loadConfiguration(ymlFile);
+		getItemFactory().setConfig(cfg);
 
 		// Prefer section = filename (without .yml), else first section in file
 		String fileKey = ymlFile.getName().replace(".yml", "");

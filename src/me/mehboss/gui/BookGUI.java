@@ -14,6 +14,7 @@ import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.BrewingRecipeData;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.data.SmithingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
 import me.mehboss.utils.libs.CompatibilityUtil;
 
@@ -132,6 +133,10 @@ public class BookGUI implements Listener {
 				icon = XMaterial.GRINDSTONE;
 				label = ChatColor.GOLD + "Grindstone Recipes";
 				break;
+			case SMITHING:
+				icon = XMaterial.SMITHING_TABLE;
+				label = ChatColor.GOLD + "Smithing Recipes";
+				break;
 			default:
 				icon = XMaterial.BOOK;
 				label = ChatColor.GOLD + "Recipes";
@@ -183,6 +188,10 @@ public class BookGUI implements Listener {
 
 			case BREWING_STAND:
 				recipe = new BrewingRecipeData(id);
+				break;
+
+			case SMITHING:
+				recipe = new SmithingRecipeData(id);
 				break;
 
 			default:
@@ -446,9 +455,5 @@ public class BookGUI implements Listener {
 	private String getValue(String path, String def) {
 		String val = getConfig().getString("gui." + path);
 		return (val == null || val.isEmpty()) ? def : val;
-	}
-
-	private FileConfiguration getDefConfig() {
-		return Main.getInstance().getConfig();
 	}
 }

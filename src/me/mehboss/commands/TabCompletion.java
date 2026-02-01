@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
 import me.mehboss.recipe.Main;
+import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.libs.ItemManager;
 
 public class TabCompletion implements TabCompleter {
@@ -143,18 +144,10 @@ public class TabCompletion implements TabCompleter {
 	}
 
 	private List<String> getRecipeTypes() {
-		// Include your three new types here.
 		List<String> types = new ArrayList<>();
-		types.add("SHAPELESS");
-		types.add("SHAPED");
-		types.add("STONECUTTER");
-		types.add("FURNACE");
-		types.add("BLASTFURNACE");
-		types.add("SMOKER");
-		types.add("CAMPFIRE");
-		types.add("ANVIL");
-		types.add("GRINDSTONE");
-		types.add("BREWING");
+		for (RecipeType type : RecipeType.values()) {
+			types.add(type.toString());
+		}
 		return types;
 	}
 

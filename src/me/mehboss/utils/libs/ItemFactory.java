@@ -55,8 +55,9 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.libs.XItemStack.UnknownMaterialCondition;
 import me.mehboss.utils.libs.XItemStack.UnAcceptableMaterialCondition;
 import net.advancedplugins.ae.api.AEAPI;
-import valorless.havenbags.api.HavenBagsAPI;
-import valorless.havenbags.datamodels.Data;
+// Temporarily commented out due to jitpack.io server error (521)
+// import valorless.havenbags.api.HavenBagsAPI;
+// import valorless.havenbags.datamodels.Data;
 
 public class ItemFactory {
 
@@ -879,6 +880,8 @@ public class ItemFactory {
 		return null;
 	}
 
+	// Temporarily commented out due to jitpack.io server error (521) - will restore after upgrade
+	/*
 	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind, String bagTexture,
 			String item) {
 
@@ -904,4 +907,5 @@ public class ItemFactory {
 		ItemStack bagItem = HavenBagsAPI.generateBagItem(bagData);
 		return bagItem;
 	}
+	*/
 }

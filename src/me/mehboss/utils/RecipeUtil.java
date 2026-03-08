@@ -41,8 +41,9 @@ import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.libs.CompatibilityUtil;
 import me.mehboss.utils.libs.ItemManager;
 import net.Indyuce.mmoitems.MMOItems;
-import valorless.havenbags.api.HavenBagsAPI;
-import valorless.havenbags.datamodels.Data;
+// Temporarily commented out due to jitpack.io server error (521)
+// import valorless.havenbags.api.HavenBagsAPI;
+// import valorless.havenbags.datamodels.Data;
 
 /**
  * Utility manager and API entry point for creating, validating, and storing
@@ -444,6 +445,8 @@ public class RecipeUtil {
 		}
 
 		if (Main.getInstance().hasCustomPlugin("havenbags")) {
+			// Temporarily commented out due to jitpack.io server error (521) - will restore after upgrade
+			/*
 			Data bagData = HavenBagsAPI.getBagData(item);
 			if (bagData != null) {
 				Material material = bagData.getMaterial();
@@ -455,6 +458,7 @@ public class RecipeUtil {
 				allKeys.add("havenbags:" + size + material + modelData + texture);
 				return allKeys;
 			}
+			*/
 		}
 		return allKeys;
 	}

@@ -1,0 +1,69 @@
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for CustomRecipes:CustomRecipes:jar:2.0.6.4
+[WARNING] 'dependencies.dependency.systemPath' for com.ssomar.score:SCore:jar should not point at files within the project directory, ${project.basedir}/SCore-5.26.3.2.jar will be unresolvable by dependent projects @ line 157, column 16
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] 
+[INFO] --------------------< CustomRecipes:CustomRecipes >---------------------
+[INFO] Building CustomRecipes 2.0.6.4
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ CustomRecipes ---
+[INFO] Deleting C:\Users\marti\Documents\GitHub\CustomRecipes\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ CustomRecipes ---
+[WARNING] File encoding has not been set, using platform encoding UTF-8. Build is platform dependent!
+[WARNING] See https://maven.apache.org/general.html#encoding-warning
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 9 resources from resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.8.1:compile (default-compile) @ CustomRecipes ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 79 source files to C:\Users\marti\Documents\GitHub\CustomRecipes\target\classes
+[INFO] /C:/Users/marti/Documents/GitHub/CustomRecipes/src/me/mehboss/utils/RecipeUtil.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/marti/Documents/GitHub/CustomRecipes/src/me/mehboss/utils/RecipeUtil.java: Recompile with -Xlint:deprecation for details.
+[INFO] /C:/Users/marti/Documents/GitHub/CustomRecipes/src/me/mehboss/utils/libs/ItemFactory.java: Some input files use or override a deprecated API that is marked for removal.
+[INFO] /C:/Users/marti/Documents/GitHub/CustomRecipes/src/me/mehboss/utils/libs/ItemFactory.java: Recompile with -Xlint:removal for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ CustomRecipes ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] skip non existing resourceDirectory C:\Users\marti\Documents\GitHub\CustomRecipes\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.8.1:testCompile (default-testCompile) @ CustomRecipes ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ CustomRecipes ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jar:3.4.1:jar (default-jar) @ CustomRecipes ---
+[INFO] Building jar: C:\Users\marti\Documents\GitHub\CustomRecipes\target\CustomRecipes-2.0.6.4.jar
+[INFO] 
+[INFO] --- shade:3.6.0:shade (default) @ CustomRecipes ---
+[INFO] Including com.github.cryptomorin:XSeries:jar:13.6.0 in the shaded jar.
+[INFO] Including de.tr7zw:item-nbt-api:jar:2.15.5 in the shaded jar.
+[INFO] Including com.eclipsesource.minimal-json:minimal-json:jar:0.9.5 in the shaded jar.
+[INFO] Minimizing jar CustomRecipes:CustomRecipes:jar:2.0.6.4
+[INFO] Dependency-reduced POM written at: C:\Users\marti\Documents\GitHub\CustomRecipes\dependency-reduced-pom.xml
+[WARNING] CustomRecipes-2.0.6.4.jar, item-nbt-api-2.15.5.jar, minimal-json-0.9.5.jar define 1 overlapping resource: 
+[WARNING]   - META-INF/MANIFEST.MF
+[WARNING] maven-shade-plugin has detected that some files are
+[WARNING] present in two or more JARs. When this happens, only one
+[WARNING] single version of the file is copied to the uber jar.
+[WARNING] Usually this is not harmful and you can skip these warnings,
+[WARNING] otherwise try to manually exclude artifacts based on
+[WARNING] mvn dependency:tree -Ddetail=true and the above output.
+[WARNING] See https://maven.apache.org/plugins/maven-shade-plugin/
+[INFO] Minimized 606 -> 484 (79%)
+[INFO] Replacing original artifact with shaded artifact.
+[INFO] Replacing C:\Users\marti\Documents\GitHub\CustomRecipes\target\CustomRecipes-2.0.6.4.jar with C:\Users\marti\Documents\GitHub\CustomRecipes\target\CustomRecipes-2.0.6.4-shaded.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  10.345 s
+[INFO] Finished at: 2026-03-08T18:40:48-03:00
+[INFO] ------------------------------------------------------------------------

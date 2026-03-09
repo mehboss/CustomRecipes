@@ -129,7 +129,7 @@ public class CrafterManager implements Listener {
 
 		Location location = crafter.getBlock().getLocation();
 		if (!recipe.isActive() || recipe.getDisabledWorlds().contains(location.getWorld().getName())
-				|| Main.getInstance().disabledrecipe.contains(recipe.getKey()) || recipe.hasCommands()) {
+				|| Main.getInstance().getDisabledRecipes().contains(recipe.getKey()) || recipe.hasCommands()) {
 
 			logDebug(" Attempt to craft recipe was detected, but recipe is disabled!", recipe.getName());
 			return new ItemStack(Material.AIR);
@@ -252,27 +252,27 @@ public class CrafterManager implements Listener {
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	ShapedChecks shapedChecks() {
-		return Main.getInstance().shapedChecks;
+		return Main.getInstance().getShapedChecks();
 	}
 
 	ShapelessChecks shapelessChecks() {
-		return Main.getInstance().shapelessChecks;
+		return Main.getInstance().getShapelessChecks();
 	}
 
 	CraftManager CraftManager() {
-		return Main.getInstance().craftManager;
+		return Main.getInstance().getCraftManager();
 	}
 
 	AmountManager AmountManager() {
-		return Main.getInstance().amountManager;
+		return Main.getInstance().getAmountManager();
 	}
 
 	void logDebug(String st, String recipeName) {
-		if (Main.getInstance().crafterdebug)
+		if (Main.getInstance().isCrafterDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}

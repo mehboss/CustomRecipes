@@ -54,10 +54,6 @@ import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.libs.XItemStack.UnknownMaterialCondition;
 import me.mehboss.utils.libs.XItemStack.UnAcceptableMaterialCondition;
-import net.advancedplugins.ae.api.AEAPI;
-// Temporarily commented out due to jitpack.io server error (521)
-// import valorless.havenbags.api.HavenBagsAPI;
-// import valorless.havenbags.datamodels.Data;
 
 public class ItemFactory {
 
@@ -72,7 +68,7 @@ public class ItemFactory {
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	private void logError(String st, String recipe) {
@@ -81,23 +77,9 @@ public class ItemFactory {
 	}
 
 	private void logDebug(String st, String recipe) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe.replaceAll(".Result", "") + "] " + st);
-	}
-
-	public boolean isHavenBag(String item) {
-		if (getConfig().isSet(item + ".Identifier")
-				&& getConfig().getString(item + ".Identifier").split("-")[0].contains("havenbags"))
-			return true;
-
-		return false;
-	}
-
-	boolean hasHavenBag() {
-		if (Main.getInstance().hasHavenBags)
-			return true;
-		return false;
 	}
 
 	boolean isCustomItem(String id) {
@@ -163,15 +145,6 @@ public class ItemFactory {
 
 		ItemStack i = hasItemDamage(item, type) ? handleItemDamage(item, type) : new ItemStack(type.get().get(), 1);
 		ItemMeta m = i.getItemMeta();
-
-		if (isHavenBag(item)) {
-			if (!(hasHavenBag())) {
-				logError("Error loading recipe..", item);
-				logError("Found a havenbag recipe, but no havenbags plugin found. Skipping recipe..", item);
-				return Optional.empty();
-			}
-			return Optional.of(handleBagCreation(i.getType(), 0, 0, "null", null, item));
-		}
 
 		// handle head textures
 		ItemStack texture = handleHeadTexture(path.getString(item + ".Item"));
@@ -370,13 +343,7 @@ public class ItemFactory {
 					String enchantment = breakdown[1].toLowerCase();
 					int lvl = Integer.parseInt(breakdown[2]);
 
-					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(enchantment)) {
-						i = AEAPI.applyEnchant(enchantment, lvl, i);
-						applied = true;
-						continue;
-					}
-
-					if (Main.getInstance().hasEE) {
+						if (Main.getInstance().isHasEE()) {
 						NamespacedKey enchantKey = NamespacedKey.fromString("minecraft:" + enchantment);
 						if (Enchantment.getByKey(enchantKey) != null) {
 							Enchantment enchant = Enchantment.getByKey(enchantKey);
@@ -882,7 +849,7 @@ public class ItemFactory {
 
 	// Temporarily commented out due to jitpack.io server error (521) - will restore after upgrade
 	/*
-	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind, String bagTexture,
+	public ItemStack handleBagCreation
 			String item) {
 
 		if (item != null) {

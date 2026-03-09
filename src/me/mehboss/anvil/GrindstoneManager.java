@@ -50,11 +50,11 @@ public class GrindstoneManager implements Listener {
 	private static final Map<UUID, Recipe> matchedByPlayer = new HashMap<>();
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	CooldownManager getCooldownManager() {
-		return Main.getInstance().cooldownManager;
+		return Main.getInstance().getCooldownManager();
 	}
 
 	/**
@@ -228,7 +228,7 @@ public class GrindstoneManager implements Listener {
 			}
 
 			if (hasCooldown) {
-				Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(player.getUniqueId(), recipe.getKey());
+				Long timeLeft = Main.getInstance().getCooldownManager().getTimeLeft(player.getUniqueId(), recipe.getKey());
 				sendMessage(player, "crafting-limit", timeLeft);
 				matchedByPlayer.remove(pid);
 				if (hadCustomLastTick)
@@ -378,16 +378,16 @@ public class GrindstoneManager implements Listener {
 
 	/** Checks ingredient amount requirements. */
 	boolean amountsMatch(String recipe, ItemStack item, Ingredient ingredient) {
-		return Main.getInstance().metaChecks.amountsMatch(recipe, item, ingredient);
+		return Main.getInstance().getMetaChecks().amountsMatch(recipe, item, ingredient);
 	}
 
 	/** Checks item similarity using metadata comparison handlers. */
 	private boolean itemsMatch(Recipe recipe, ItemStack item, Ingredient ingredient) {
-		return Main.getInstance().metaChecks.itemsMatch(recipe, item, ingredient);
+		return Main.getInstance().getMetaChecks().itemsMatch(recipe, item, ingredient);
 	}
 
 	private void logDebug(String st, String recipeName) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Grindstone][" + recipeName + "] " + st);
 	}

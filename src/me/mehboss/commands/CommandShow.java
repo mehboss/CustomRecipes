@@ -11,7 +11,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 public class CommandShow {
 
 	static RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	public static boolean Run(CRCommand command) {
@@ -33,7 +33,7 @@ public class CommandShow {
 
 		Player p = (Player) sender;
 		sender.sendMessage(ChatColor.RED + "[CustomRecipes] Showing recipe with ID '" + id + "'..");
-		Main.getInstance().recipes.showCreationMenu(p, existing, false, false);
+		Main.getInstance().getBookGUI().showCreationMenu(p, existing, false, false);
 		return true;
 	}
 }

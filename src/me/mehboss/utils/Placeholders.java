@@ -61,10 +61,10 @@ public class Placeholders extends PlaceholderExpansion {
 
 			int ingredient = Integer.parseInt(split[3]);
 
-			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
+			if (Main.getInstance().getRecipeUtil().getRecipe(recipe) == null)
 				return null;
 
-			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return ingredients.get(ingredient).getDisplayName().replaceAll("false", "None");
@@ -75,10 +75,10 @@ public class Placeholders extends PlaceholderExpansion {
 			String recipe = split[0];
 			int ingredient = Integer.parseInt(split[3]);
 
-			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
+			if (Main.getInstance().getRecipeUtil().getRecipe(recipe) == null)
 				return null;
 
-			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return String.valueOf(ingredients.get(ingredient).getAmount());
@@ -90,10 +90,10 @@ public class Placeholders extends PlaceholderExpansion {
 			String recipe = split[0];
 			int ingredient = Integer.parseInt(split[3]);
 
-			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
+			if (Main.getInstance().getRecipeUtil().getRecipe(recipe) == null)
 				return null;
 
-			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return String.valueOf(ingredients.get(ingredient).getIdentifier());
@@ -105,10 +105,10 @@ public class Placeholders extends PlaceholderExpansion {
 			String recipe = split[0];
 			int ingredient = Integer.parseInt(split[2]);
 
-			if (Main.getInstance().recipeUtil.getRecipe(recipe) == null)
+			if (Main.getInstance().getRecipeUtil().getRecipe(recipe) == null)
 				return null;
 
-			RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+			RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 			List<RecipeUtil.Ingredient> ingredients = recipeUtil.getRecipe(recipe).getIngredients();
 
 			return ingredients.get(ingredient).getMaterial().toString();

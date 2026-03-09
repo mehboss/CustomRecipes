@@ -649,11 +649,11 @@ public class RecipeSaver {
 	}
 
 	RecipeBuilder getRecipeBuilder() {
-		return Main.getInstance().recipeBuilder;
+		return Main.getInstance().getRecipeBuilder();
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	FileConfiguration getConfig() {

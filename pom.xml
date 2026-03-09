@@ -106,17 +106,8 @@
 			<url>https://mvn.lumine.io/repository/maven-public/</url>
 		</repository>
 		<repository>
-			<id>oraxen</id>
-			<name>Oraxen Repository</name>
-			<url>https://repo.oraxen.com/releases</url>
-		</repository>
-		<repository>
 			<id>nexomc</id>
 			<url>https://repo.nexomc.com/releases</url>
-		</repository>
-		<repository>
-			<id>phoenix</id>
-			<url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
 		</repository>
 		<repository>
 			<id>minecraft-repo</id>
@@ -148,15 +139,22 @@
 			<version>13.6.0</version>
 		</dependency>
 		<dependency>
+			<groupId>de.tr7zw</groupId>
+			<artifactId>item-nbt-api</artifactId>
+			<version>2.15.5</version>
+		</dependency>
+		<dependency>
 			<groupId>com.willfp</groupId>
 			<artifactId>EcoEnchants</artifactId>
 			<version>12.19.0</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.github.LoneDev6</groupId>
-			<artifactId>api-itemsadder</artifactId>
-			<version>3.6.1</version>
-			<scope>provided</scope>
+			<groupId>com.ssomar.score</groupId>
+			<artifactId>SCore</artifactId>
+			<version>5.26.3.2</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/SCore-5.26.3.2.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>io.lumine</groupId>
@@ -165,72 +163,9 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>net.Indyuce</groupId>
-			<artifactId>MMOItems-API</artifactId>
-			<version>6.9.5-SNAPSHOT</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>de.tr7zw</groupId>
-			<artifactId>item-nbt-api</artifactId>
-			<version>2.15.5</version>
-		</dependency>
-		<dependency>
-			<groupId>io.th0rgal</groupId>
-			<artifactId>oraxen</artifactId>
-			<version>1.189.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>me.gabytm.util</groupId>
-					<artifactId>actions-spigot</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.jetbrains</groupId>
-					<artifactId>annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.ticxo</groupId>
-					<artifactId>PlayerAnimator</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.github.stefvanschie.inventoryframework</groupId>
-					<artifactId>IF</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.th0rgal</groupId>
-					<artifactId>protectionlib</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>dev.triumphteam</groupId>
-					<artifactId>triumph-gui</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.bstats</groupId>
-					<artifactId>bstats-bukkit</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.jeff-media</groupId>
-					<artifactId>custom-block-data</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.jeff-media</groupId>
-					<artifactId>persistent-data-serializer</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.jeff_media</groupId>
-					<artifactId>MorePersistentDataTypes</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>gs.mclo</groupId>
-					<artifactId>java</artifactId>
-				</exclusion>
-			</exclusions>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>com.nexomc</groupId>
 			<artifactId>nexo</artifactId>
-			<version>1.3.0</version>
+			<version>1.20.1</version>
 			<scope>provided</scope>
 			<exclusions>
 				<exclusion>

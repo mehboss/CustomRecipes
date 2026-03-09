@@ -35,11 +35,11 @@ import me.mehboss.utils.libs.CompatibilityUtil;
 public class ExactChoice {
 
 	RecipeBuilder getRecipeBuilder() {
-		return Main.getInstance().recipeBuilder;
+		return Main.getInstance().getRecipeBuilder();
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	RecipeChoice.ExactChoice returnExactChoice(ItemStack item) {
@@ -262,8 +262,20 @@ public class ExactChoice {
 					returnExactChoice(recipe.getAddition()));
 		}
 		return new SmithingTransformRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
-				returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
-				returnExactChoice(recipe.getAddition()));
+				getSmithingIngredientChoice(recipe.getTemplateIngredient(), recipe.getTemplate()),
+				getSmithingIngredientChoice(recipe.getBaseIngredient(), recipe.getBase()),
+				getSmithingIngredientChoice(recipe.getAdditionIngredient(), recipe.getAddition()));
+	}
+
+	/**
+	 * Always returns a MaterialChoice so Bukkit only filters by material type.
+	 * Full ingredient verification (identifier, name, CMD, lore, itemModel, Nexo/MM/EI keys)
+	 * is delegated to passesChecks() → MetaChecks.itemsMatch(), which runs after
+	 * the Bukkit test passes. This allows enchanted/reforged bases and custom items
+	 * (Nexo, etc.) to pass the Bukkit layer correctly.
+	 */
+	private RecipeChoice getSmithingIngredientChoice(Ingredient ingredient, ItemStack item) {
+		return new RecipeChoice.MaterialChoice(item.getType());
 	}
 
 	private void logError(String st, String recipe) {
@@ -272,7 +284,7 @@ public class ExactChoice {
 	}
 
 	private void logDebug(String st, String recipe) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "][EC] " + st);
 	}

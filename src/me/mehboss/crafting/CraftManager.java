@@ -62,11 +62,11 @@ import me.mehboss.utils.libs.RecipeConditions.ConditionSet;
 public class CraftManager implements Listener {
 
 	FileConfiguration customConfig() {
-		return Main.getInstance().customConfig;
+		return Main.getInstance().getCustomConfig();
 	}
 
 	ArrayList<String> disabledrecipe() {
-		return Main.getInstance().disabledrecipe;
+		return Main.getInstance().getDisabledRecipes();
 	}
 
 	Logger getLogger() {
@@ -74,19 +74,19 @@ public class CraftManager implements Listener {
 	}
 
 	CooldownManager getCooldownManager() {
-		return Main.getInstance().cooldownManager;
+		return Main.getInstance().getCooldownManager();
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	ShapedChecks shapedChecks() {
-		return Main.getInstance().shapedChecks;
+		return Main.getInstance().getShapedChecks();
 	}
 
 	ShapelessChecks shapelessChecks() {
-		return Main.getInstance().shapelessChecks;
+		return Main.getInstance().getShapelessChecks();
 	}
 
 	boolean isInt(String s) {
@@ -99,13 +99,13 @@ public class CraftManager implements Listener {
 	}
 
 	void logDebug(String st, String recipeName, UUID id) {
-		if (Main.getInstance().debug && (id == null || (!Main.getInstance().inInventory.contains(id))))
+		if (Main.getInstance().isDebug() && (id == null || (!Main.getInstance().getInInventory().contains(id))))
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}
 
 	void logDebug(String st, String recipeName) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}
@@ -269,7 +269,7 @@ public class CraftManager implements Listener {
 
 		UUID pID = p.getUniqueId();
 
-		for (String entry : Main.getInstance().disabledrecipe) {
+		for (String entry : Main.getInstance().getDisabledRecipes()) {
 			if (customConfig().isConfigurationSection("vanilla-recipes." + entry)) {
 
 				Optional<XMaterial> match = XMaterial.matchXMaterial(entry);
@@ -545,11 +545,11 @@ public class CraftManager implements Listener {
 		UUID id = p.getUniqueId();
 
 		// avoids redundant checks to increase server performance
-		if (Main.getInstance().debounceMap.containsKey(id)) {
-			if (now - Main.getInstance().debounceMap.get(id) < 25) {
+		if (Main.getInstance().getDebounceMap().containsKey(id)) {
+			if (now - Main.getInstance().getDebounceMap().get(id) < 25) {
 				return;
 			}
-			Main.getInstance().debounceMap.remove(id);
+			Main.getInstance().getDebounceMap().remove(id);
 		}
 
 		if (isBlacklisted(inv.getResult(), p, e.getRecipe())) {
@@ -688,7 +688,7 @@ public class CraftManager implements Listener {
 							+ ChatColor.GRAY + String.join(", ", reasons));
 				}
 
-				Boolean closeInventory = Main.getInstance().customConfig.getBoolean("conditions-failed.close-inventory",
+				Boolean closeInventory = Main.getInstance().getCustomConfig().getBoolean("conditions-failed.close-inventory",
 						true);
 
 				if (closeInventory)

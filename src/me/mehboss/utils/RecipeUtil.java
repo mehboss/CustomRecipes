@@ -3,6 +3,7 @@ package me.mehboss.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,19 +32,13 @@ import com.ssomar.score.api.executableitems.ExecutableItemsAPI;
 import com.ssomar.score.api.executableitems.config.ExecutableItemInterface;
 
 import de.tr7zw.changeme.nbtapi.NBT;
-import dev.lone.itemsadder.api.CustomStack;
 import io.lumine.mythic.bukkit.MythicBukkit;
-import io.th0rgal.oraxen.api.OraxenItems;
 import me.mehboss.recipe.Blacklist;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.libs.CompatibilityUtil;
 import me.mehboss.utils.libs.ItemManager;
-import net.Indyuce.mmoitems.MMOItems;
-// Temporarily commented out due to jitpack.io server error (521)
-// import valorless.havenbags.api.HavenBagsAPI;
-// import valorless.havenbags.datamodels.Data;
 
 /**
  * Utility manager and API entry point for creating, validating, and storing
@@ -101,8 +96,12 @@ public class RecipeUtil {
 	private HashMap<String, Recipe> recipes = new HashMap<>();
 	private ArrayList<String> keyList = new ArrayList<>();
 	private HashMap<String, ItemStack> custom_items = new HashMap<>();
-	public List<String> SUPPORTED_PLUGINS = Arrays.asList("itemsadder", "mythicmobs", "executableitems", "oraxen",
-			"nexo", "mmoitems", "havenbags");
+	public List<String> SUPPORTED_PLUGINS = Arrays.asList("mythicmobs", "executableitems", "nexo");
+
+	// Performance indexes — kept in sync with 'recipes' map
+	private final HashMap<String, Recipe> recipesByKey = new HashMap<>();
+	private final EnumMap<RecipeType, Map<String, Recipe>> recipesByType = new EnumMap<>(RecipeType.class);
+	private static final Set<String> CUSTOM_ITEM_PLUGIN_IDS = Set.of("mythicmobs", "nexo", "executableitems");
 
 	/**
 	 * Adds a finished Recipe object to the API
@@ -148,6 +147,9 @@ public class RecipeUtil {
 		recipes.put(recipe.getName(), recipe);
 		if (!keyList.contains(recipe.getKey()))
 			keyList.add(recipe.getKey());
+		if (recipe.getKey() != null)
+			recipesByKey.put(recipe.getKey().toLowerCase(), recipe);
+		recipesByType.computeIfAbsent(recipe.getType(), k -> new HashMap<>()).put(recipe.getName(), recipe);
 	}
 
 	/**
@@ -161,6 +163,11 @@ public class RecipeUtil {
 			clearDuplicates(recipe);
 			keyList.remove(recipe.getKey());
 			recipes.remove(recipeName);
+			if (recipe.getKey() != null)
+				recipesByKey.remove(recipe.getKey().toLowerCase());
+			Map<String, Recipe> typeMap = recipesByType.get(recipe.getType());
+			if (typeMap != null)
+				typeMap.remove(recipeName);
 		}
 	}
 
@@ -172,7 +179,7 @@ public class RecipeUtil {
 	 */
 	public void registerRecipe(Recipe recipe) {
 		this.clearDuplicates(recipe);
-		Main.getInstance().recipeBuilder.addRecipesFromAPI(recipe);
+		Main.getInstance().getRecipeBuilder().addRecipesFromAPI(recipe);
 	}
 
 	/**
@@ -181,7 +188,7 @@ public class RecipeUtil {
 	 */
 	public void reloadRecipes() {
 		this.clearDuplicates(null);
-		Main.getInstance().recipeBuilder.addRecipesFromAPI(null);
+		Main.getInstance().getRecipeBuilder().addRecipesFromAPI(null);
 	}
 
 	/**
@@ -220,15 +227,7 @@ public class RecipeUtil {
 	public Boolean isCustomItem(String key) {
 		if (key == null)
 			return false;
-
-		String pluginID = key.toLowerCase();
-		String[] plugins = { "mythicmobs", "itemsadder", "mmoitems", "oraxen", "nexo", "executableitems" };
-
-		for (String plugin : plugins)
-			if (plugin.equals(pluginID))
-				return true;
-
-		return false;
+		return CUSTOM_ITEM_PLUGIN_IDS.contains(key.toLowerCase());
 	}
 
 	/**
@@ -268,14 +267,6 @@ public class RecipeUtil {
 		}
 
 		switch (namespace) {
-		case "itemsadder":
-			if (Main.getInstance().hasCustomPlugin("itemsadder")) {
-				CustomStack iaItem = CustomStack.getInstance(itemId);
-				if (iaItem != null)
-					return iaItem.getItemStack();
-			}
-			break;
-
 		case "mythicmobs":
 			if (Main.getInstance().hasCustomPlugin("mythicmobs")) {
 				ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(itemId);
@@ -290,66 +281,27 @@ public class RecipeUtil {
 						.getExecutableItem(itemId);
 				if (ei.isPresent()) {
 					if (custom_items.containsKey(itemId)) {
-						return custom_items.get(itemId);
+						return custom_items.get(itemId).clone();
 					} else {
 						ItemStack eiItem = ei.get().buildItem(1, Optional.empty());
 						custom_items.put(itemId, eiItem);
-						return eiItem;
+						return eiItem.clone();
 					}
 				}
 			}
 			break;
 
-		case "oraxen":
-			if (Main.getInstance().hasCustomPlugin("oraxen")) {
-				ItemStack oraxenItem = OraxenItems.exists(itemId) ? OraxenItems.getItemById(itemId).build() : null;
-				if (oraxenItem != null)
-					return oraxenItem;
-			}
-			break;
-
 		case "nexo":
 			if (Main.getInstance().hasCustomPlugin("nexo")) {
-				if (NexoItems.itemFromId(itemId) != null)
-					return NexoItems.itemFromId(itemId).build();
+				if (custom_items.containsKey(item))
+					return custom_items.get(item).clone();
+				if (NexoItems.itemFromId(itemId) != null) {
+					ItemStack nexoItem = NexoItems.itemFromId(itemId).build();
+					custom_items.put(item, nexoItem);
+					return nexoItem.clone();
+				}
 			}
 			break;
-
-		case "mmoitems":
-			if (split.length < 3) {
-				logError("Could not complete recipe because MMOItems must specify a type, which can not be found. Key: "
-						+ item, recipe);
-				return null;
-			}
-
-			if (Main.getInstance().hasCustomPlugin("mmoitems")) {
-				ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()),
-						itemId.toUpperCase());
-				if (mmoitem != null)
-					return mmoitem;
-			}
-			break;
-
-		case "havenbags":
-			boolean hasArgs = split.length >= 3;
-			Material bagMaterial = hasArgs && XMaterial.matchXMaterial(split[2]).isPresent()
-					? XMaterial.matchXMaterial(split[2]).get().get()
-					: null;
-			int size = !hasArgs || Integer.getInteger(split[1]) == null ? 1 : Integer.parseInt(split[1]);
-			int bagCMD = split.length < 4 || Integer.getInteger(split[3]) == null ? 0 : Integer.parseInt(split[3]);
-			String canBind = split.length >= 5 ? split[4] : "null";
-			String bagTexture = split.length >= 6 ? split[5] : "none";
-
-			if (!hasArgs || bagMaterial == null) {
-				logError("Could not complete recipe because HavenBags is missing either a material or bag size. Key: "
-						+ item, recipe);
-				return null;
-			}
-
-			// havenbags:size:material:customModelData:canBind:texture
-			ItemStack bagItem = Main.getInstance().itemFactory.handleBagCreation(bagMaterial, size, bagCMD, canBind,
-					bagTexture, null);
-			return bagItem;
 
 		}
 
@@ -396,14 +348,6 @@ public class RecipeUtil {
 			return allKeys;
 		}
 
-		if (Main.getInstance().hasCustomPlugin("itemsadder")) {
-			CustomStack ia = CustomStack.byItemStack(item);
-			if (ia != null) {
-				allKeys.add("itemsadder:" + ia.getId());
-				return allKeys;
-			}
-		}
-
 		if (Main.getInstance().hasCustomPlugin("mythicmobs")) {
 			String mythicId = MythicBukkit.inst().getItemManager().getMythicTypeFromItem(item);
 			if (mythicId != null) {
@@ -421,13 +365,6 @@ public class RecipeUtil {
 			}
 		}
 
-		if (Main.getInstance().hasCustomPlugin("oraxen")) {
-			if (OraxenItems.exists(item)) {
-				allKeys.add("oraxen:" + OraxenItems.getIdByItem(item));
-				return allKeys;
-			}
-		}
-
 		if (Main.getInstance().hasCustomPlugin("nexo")) {
 			if (NexoItems.idFromItem(item) != null) {
 				allKeys.add("nexo:" + NexoItems.idFromItem(item));
@@ -435,31 +372,6 @@ public class RecipeUtil {
 			}
 		}
 
-		if (Main.getInstance().hasCustomPlugin("mmoitems")) {
-			String id = MMOItems.getID(item);
-			String type = MMOItems.getTypeName(item);
-			if (id != null && type != null) {
-				allKeys.add("mmoitems:" + id + ":" + type);
-				return allKeys;
-			}
-		}
-
-		if (Main.getInstance().hasCustomPlugin("havenbags")) {
-			// Temporarily commented out due to jitpack.io server error (521) - will restore after upgrade
-			/*
-			Data bagData = HavenBagsAPI.getBagData(item);
-			if (bagData != null) {
-				Material material = bagData.getMaterial();
-				String texture = bagData.getTexture();
-				int modelData = bagData.getModeldata();
-				int size = bagData.getSize();
-
-				// havenbags:size:material:customModelData:texture
-				allKeys.add("havenbags:" + size + material + modelData + texture);
-				return allKeys;
-			}
-			*/
-		}
 		return allKeys;
 	}
 
@@ -470,16 +382,9 @@ public class RecipeUtil {
 	 * @return the Recipe that is found, can be null
 	 */
 	public Recipe getRecipeFromKey(String key) {
-		for (Recipe recipe : recipes.values()) {
-			String recipeTag = recipe.getKey();
-
-			if (key == null)
-				return null;
-
-			if (key.equalsIgnoreCase(recipeTag))
-				return recipe;
-		}
-		return null;
+		if (key == null)
+			return null;
+		return recipesByKey.get(key.toLowerCase());
 	}
 
 	/**
@@ -624,19 +529,10 @@ public class RecipeUtil {
 	 * @return the hashmap of recipes found, can be null
 	 */
 	public HashMap<String, Recipe> getRecipesFromType(RecipeType type) {
-		if (recipes.isEmpty())
+		Map<String, Recipe> found = recipesByType.get(type);
+		if (found == null || found.isEmpty())
 			return null;
-
-		HashMap<String, Recipe> foundRecipes = new HashMap<String, Recipe>();
-		for (Recipe recipe : recipes.values()) {
-			if (recipe.getType() == type)
-				foundRecipes.put(recipe.getName(), recipe);
-		}
-
-		if (foundRecipes.isEmpty())
-			return null;
-
-		return foundRecipes;
+		return new HashMap<>(found);
 	}
 
 	/**

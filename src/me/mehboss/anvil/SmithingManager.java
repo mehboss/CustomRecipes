@@ -1,6 +1,7 @@
 package me.mehboss.anvil;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -18,6 +19,7 @@ import org.bukkit.inventory.SmithingInventory;
 import org.bukkit.inventory.SmithingTransformRecipe;
 import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
 
 import com.cryptomorin.xseries.XSound;
 
@@ -60,12 +62,20 @@ public class SmithingManager implements Listener {
 
 			if (recipe == null)
 				continue;
-			if (recipe.getTemplate().test(templateItem) && recipe.getBase().test(baseItem)
-					&& recipe.getAddition().test(additionItem)) {
 
-				if (!passesChecks(smithing, recipe.getTemplate().getItemStack(), recipe.getBase().getItemStack(),
-						recipe.getAddition().getItemStack()))
+			boolean tplTest = recipe.getTemplate().test(templateItem);
+			boolean baseTest = recipe.getBase().test(baseItem);
+			boolean addTest = recipe.getAddition().test(additionItem);
+
+			if (tplTest && baseTest && addTest) {
+				boolean passes = passesChecks(smithing, templateItem, baseItem, additionItem);
+				if (!passes) {
+					// Bukkit matched at material level but MetaChecks rejected (e.g. a Nexo item
+					// whose underlying material matches the base slot MaterialChoice). Explicitly
+					// null the result so the Bukkit-pre-set result doesn't leak to the player.
 					event.setResult(null);
+					continue;
+				}
 
 				boolean copyTrim = smithing.copiesTrim();
 				boolean copyEnchants = smithing.copiesEnchants();
@@ -108,14 +118,15 @@ public class SmithingManager implements Listener {
 		processIngredients(smithingInventory);
 
 		smithingInventory.setResult(null);
-		player.getInventory().addItem(result);
+		Map<Integer, ItemStack> leftover = player.getInventory().addItem(result);
+		leftover.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
 	}
 
 	private boolean passesChecks(SmithingRecipeData recipe, ItemStack template, ItemStack base, ItemStack addition) {
-		boolean templatePasses = Main.getInstance().metaChecks.itemsMatch(recipe, template,
+		boolean templatePasses = Main.getInstance().getMetaChecks().itemsMatch(recipe, template,
 				recipe.getTemplateIngredient());
-		boolean basePasses = Main.getInstance().metaChecks.itemsMatch(recipe, base, recipe.getBaseIngredient());
-		boolean additionPasses = Main.getInstance().metaChecks.itemsMatch(recipe, addition,
+		boolean basePasses = Main.getInstance().getMetaChecks().itemsMatch(recipe, base, recipe.getBaseIngredient());
+		boolean additionPasses = Main.getInstance().getMetaChecks().itemsMatch(recipe, addition,
 				recipe.getAdditionIngredient());
 
 		return templatePasses && basePasses && additionPasses;
@@ -130,7 +141,13 @@ public class SmithingManager implements Listener {
 			return;
 
 		if (copyEnchants) {
+			// Copy vanilla + Paper-registered enchantments (includes EcoEnchants custom enchants)
 			baseMeta.getEnchants().forEach((enchant, level) -> resultMeta.addEnchant(enchant, level, true));
+
+			// Copy full PDC from base to result (carries Reforges, EcoEnchants PDC data, etc.)
+			PersistentDataContainer sourcePDC = baseMeta.getPersistentDataContainer();
+			PersistentDataContainer targetPDC = resultMeta.getPersistentDataContainer();
+			sourcePDC.copyTo(targetPDC, false);
 		}
 
 		if (copyTrim && baseMeta instanceof ArmorMeta) {
@@ -167,6 +184,6 @@ public class SmithingManager implements Listener {
 	}
 
 	private RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 }

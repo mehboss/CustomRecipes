@@ -96,7 +96,7 @@ public class BrewingRecipe {
 				}
 
 				if (hasCooldown) {
-					Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
+					Long timeLeft = Main.getInstance().getCooldownManager().getTimeLeft(p.getUniqueId(), recipe.getKey());
 					sendMessages(p, "crafting-limit", timeLeft);
 					return null;
 				}
@@ -340,7 +340,7 @@ public class BrewingRecipe {
 	}
 
 	static CooldownManager getCooldownManager() {
-		return Main.getInstance().cooldownManager;
+		return Main.getInstance().getCooldownManager();
 	}
 
 	static void sendMessages(Player p, String s, long seconds) {
@@ -354,7 +354,7 @@ public class BrewingRecipe {
 	}
 
 	static void logDebug(String st) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 

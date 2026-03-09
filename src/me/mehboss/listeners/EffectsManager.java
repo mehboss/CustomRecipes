@@ -1,6 +1,8 @@
 package me.mehboss.listeners;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -21,21 +23,34 @@ import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.RecipeUtil;
+import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class EffectsManager implements Listener {
 
-	FileConfiguration getConfig(String recipeName) {
-		File dataFolder = Main.getInstance().getDataFolder();
-		File recipesFolder = new File(dataFolder, "recipes");
-		File recipeFile = new File(recipesFolder, recipeName + ".yml");
+	private final Map<String, FileConfiguration> configCache = new HashMap<>();
 
+	/** Limpia el caché de configuraciones al hacer /crecipe reload */
+	public void invalidateConfigCache() {
+		configCache.clear();
+	}
+
+	FileConfiguration getConfig(String recipeName) {
+		FileConfiguration cached = configCache.get(recipeName);
+		if (cached != null)
+			return cached;
+
+		File recipeFile = new File(new File(Main.getInstance().getDataFolder(), "recipes"), recipeName + ".yml");
 		if (!recipeFile.exists())
 			return null;
 
-		return YamlConfiguration.loadConfiguration(recipeFile);
+		FileConfiguration config = YamlConfiguration.loadConfiguration(recipeFile);
+		configCache.put(recipeName, config);
+		return config;
 	}
 
-	RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
+	RecipeUtil recipeUtil() {
+		return Main.getInstance().getRecipeUtil();
+	}
 
 	@SuppressWarnings("deprecation")
 	@EventHandler
@@ -64,14 +79,16 @@ public class EffectsManager implements Listener {
 			String configName = null;
 
 			ReadWriteNBT nbt = NBT.itemStackToNBT(item);
-			if (nbt.hasTag("CUSTOM_ITEM_IDENTIFER"))
+			if (nbt.hasTag("CUSTOM_ITEM_IDENTIFIER"))
 				identifier = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 
-			if (identifier != null && recipeUtil.getRecipeFromKey(identifier) != null)
-				foundItem = recipeUtil.getRecipeFromKey(identifier).getResult();
-
-			if (foundItem != null && recipeUtil.getRecipeFromKey(identifier) != null)
-				configName = recipeUtil.getRecipeFromKey(identifier).getName();
+			if (identifier != null) {
+				Recipe found = recipeUtil().getRecipeFromKey(identifier);
+				if (found != null) {
+					foundItem = found.getResult();
+					configName = found.getName();
+				}
+			}
 
 			if (configName == null || foundItem == null || identifier == null || getConfig(configName) == null)
 				return;
@@ -81,10 +98,16 @@ public class EffectsManager implements Listener {
 
 				for (String e : getConfig(configName).getStringList(configName + ".Effects")) {
 
+					if (e == null || e.isEmpty())
+						continue;
+
 					String[] effectSplit = e.split(":");
+					if (effectSplit.length < 3)
+						continue;
+
 					String eff = effectSplit[0].toUpperCase();
 
-					if (e == null || PotionEffectType.getByName(eff) == null)
+					if (PotionEffectType.getByName(eff) == null)
 						continue;
 
 					String dur = effectSplit[1];

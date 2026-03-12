@@ -303,17 +303,17 @@ public class ShapedChecks {
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	void logDebug(String st, String recipeName, UUID id) {
-		if (Main.getInstance().debug && (id == null || (!Main.getInstance().inInventory.contains(id))))
+		if (Main.getInstance().isDebug() && (id == null || (!Main.getInstance().getInInventory().contains(id))))
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}
 
 	void logDebug(String st, String recipeName) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}

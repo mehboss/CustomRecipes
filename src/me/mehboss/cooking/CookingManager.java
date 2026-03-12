@@ -93,7 +93,7 @@ public class CookingManager implements Listener {
 				}
 
 				if (hasCooldown) {
-					Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
+					Long timeLeft = Main.getInstance().getCooldownManager().getTimeLeft(p.getUniqueId(), recipe.getKey());
 					sendMessage(p, "crafting-limit", timeLeft);
 					e.setCancelled(true);
 					return;
@@ -178,15 +178,15 @@ public class CookingManager implements Listener {
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	CooldownManager getCooldownManager() {
-		return Main.getInstance().cooldownManager;
+		return Main.getInstance().getCooldownManager();
 	}
 
 	void logDebug(String st) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 

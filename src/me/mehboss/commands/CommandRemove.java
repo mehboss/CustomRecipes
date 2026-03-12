@@ -11,7 +11,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 public class CommandRemove {
 
 	static RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+	    return Main.getInstance().getRecipeUtil();
 	}
 
 	public static boolean Run(CRCommand command) {

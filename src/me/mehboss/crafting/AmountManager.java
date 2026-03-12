@@ -44,7 +44,7 @@ public class AmountManager implements Listener {
 	}
 
 	void logDebug(String st) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
 	}
 
@@ -53,15 +53,15 @@ public class AmountManager implements Listener {
 	}
 
 	CooldownManager getCooldownManager() {
-		return Main.getInstance().cooldownManager;
+		return Main.getInstance().getCooldownManager();
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	ShapedChecks shapedChecks() {
-		return Main.getInstance().shapedChecks;
+		return Main.getInstance().getShapedChecks();
 	}
 
 	private boolean hasAllIngredients(CraftingInventory inv, String recipes, List<Ingredient> recipeIngredients,
@@ -187,7 +187,7 @@ public class AmountManager implements Listener {
 		logDebug("[handleShiftClicks] Fired #1");
 
 		Recipe matched = getRecipeUtil().getRecipeFromResult(inv.getResult(), true);
-		Main.getInstance().debounceMap.put(id, System.currentTimeMillis());
+		Main.getInstance().getDebounceMap().put(id, System.currentTimeMillis());
 		if (matched == null)
 			return;
 
@@ -214,7 +214,7 @@ public class AmountManager implements Listener {
 				: getRecipeUtil().getRecipesFromType(RecipeType.SHAPED);
 
 		ReadWriteNBT nbt = NBT.itemStackToNBT(inv.getResult());
-		if (nbt.hasTag("CUSTOM_ITEM_IDENTIFER")) {
+		if (nbt.hasTag("CUSTOM_ITEM_IDENTIFIER")) {
 			String foundID = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 			Recipe keyedRecipe = getRecipeUtil().getRecipeFromKey(foundID);
 			if (keyedRecipe != null)
@@ -244,7 +244,7 @@ public class AmountManager implements Listener {
 
 		// COOLDOWN
 		if (hasCooldown) {
-			Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), recipe.getKey());
+			Long timeLeft = Main.getInstance().getCooldownManager().getTimeLeft(p.getUniqueId(), recipe.getKey());
 			e.setCancelled(true);
 			sendMessage(p, "crafting-limit", timeLeft);
 			return;
@@ -402,8 +402,8 @@ public class AmountManager implements Listener {
 		getCooldownManager().addCooldown(player.getUniqueId(), cooldown);
 
 		// debug suppression window
-		Main.getInstance().inInventory.add(id);
-		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Main.getInstance().inInventory.remove(id), 2L);
+		Main.getInstance().getInInventory().add(id);
+		Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Main.getInstance().getInInventory().remove(id), 2L);
 
 		if (recipe.hasCommands()) {
 			if (e.getAction() != InventoryAction.MOVE_TO_OTHER_INVENTORY)

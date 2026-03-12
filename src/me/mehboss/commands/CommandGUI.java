@@ -19,10 +19,10 @@ public class CommandGUI {
 			return false;
 		}
 		
-		if (Main.getInstance().recipeBook.contains(p.getUniqueId()))
-			Main.getInstance().recipeBook.remove(p.getUniqueId());
+		if (Main.getInstance().getRecipeBook().contains(p.getUniqueId()))
+			Main.getInstance().getRecipeBook().remove(p.getUniqueId());
 
-		Main.getInstance().typeGUI.open(p);
+		Main.getInstance().getTypeGUI().open(p);
 		String OpenMessage = ChatColor.translateAlternateColorCodes('&', getConfig().getString("gui.Open-Message"));
 		p.sendMessage(OpenMessage);
 		p.playSound(p.getLocation(),

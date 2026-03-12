@@ -21,7 +21,7 @@ public class CommandReload {
 		Main.getInstance().reload();
 		p.sendMessage(
 				ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Reload").replaceAll(
-						"%recipes%", String.valueOf(Main.getInstance().recipeUtil.getRecipeNames().size()))));
+						"%recipes%", String.valueOf(Main.getInstance().getRecipeUtil().getRecipeNames().size()))));
 
 		return true;
 	}

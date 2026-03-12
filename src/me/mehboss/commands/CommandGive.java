@@ -54,8 +54,15 @@ public class CommandGive {
 		}
 
 		// amounts
-		if (command.args.length == 4 && isInt(command.args[3]))
-			amount = Integer.parseInt(command.args[3]);
+		if (command.args.length == 4 && isInt(command.args[3])) {
+			int parsed = Integer.parseInt(command.args[3]);
+			if (parsed < 1 || parsed > item.getMaxStackSize()) {
+				p.sendMessage(getMessage("Messages.Invalid-Args",
+						"&cInvalid amount! Must be between 1 and " + item.getMaxStackSize() + "."));
+				return true;
+			}
+			amount = parsed;
+		}
 
 		item.setAmount(amount);
 		target.getInventory().addItem(item);

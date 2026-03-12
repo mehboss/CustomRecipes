@@ -20,7 +20,9 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 
 public class BlockManager implements Listener {
 
-	RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
+	RecipeUtil recipeUtil() {
+		return Main.getInstance().getRecipeUtil();
+	}
 
 	@EventHandler
 	public void onPlace(BlockPlaceEvent e) {
@@ -33,16 +35,16 @@ public class BlockManager implements Listener {
 		ItemStack item = e.getItemInHand();
 		ReadWriteNBT nbt = NBT.itemStackToNBT(item);
 
-		if (item.getType() != Material.AIR && item.hasItemMeta() && nbt.hasTag("CUSTOM_ITEM_IDENTIFER")) {
+		if (item.getType() != Material.AIR && item.hasItemMeta() && nbt.hasTag("CUSTOM_ITEM_IDENTIFIER")) {
 			key = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 		}
 
-		if (key != null && recipeUtil.getRecipeFromKey(key) != null)
-			recipe = recipeUtil.getRecipeFromKey(key);
+		if (key != null && recipeUtil().getRecipeFromKey(key) != null)
+			recipe = recipeUtil().getRecipeFromKey(key);
 
 		if (recipe == null)
-			if (recipeUtil.getRecipeFromResult(item) != null) {
-				recipe = recipeUtil.getRecipeFromResult(item);
+			if (recipeUtil().getRecipeFromResult(item) != null) {
+				recipe = recipeUtil().getRecipeFromResult(item);
 			}
 
 		if (recipe == null || recipe.isPlaceable())

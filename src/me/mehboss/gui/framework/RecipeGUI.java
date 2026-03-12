@@ -53,7 +53,7 @@ public class RecipeGUI {
 			String key = nbt.getString("CUSTOM_ITEM_IDENTIFIER");
 			linked = Main.getInstance().getRecipeUtil().getRecipeFromKey(key);
 		} else {
-			linked = Main.getInstance().recipeUtil.getRecipeFromResult(clickedItem);
+			linked = Main.getInstance().getRecipeUtil().getRecipeFromResult(clickedItem);
 		}
 
 		if (linked == null)
@@ -88,11 +88,11 @@ public class RecipeGUI {
 				if (root != null && root != view) {
 					root.open(player);
 				} else {
-					List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType(), true);
-					if (types == null || types.isEmpty()) {
-						Main.getInstance().typeGUI.open(p);
-					} else {
-						Main.getInstance().recipes.openType(p, recipe.getType());
+List<Recipe> types = Main.getInstance().getBookGUI().buildRecipesFor(p, recipe.getType(), true);
+				if (types == null || types.isEmpty()) {
+					Main.getInstance().getTypeGUI().open(p);
+				} else {
+					Main.getInstance().getBookGUI().openType(p, recipe.getType());
 					}
 
 					GuiRegistry.clearRootView(player.getUniqueId());
@@ -131,11 +131,11 @@ public class RecipeGUI {
 		/* -------- Main Menu (slot 49) -------- */
 		overrideOn(view, 49, (p, v, e) -> {
 			p.closeInventory();
-			List<Recipe> types = Main.getInstance().recipes.buildRecipesFor(p, recipe.getType(), false);
+			List<Recipe> types = Main.getInstance().getBookGUI().buildRecipesFor(p, recipe.getType(), false);
 			if (types == null || types.isEmpty()) {
-				Main.getInstance().typeGUI.open(p);
+				Main.getInstance().getTypeGUI().open(p);
 			} else {
-				Main.getInstance().recipes.openType(p, recipe.getType());
+				Main.getInstance().getBookGUI().openType(p, recipe.getType());
 			}
 		});
 	}
@@ -177,7 +177,7 @@ public class RecipeGUI {
 			}
 
 			player.closeInventory();
-			Main.getInstance().typeGUI.open(player);
+			Main.getInstance().getTypeGUI().open(player);
 		};
 	}
 

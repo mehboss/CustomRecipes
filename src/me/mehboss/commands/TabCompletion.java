@@ -111,7 +111,7 @@ public class TabCompletion implements TabCompleter {
 				} else if (args.length == 4) {
 					// suggest NamespacedKeys (recipes)
 					List<String> keys = new ArrayList<>();
-					for (String key : Main.getInstance().recipeUtil.getAllRecipes().keySet()) {
+					for (String key : Main.getInstance().getRecipeUtil().getAllRecipes().keySet()) {
 						keys.add(key);
 					}
 					StringUtil.copyPartialMatches(args[3], keys, completions);
@@ -162,11 +162,11 @@ public class TabCompletion implements TabCompleter {
 	private Collection<String> getAllKeys() {
 		Set<String> combined = new HashSet<>();
 		combined.addAll(ItemManager.getAllItems());
-		combined.addAll(Main.getInstance().recipeUtil.getAllKeys());
+			combined.addAll(Main.getInstance().getRecipeUtil().getAllKeys());
 		return combined;
 	}
 
 	private Collection<String> getRecipes() {
-		return Main.getInstance().recipeUtil.getAllKeys();
+		return Main.getInstance().getRecipeUtil().getAllKeys();
 	}
 }

@@ -1,5 +1,6 @@
 package me.mehboss.utils.libs;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.inventory.ItemStack;
@@ -19,7 +20,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
  */
 public class MetaChecks {
 	private RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	/**
@@ -73,6 +74,14 @@ public class MetaChecks {
 
 			// Checks displayname requirements only
 		} else {
+			// If no identifier is required, reject items that belong to a known custom plugin
+			// (Nexo, MythicMobs, ExecutableItems). A vanilla-material ingredient should
+			// never silently accept a custom item that happens to share the same material.
+			List<String> customKeys = getRecipeUtil().getKeysFromResult(item);
+			if (!customKeys.isEmpty()) {
+				logDebug("Ingredient has no identifier but item is a known custom item: " + customKeys, recipeName);
+				return false;
+			}
 			if (!recipe.hasIgnoreTag() && ingredient.hasItem() && ingredient.getItem().isSimilar(item))
 				return true;
 
@@ -142,7 +151,7 @@ public class MetaChecks {
 	}
 	
 	private void logDebug(String st, String recipeName) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Metachecks][" + recipeName + "] " + st);
 	}

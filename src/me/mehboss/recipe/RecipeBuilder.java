@@ -59,11 +59,11 @@ public class RecipeBuilder {
 	FileConfiguration recipeConfig = null;
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	ItemFactory getItemFactory() {
-		return Main.getInstance().itemFactory;
+		return Main.getInstance().getItemFactory();
 	}
 
 	FileConfiguration getConfig() {
@@ -211,9 +211,9 @@ public class RecipeBuilder {
 
 		SmithingRecipeType type = SmithingRecipeType.fromString(getConfig().getString(configPath + ".Type"));
 		smithing.setSmithingType(type);
-		boolean copyTrim = getConfig().getBoolean(configPath + ".Copy-Trim");
+		boolean copyTrim = getConfig().getBoolean(configPath + ".Copy-Trim", true);
 		smithing.setCopyTrim(copyTrim);
-		boolean copyEnchants = getConfig().getBoolean(configPath + ".Copy-Enchants");
+		boolean copyEnchants = getConfig().getBoolean(configPath + ".Copy-Enchants", true);
 		smithing.setCopyEnchants(copyEnchants);
 	}
 
@@ -584,7 +584,7 @@ public class RecipeBuilder {
 	}
 
 	public void addRecipesFromAPI(Recipe specificRecipe) {
-		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
+		RecipeUtil recipeUtil = Main.getInstance().getRecipeUtil();
 		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes() == null ? null
 				: new HashMap<>(recipeUtil.getAllRecipes());
 
@@ -612,7 +612,7 @@ public class RecipeBuilder {
 				switch (recipe.getType()) {
 				case SHAPELESS:
 					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
-						shapelessRecipe = Main.getInstance().exactChoice
+						shapelessRecipe = Main.getInstance().getExactChoice()
 								.createShapelessRecipe((CraftingRecipeData) recipe);
 						break;
 					}
@@ -622,7 +622,7 @@ public class RecipeBuilder {
 
 				case SHAPED:
 					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
-						shapedRecipe = Main.getInstance().exactChoice.createShapedRecipe((CraftingRecipeData) recipe);
+						shapedRecipe = Main.getInstance().getExactChoice().createShapedRecipe((CraftingRecipeData) recipe);
 						break;
 					}
 
@@ -631,7 +631,7 @@ public class RecipeBuilder {
 
 				case FURNACE:
 					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
-						furnaceRecipe = Main.getInstance().exactChoice.createFurnaceRecipe((CookingRecipeData) recipe);
+						furnaceRecipe = Main.getInstance().getExactChoice().createFurnaceRecipe((CookingRecipeData) recipe);
 						break;
 					}
 
@@ -640,27 +640,27 @@ public class RecipeBuilder {
 
 				case BLASTFURNACE:
 					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
-						blastRecipe = Main.getInstance().exactChoice
+							blastRecipe = Main.getInstance().getExactChoice()
 								.createBlastFurnaceRecipe((CookingRecipeData) recipe);
 					}
 					break;
 
 				case SMOKER:
 					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
-						smokerRecipe = Main.getInstance().exactChoice.createSmokerRecipe((CookingRecipeData) recipe);
+						smokerRecipe = Main.getInstance().getExactChoice().createSmokerRecipe((CookingRecipeData) recipe);
 					}
 					break;
 
 				case STONECUTTER:
 					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
-						sCutterRecipe = Main.getInstance().exactChoice
+							sCutterRecipe = Main.getInstance().getExactChoice()
 								.createStonecuttingRecipe((WorkstationRecipeData) recipe);
 					}
 					break;
 
 				case CAMPFIRE:
 					if (Main.getInstance().serverVersionAtLeast(1, 13, 2)) {
-						campfireRecipe = Main.getInstance().exactChoice
+							campfireRecipe = Main.getInstance().getExactChoice()
 								.createCampfireRecipe((CookingRecipeData) recipe);
 					}
 					break;
@@ -674,7 +674,7 @@ public class RecipeBuilder {
 
 				case SMITHING:
 					if (Main.getInstance().serverVersionAtLeast(1, 20)) {
-						smithingRecipe = Main.getInstance().exactChoice
+							smithingRecipe = Main.getInstance().getExactChoice()
 								.createSmithingRecipe((SmithingRecipeData) recipe);
 					}
 				}
@@ -823,7 +823,7 @@ public class RecipeBuilder {
 	}
 
 	private void logDebug(String st, String recipe) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe.replaceAll(".Result", "") + "] " + st);
 	}

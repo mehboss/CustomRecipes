@@ -17,10 +17,10 @@ public class CommandBook {
 	public static boolean Run(CRCommand command) {
 		Player p = (Player) command.sender;
 
-		if (!Main.getInstance().recipeBook.contains(p.getUniqueId()))
-			Main.getInstance().recipeBook.add(p.getUniqueId());
+		if (!Main.getInstance().getRecipeBook().contains(p.getUniqueId()))
+			Main.getInstance().getRecipeBook().add(p.getUniqueId());
 
-		Main.getInstance().typeGUI.open(p);
+		Main.getInstance().getTypeGUI().open(p);
 		String OpenMessage = ChatColor.translateAlternateColorCodes('&', getConfig().getString("gui.Open-Message"));
 		p.sendMessage(OpenMessage);
 		p.playSound(p.getLocation(), XSound.matchXSound(getConfig().getString("gui.Open-Sound")).get().parseSound(), 1,

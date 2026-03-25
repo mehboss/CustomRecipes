@@ -62,11 +62,11 @@ import me.mehboss.utils.libs.RecipeConditions.ConditionSet;
 public class CraftManager implements Listener {
 
 	FileConfiguration customConfig() {
-		return Main.getInstance().customConfig;
+		return Main.getInstance().getCustomConfig();
 	}
 
 	ArrayList<String> disabledrecipe() {
-		return Main.getInstance().disabledrecipe;
+		return Main.getInstance().getDisabledRecipes();
 	}
 
 	Logger getLogger() {
@@ -74,19 +74,19 @@ public class CraftManager implements Listener {
 	}
 
 	CooldownManager getCooldownManager() {
-		return Main.getInstance().cooldownManager;
+		return Main.getInstance().getCooldownManager();
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	ShapedChecks shapedChecks() {
-		return Main.getInstance().shapedChecks;
+		return Main.getInstance().getShapedChecks();
 	}
 
 	ShapelessChecks shapelessChecks() {
-		return Main.getInstance().shapelessChecks;
+		return Main.getInstance().getShapelessChecks();
 	}
 
 	boolean isInt(String s) {
@@ -99,13 +99,13 @@ public class CraftManager implements Listener {
 	}
 
 	void logDebug(String st, String recipeName, UUID id) {
-		if (Main.getInstance().debug && (id == null || (!Main.getInstance().inInventory.contains(id))))
+		if (Main.getInstance().isDebug() && (id == null || (!Main.getInstance().getInInventory().contains(id))))
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}
 
 	void logDebug(String st, String recipeName) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Crafting][" + recipeName + "]" + st);
 	}
@@ -146,6 +146,9 @@ public class CraftManager implements Listener {
 
 		if (item == null)
 			return returnType;
+
+		if (debug)
+			logDebug("[validateItem][Slot " + slot + "] BEFORE validation: type=" + (item.getType().toString()) + ", amount=" + item.getAmount() + ", required=" + ingredient.getAmount(), recipeName);
 
 		ItemStack recipeResult = null;
 		Recipe foundRecipe = getRecipeUtil().getRecipeFromResult(item);
@@ -188,6 +191,7 @@ public class CraftManager implements Listener {
 
 			if (item.getAmount() < ingredient.getAmount()) {
 				if (debug) {
+					logDebug("[validateItem][Slot " + slot + "] FAILED amount check: have " + item.getAmount() + ", need " + ingredient.getAmount(), recipeName);
 					logDebug("[amountsMatch] Item amount: " + item.getAmount(), recipeName);
 					logDebug("[amountsMatch] Required amount: " + ingredient.getAmount(), recipeName);
 				}
@@ -195,7 +199,7 @@ public class CraftManager implements Listener {
 			}
 
 			if (debug)
-				logDebug("[amountsMatch] Item amount and ingredient amounts matched (#" + ingredient.getAmount() + ")",
+				logDebug("[validateItem][Slot " + slot + "] PASSED: amount check (have " + item.getAmount() + ", need " + ingredient.getAmount() + ")",
 						recipeName);
 
 			return true;
@@ -269,7 +273,7 @@ public class CraftManager implements Listener {
 
 		UUID pID = p.getUniqueId();
 
-		for (String entry : Main.getInstance().disabledrecipe) {
+		for (String entry : Main.getInstance().getDisabledRecipes()) {
 			if (customConfig().isConfigurationSection("vanilla-recipes." + entry)) {
 
 				Optional<XMaterial> match = XMaterial.matchXMaterial(entry);
@@ -333,8 +337,16 @@ public class CraftManager implements Listener {
 			return true;
 
 		ItemMeta meta = item.getItemMeta();
-		ReadWriteNBT nbt = NBT.itemStackToNBT(item);
-		String id = nbt.hasTag("CUSTOM_ITEM_IDENTIFIER") ? nbt.getString("CUSTOM_ITEM_IDENTIFIER") : "none";
+		String id = "none";
+		try {
+			if (item.getAmount() > 0 && item.getAmount() <= item.getMaxStackSize()) {
+				ReadWriteNBT nbt = NBT.itemStackToNBT(item);
+				id = nbt.hasTag("CUSTOM_ITEM_IDENTIFIER") ? nbt.getString("CUSTOM_ITEM_IDENTIFIER") : "none";
+			}
+		} catch (Exception ex) {
+			logDebug("[hasMatchingDisplayName] Failed to read NBT from ingredient item. Treating as non-custom.",
+					recipeName);
+		}
 
 		if (ingredient.hasIdentifier() && ingredient.getIdentifier().equals(id))
 			return true;
@@ -545,11 +557,11 @@ public class CraftManager implements Listener {
 		UUID id = p.getUniqueId();
 
 		// avoids redundant checks to increase server performance
-		if (Main.getInstance().debounceMap.containsKey(id)) {
-			if (now - Main.getInstance().debounceMap.get(id) < 25) {
+		if (Main.getInstance().getDebounceMap().containsKey(id)) {
+			if (now - Main.getInstance().getDebounceMap().get(id) < 25) {
 				return;
 			}
-			Main.getInstance().debounceMap.remove(id);
+			Main.getInstance().getDebounceMap().remove(id);
 		}
 
 		if (isBlacklisted(inv.getResult(), p, e.getRecipe())) {
@@ -572,6 +584,8 @@ public class CraftManager implements Listener {
 		UUID id = p.getUniqueId();
 		World w = p.getWorld();
 		AlignedResult alignedGrid = null;
+
+		sanitizeCraftingMatrix(inv, id);
 
 		for (Recipe data : getRecipeUtil().getAllRecipesSortedByResult(inv.getResult())) {
 			if (data.getType() != RecipeType.SHAPELESS && data.getType() != RecipeType.SHAPED)
@@ -688,7 +702,7 @@ public class CraftManager implements Listener {
 							+ ChatColor.GRAY + String.join(", ", reasons));
 				}
 
-				Boolean closeInventory = Main.getInstance().customConfig.getBoolean("conditions-failed.close-inventory",
+				Boolean closeInventory = Main.getInstance().getCustomConfig().getBoolean("conditions-failed.close-inventory",
 						true);
 
 				if (closeInventory)
@@ -726,5 +740,34 @@ public class CraftManager implements Listener {
 			logDebug(" Final Recipe: " + inv.getRecipe(), recipe.getName(), id);
 			inv.setResult(item);
 		}
+
+	}
+
+	private void sanitizeCraftingMatrix(CraftingInventory inv, UUID id) {
+		ItemStack[] matrix = inv.getMatrix();
+		boolean changed = false;
+
+		for (int i = 0; i < matrix.length; i++) {
+			ItemStack stack = matrix[i];
+			if (stack == null || stack.getType() == Material.AIR)
+				continue;
+
+			int max = stack.getMaxStackSize();
+			if (max <= 0)
+				max = 64;
+
+			if (stack.getAmount() > max) {
+				logDebug("[sanitizeCraftingMatrix] Clamping invalid stack amount in slot " + i + " from "
+						+ stack.getAmount() + " to " + max, "", id);
+				stack.setAmount(max);
+				changed = true;
+			} else if (stack.getAmount() <= 0) {
+				matrix[i] = null;
+				changed = true;
+			}
+		}
+
+		if (changed)
+			inv.setMatrix(matrix);
 	}
 }

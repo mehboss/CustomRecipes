@@ -154,11 +154,11 @@ public class RecipeViewBuilder {
 		ItemStack base = null;
 
 		if (ing.hasIdentifier()) {
-			Recipe r = Main.getInstance().recipeUtil.getRecipeFromKey(ing.getIdentifier());
+			Recipe r = Main.getInstance().getRecipeUtil().getRecipeFromKey(ing.getIdentifier());
 			if (r != null)
 				base = r.getResult();
 			else
-				base = Main.getInstance().recipeUtil.getResultFromKey(ing.getIdentifier());
+				base = Main.getInstance().getRecipeUtil().getResultFromKey(ing.getIdentifier());
 		} else if (ing.hasItem()) {
 			base = ing.getItem();
 		} else {

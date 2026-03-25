@@ -39,7 +39,6 @@ import com.google.common.collect.Multimap;
 import de.tr7zw.changeme.nbtapi.NBT;
 import de.tr7zw.changeme.nbtapi.iface.ReadWriteNBT;
 import me.mehboss.recipe.Main;
-import net.advancedplugins.ae.api.AEAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
@@ -934,14 +933,6 @@ public final class XItemStack {
 				config.set("stored-enchants." + name, enchant.getValue());
 			}
 
-			if (Main.getInstance().hasAE) {
-				String book = AEAPI.getBookEnchantment(item);
-				int level = AEAPI.getBookEnchantmentLevel(item);
-
-				if (book != null) {
-					config.set("stored-enchants." + book, level);
-				}
-			}
 		}
 
 		private void handleBlockStateMeta(BlockStateMeta meta) {
@@ -1007,14 +998,6 @@ public final class XItemStack {
 				}
 
 				config.set(entry, enchant.getValue());
-			}
-			if (Main.getInstance().hasAE) {
-				Map<String, Integer> ae = AEAPI.getEnchantmentsOnItem(item);
-				if (ae != null) {
-					for (Map.Entry<String, Integer> e : ae.entrySet()) {
-						config.set("enchants." + e.getKey().toLowerCase(), e.getValue());
-					}
-				}
 			}
 		}
 
@@ -1380,10 +1363,7 @@ public final class XItemStack {
 						continue;
 					}
 
-					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(ench)) {
-						ItemStack book = AEAPI.createEnchantmentBook(ench, level, 100, 0, null);
-						item = book;
-					}
+
 				}
 			}
 		}
@@ -1395,9 +1375,7 @@ public final class XItemStack {
 					Optional<XEnchantment> enchant = XEnchantment.of(ench);
 					enchant.ifPresent(xEnchantment -> meta.addEnchant(xEnchantment.get(), enchants.getInt(ench), true));
 
-					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(ench)) {
-						item = AEAPI.applyEnchant(ench, enchants.getInt(ench), item);
-					}
+
 				}
 			} else if (config.getBoolean("glow")) {
 				meta.addEnchant(XEnchantment.UNBREAKING.get(), 1, false);

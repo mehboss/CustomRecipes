@@ -65,7 +65,7 @@ public class GuiView {
 	 * click opened another recipe.
 	 */
 	public void handleRecipeClick(Player player, InventoryClickEvent e) {
-		Main.getInstance().editItem.handleRecipeLinkClick(player, e.getCurrentItem());
+		Main.getInstance().getEditItem().handleRecipeLinkClick(player, e.getCurrentItem());
 	}
 
 	public boolean onRawClick(Player player, InventoryClickEvent e) {

@@ -94,7 +94,7 @@ public class AnvilManager implements Listener {
 			}
 
 			if (hasCooldown) {
-				Long timeLeft = Main.getInstance().cooldownManager.getTimeLeft(p.getUniqueId(), matchedRecipe.getKey());
+				Long timeLeft = Main.getInstance().getCooldownManager().getTimeLeft(p.getUniqueId(), matchedRecipe.getKey());
 				sendMessage(p, "crafting-limit", timeLeft);
 				inv.setItem(2, null);
 				return;
@@ -110,23 +110,23 @@ public class AnvilManager implements Listener {
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	CooldownManager getCooldownManager() {
-		return Main.getInstance().cooldownManager;
+		return Main.getInstance().getCooldownManager();
 	}
 
 	boolean amountsMatch(String recipe, ItemStack item, Ingredient ingredient) {
-		return Main.getInstance().metaChecks.amountsMatch(recipe, item, ingredient);
+		return Main.getInstance().getMetaChecks().amountsMatch(recipe, item, ingredient);
 	}
 	
 	boolean itemsMatch(Recipe recipe, ItemStack item, Ingredient ingredient) {
-		return Main.getInstance().metaChecks.itemsMatch(recipe, item, ingredient);
+		return Main.getInstance().getMetaChecks().itemsMatch(recipe, item, ingredient);
 	}
 
 	void logDebug(String st) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 

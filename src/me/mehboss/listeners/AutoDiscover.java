@@ -78,7 +78,7 @@ public class AutoDiscover implements Listener {
 	}
 	
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 	
 	Main instance() {

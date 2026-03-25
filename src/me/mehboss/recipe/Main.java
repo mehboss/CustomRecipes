@@ -10,14 +10,15 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 import me.mehboss.anvil.AnvilManager;
 import me.mehboss.anvil.AnvilManager_1_8;
@@ -48,32 +49,39 @@ import me.mehboss.utils.libs.ItemManager;
 import me.mehboss.utils.libs.ItemFactory;
 import me.mehboss.utils.libs.MetaChecks;
 import me.mehboss.utils.libs.CooldownManager.Cooldown;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.event.HandlerList;
 
 public class Main extends JavaPlugin implements Listener {
 
-	public RecipeUtil recipeUtil;
-	public RecipeBuilder recipeBuilder;
-	public ExactChoice exactChoice;
+	private RecipeUtil recipeUtil;
+	private RecipeBuilder recipeBuilder;
+	private ExactChoice exactChoice;
 
-	public AmountManager amountManager;
-	public CraftManager craftManager;
+	private AmountManager amountManager;
+	private CraftManager craftManager;
 
-	public ShapedChecks shapedChecks;
-	public ShapelessChecks shapelessChecks;
+	private ShapedChecks shapedChecks;
+	private ShapelessChecks shapelessChecks;
 
-	public ItemFactory itemFactory;
-	public MetaChecks metaChecks;
+	private ItemFactory itemFactory;
+	private MetaChecks metaChecks;
 
-	public BookGUI recipes;
-	public RecipeTypeGUI typeGUI;
-	public CooldownManager cooldownManager;
+	private BookGUI recipes;
+	private RecipeTypeGUI typeGUI;
+	private CooldownManager cooldownManager;
 
 	private AutoDiscover autoDiscover;
+	private EffectsManager effectsManager;
 
 	public AutoDiscover getAutoDiscover() {
 		return autoDiscover;
+	}
+
+	public EffectsManager getEffectsManager() {
+		return effectsManager;
 	}
 
 	private Blacklist handleBlacklist;
@@ -82,16 +90,16 @@ public class Main extends JavaPlugin implements Listener {
 		return handleBlacklist;
 	}
 
-	public RecipeGUI editItem;
+	private RecipeGUI editItem;
 
-	public Map<UUID, Long> debounceMap = new HashMap<>();
-	public ArrayList<UUID> inInventory = new ArrayList<UUID>();
-	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
-	public ArrayList<String> disabledrecipe = new ArrayList<String>();
+	private Map<UUID, Long> debounceMap = new HashMap<>();
+	private ArrayList<UUID> inInventory = new ArrayList<UUID>();
+	private ArrayList<UUID> recipeBook = new ArrayList<UUID>();
+	private ArrayList<String> disabledrecipe = new ArrayList<String>();
 
 	// add three more shapelessname, amount, and ID specifically for config.
 
-	public FileConfiguration customConfig = null;
+	private FileConfiguration customConfig = null;
 	File customYml = new File(getDataFolder() + "/blacklisted.yml");
 
 	FileConfiguration cooldownConfig = null;
@@ -103,13 +111,10 @@ public class Main extends JavaPlugin implements Listener {
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
 	File sandYml = new File(getDataFolder() + "/recipes/WheatSand.yml");
 
-	public Boolean debug = false;
-	public Boolean crafterdebug = false;
+	private boolean debug = false;
+	private boolean crafterdebug = false;
 
-	public Boolean hasAE = false;
-	public Boolean hasEE = false;
-	public Boolean hasHavenBags = false;
-	public Boolean hasEEnchants = false;
+	private boolean hasEE = false;
 
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
@@ -125,20 +130,37 @@ public class Main extends JavaPlugin implements Listener {
 		return recipeUtil;
 	}
 
+	public RecipeBuilder getRecipeBuilder() { return recipeBuilder; }
+	public ExactChoice getExactChoice() { return exactChoice; }
+	public AmountManager getAmountManager() { return amountManager; }
+	public CraftManager getCraftManager() { return craftManager; }
+	public ShapedChecks getShapedChecks() { return shapedChecks; }
+	public ShapelessChecks getShapelessChecks() { return shapelessChecks; }
+	public ItemFactory getItemFactory() { return itemFactory; }
+	public MetaChecks getMetaChecks() { return metaChecks; }
+	public BookGUI getBookGUI() { return recipes; }
+	public RecipeTypeGUI getTypeGUI() { return typeGUI; }
+	public CooldownManager getCooldownManager() { return cooldownManager; }
+	public RecipeGUI getEditItem() { return editItem; }
+	public Map<UUID, Long> getDebounceMap() { return debounceMap; }
+	public ArrayList<UUID> getInInventory() { return inInventory; }
+	public ArrayList<UUID> getRecipeBook() { return recipeBook; }
+	public ArrayList<String> getDisabledRecipes() { return disabledrecipe; }
+	public FileConfiguration getCustomConfig() { return customConfig; }
+	public boolean isDebug() { return debug; }
+	public void setDebug(boolean value) { debug = value; }
+	public boolean isCrafterDebug() { return crafterdebug; }
+	public void setCrafterDebug(boolean value) { crafterdebug = value; }
+	public boolean isHasEE() { return hasEE; }
+
 	public boolean hasCustomPlugin(String plugin) {
 		switch (plugin) {
-		case "itemsadder":
-			return Bukkit.getPluginManager().getPlugin("ItemsAdder") != null;
 		case "mythicmobs":
 			return Bukkit.getPluginManager().getPlugin("MythicMobs") != null && serverVersionAtLeast(1, 16);
 		case "executableitems":
 			return Bukkit.getPluginManager().getPlugin("ExecutableItems") != null;
 		case "nexo":
 			return Bukkit.getPluginManager().getPlugin("Nexo") != null;
-		case "oraxen":
-			return Bukkit.getPluginManager().getPlugin("Oraxen") != null;
-		case "mmoitems":
-			return Bukkit.getPluginManager().getPlugin("MMOItems") != null;
 		}
 		return false;
 	}
@@ -236,6 +258,8 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Get all files in the "recipes" folder
 		File[] recipeFiles = recipesFolder.listFiles();
+		if (recipeFiles == null)
+			return;
 		for (File recipeFile : recipeFiles) {
 			if (recipeFile.isFile()) {
 				String fileName = recipeFile.getName();
@@ -270,15 +294,8 @@ public class Main extends JavaPlugin implements Listener {
 
 		if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null)
 			new Placeholders().register();
-		if (Bukkit.getPluginManager().getPlugin("AdvancedEnchantments") != null)
-			hasAE = true;
 		if (Bukkit.getPluginManager().getPlugin("EcoEnchants") != null)
 			hasEE = true;
-		if (Bukkit.getPluginManager().getPlugin("ExcellentEnchants") != null)
-			hasEEnchants = true;
-		if (Bukkit.getPluginManager().getPlugin("HavenBags") != null) {
-			hasHavenBags = true;
-		}
 
 		getLogger().log(Level.INFO,
 				"Made by MehBoss on Spigot. For support please PM me and I will get back to you as soon as possible!");
@@ -328,13 +345,16 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new GuiListener(), this);
 		Bukkit.getPluginManager().registerEvents(recipes, this);
 		Bukkit.getPluginManager().registerEvents(typeGUI, this);
-		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
+		effectsManager = new EffectsManager();
+		Bukkit.getPluginManager().registerEvents(effectsManager, this);
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
 		Bukkit.getPluginManager().registerEvents(amountManager, this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new BrewEvent(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
+		getLogger().warning("[DEBUG-ITEMREMOVAL] Registered AmountManager listener instance: "
+				+ amountManager.getClass().getName());
 
 		if (serverVersionAtLeast(1, 21)) {
 			Bukkit.getPluginManager().registerEvents(new CrafterManager(), this);
@@ -357,6 +377,32 @@ public class Main extends JavaPlugin implements Listener {
 
 		registerUpdateChecker();
 		registerBstats();
+
+		Bukkit.getScheduler().runTaskLater(this, () -> {
+			boolean foundAmountManagerListener = false;
+
+			for (RegisteredListener rl : HandlerList.getRegisteredListeners(this)) {
+				Listener listener = rl.getListener();
+				if (listener == null)
+					continue;
+
+				String listenerClass = listener.getClass().getName();
+				if (listenerClass.endsWith("AmountManager")) {
+					foundAmountManagerListener = true;
+					getLogger().warning("[DEBUG-ITEMREMOVAL] Found registered listener: " + listenerClass + " @ "
+							+ rl.getPriority());
+				}
+			}
+
+			int ownCraftItemCount = 0;
+			for (RegisteredListener rl : CraftItemEvent.getHandlerList().getRegisteredListeners()) {
+				if (rl.getPlugin() == this)
+					ownCraftItemCount++;
+			}
+
+			getLogger().warning("[DEBUG-ITEMREMOVAL] CraftItemEvent listeners for this plugin: " + ownCraftItemCount
+					+ " | AmountManager registered: " + foundAmountManagerListener);
+		}, 1L);
 	}
 
 	public void clear() {
@@ -404,6 +450,8 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Re-add recipes immediately
 		ItemManager.reload();
+		if (effectsManager != null)
+			effectsManager.invalidateConfigCache();
 		recipeBuilder.addRecipes(null);
 		getLogger().log(Level.INFO, "Reloaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 
@@ -412,6 +460,9 @@ public class Main extends JavaPlugin implements Listener {
 
 	@Override
 	public void onDisable() {
+
+		HandlerList.unregisterAll((org.bukkit.plugin.Plugin) this);
+		Bukkit.getScheduler().cancelTasks(this);
 
 		if (cooldownManager != null) {
 
@@ -442,6 +493,7 @@ public class Main extends JavaPlugin implements Listener {
 			saveCustomYml(cooldownConfig, cooldownYml);
 		}
 		clear();
+		instance = null;
 	}
 
 	void addCooldowns() {
@@ -482,16 +534,14 @@ public class Main extends JavaPlugin implements Listener {
 		long minutes = (totalSeconds % 3600) / 60; // Calculate minutes
 		long seconds = totalSeconds % 60; // Calculate remaining seconds
 
-		// Configurable message template
-		String messageTemplate = ChatColor.translateAlternateColorCodes('&',
-				customConfig.getString("crafting-limit.chat-message.message"));
+		// Configurable message template (& codes handled by LegacyComponentSerializer at call site)
+		String messageTemplate = customConfig.getString("crafting-limit.chat-message.message", "");
 
-		// Replace placeholders with actual values
-		String message = ChatColor.translateAlternateColorCodes('&',
-				messageTemplate.replace("%days%", String.valueOf(days)).replace("%hours%", String.valueOf(hours))
-						.replace("%minutes%", String.valueOf(minutes)).replace("%seconds%", String.valueOf(seconds)));
-
-		return message;
+		return messageTemplate
+				.replace("%days%", String.valueOf(days))
+				.replace("%hours%", String.valueOf(hours))
+				.replace("%minutes%", String.valueOf(minutes))
+				.replace("%seconds%", String.valueOf(seconds));
 	}
 
 	public void sendMessage(Player player, String basePath, long seconds) {
@@ -499,10 +549,10 @@ public class Main extends JavaPlugin implements Listener {
 		// ACTION BAR
 		if (customConfig.getBoolean(basePath + ".actionbar-message.enabled")) {
 			try {
-				String message = ChatColor.translateAlternateColorCodes('&',
-						customConfig.getString(basePath + ".actionbar-message.message", ""));
-
-				player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+				String raw = customConfig.getString(basePath + ".actionbar-message.message", "");
+				String rendered = LegacyComponentSerializer.legacySection().serialize(
+						LegacyComponentSerializer.legacyAmpersand().deserialize(raw));
+				player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(rendered));
 			} catch (Exception e) {
 				getLogger().log(Level.SEVERE, "Error while sending action bar message", e);
 			}
@@ -510,16 +560,18 @@ public class Main extends JavaPlugin implements Listener {
 
 		// CHAT MESSAGE
 		if (customConfig.getBoolean(basePath + ".chat-message.enabled")) {
-			String message;
+			String rendered;
 
 			if (basePath.equalsIgnoreCase("crafting-limit")) {
-				message = getCooldownMessage(seconds);
+				rendered = LegacyComponentSerializer.legacySection().serialize(
+						LegacyComponentSerializer.legacyAmpersand().deserialize(getCooldownMessage(seconds)));
 			} else {
-				message = ChatColor.translateAlternateColorCodes('&',
-						customConfig.getString(basePath + ".chat-message.message", ""));
+				rendered = LegacyComponentSerializer.legacySection().serialize(
+						LegacyComponentSerializer.legacyAmpersand().deserialize(
+								customConfig.getString(basePath + ".chat-message.message", "")));
 			}
 
-			player.sendMessage(message);
+			player.sendMessage(rendered);
 		}
 
 		// CLOSE INVENTORY
@@ -534,10 +586,12 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Update check
 		if (getConfig().getBoolean("Update-Check") && p.hasPermission("crecipe.reload")
-				&& getDescription().getVersion().compareTo(newupdate) < 0) {
-			p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-					"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate
-							+ ", &fyou are on version&c " + getDescription().getVersion() + "!"));
+				&& newupdate != null && getDescription().getVersion().compareTo(newupdate) < 0) {
+			String rendered = LegacyComponentSerializer.legacySection().serialize(
+					LegacyComponentSerializer.legacyAmpersand().deserialize(
+							"&cCustom-Recipes: &fAn update has been found. Please download version&c " + newupdate
+									+ ", &fyou are on version&c " + getDescription().getVersion() + "!"));
+			p.sendMessage(rendered);
 		}
 	}
 

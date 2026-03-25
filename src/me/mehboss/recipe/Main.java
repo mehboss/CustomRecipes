@@ -16,7 +16,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 import me.mehboss.anvil.AnvilManager;
 import me.mehboss.anvil.AnvilManager_1_8;
@@ -351,6 +353,8 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new CookingManager(), this);
 		Bukkit.getPluginManager().registerEvents(new BrewEvent(), this);
 		Bukkit.getPluginManager().registerEvents(this, this);
+		getLogger().warning("[DEBUG-ITEMREMOVAL] Registered AmountManager listener instance: "
+				+ amountManager.getClass().getName());
 
 		if (serverVersionAtLeast(1, 21)) {
 			Bukkit.getPluginManager().registerEvents(new CrafterManager(), this);
@@ -373,6 +377,32 @@ public class Main extends JavaPlugin implements Listener {
 
 		registerUpdateChecker();
 		registerBstats();
+
+		Bukkit.getScheduler().runTaskLater(this, () -> {
+			boolean foundAmountManagerListener = false;
+
+			for (RegisteredListener rl : HandlerList.getRegisteredListeners(this)) {
+				Listener listener = rl.getListener();
+				if (listener == null)
+					continue;
+
+				String listenerClass = listener.getClass().getName();
+				if (listenerClass.endsWith("AmountManager")) {
+					foundAmountManagerListener = true;
+					getLogger().warning("[DEBUG-ITEMREMOVAL] Found registered listener: " + listenerClass + " @ "
+							+ rl.getPriority());
+				}
+			}
+
+			int ownCraftItemCount = 0;
+			for (RegisteredListener rl : CraftItemEvent.getHandlerList().getRegisteredListeners()) {
+				if (rl.getPlugin() == this)
+					ownCraftItemCount++;
+			}
+
+			getLogger().warning("[DEBUG-ITEMREMOVAL] CraftItemEvent listeners for this plugin: " + ownCraftItemCount
+					+ " | AmountManager registered: " + foundAmountManagerListener);
+		}, 1L);
 	}
 
 	public void clear() {

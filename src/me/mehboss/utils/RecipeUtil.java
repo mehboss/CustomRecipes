@@ -171,7 +171,7 @@ public class RecipeUtil {
 	 */
 	public void registerRecipe(Recipe recipe) {
 		this.clearDuplicates(recipe);
-		Main.getInstance().recipeBuilder.addRecipesFromAPI(recipe);
+		Main.getInstance().recipeBuilder.registerRecipesFromAPI(recipe);
 	}
 
 	/**
@@ -180,7 +180,7 @@ public class RecipeUtil {
 	 */
 	public void reloadRecipes() {
 		this.clearDuplicates(null);
-		Main.getInstance().recipeBuilder.addRecipesFromAPI(null);
+		Main.getInstance().recipeBuilder.registerRecipesFromAPI();
 	}
 
 	/**
@@ -892,6 +892,7 @@ public class RecipeUtil {
 		private String row2;
 		private String row3;
 
+		private int order = Integer.MAX_VALUE;
 		private long cooldown = 0;
 
 		public enum RecipeType {
@@ -930,6 +931,32 @@ public class RecipeUtil {
 		public Recipe(String name) {
 			this.name = name;
 			this.ingredients = new ArrayList<>();
+		}
+
+		/**
+		 * Gets the order of this recipe.
+		 * <p>
+		 * The order determines the position of this recipe when listing or displaying
+		 * multiple recipes. Lower numbers appear first. Recipes without an assigned
+		 * order will default to {@code Integer.MAX_VALUE} and appear last.
+		 *
+		 * @return the order number of this recipe
+		 */
+		public int getOrder() {
+			return order;
+		}
+
+		/**
+		 * Sets the order of this recipe.
+		 * <p>
+		 * Assign a number to control the sorting of recipes. Lower numbers appear
+		 * earlier in lists. If not set, the recipe will use the default order
+		 * {@code Integer.MAX_VALUE}.
+		 *
+		 * @param order the order number to assign to this recipe
+		 */
+		public void setOrder(int order) {
+			this.order = order;
 		}
 
 		/**

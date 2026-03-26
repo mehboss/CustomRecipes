@@ -2,6 +2,8 @@ package me.mehboss.anvil;
 
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -31,7 +33,6 @@ public class SmithingManager implements Listener {
 
 	private final HashMap<UUID, NamespacedKey> preCraftedRecipes = new HashMap<>();
 
-	@SuppressWarnings("deprecation")
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void handlePrepareSmithing(PrepareSmithingEvent event) {
 		SmithingInventory inventory = event.getInventory();
@@ -46,10 +47,12 @@ public class SmithingManager implements Listener {
 		if (templateItem == null || baseItem == null || additionItem == null)
 			return;
 
+		logDebug("[SmithingManager] Found attempt to use smithing..", "");
 		HashMap<String, Recipe> recipes = getRecipeUtil().getRecipesFromType(RecipeType.SMITHING);
 		if (recipes == null || recipes.isEmpty())
 			return;
 
+		logDebug("[SmithingManager] Searching recipe..", "");
 		for (Recipe all : recipes.values()) {
 			SmithingRecipeData smithing = (SmithingRecipeData) all;
 			if (smithing.isTrim())
@@ -60,23 +63,25 @@ public class SmithingManager implements Listener {
 
 			if (recipe == null)
 				continue;
-			if (recipe.getTemplate().test(templateItem) && recipe.getBase().test(baseItem)
-					&& recipe.getAddition().test(additionItem)) {
 
-				if (!passesChecks(smithing, recipe.getTemplate().getItemStack(), recipe.getBase().getItemStack(),
-						recipe.getAddition().getItemStack()))
-					event.setResult(null);
+			logDebug("[SmithingManager] Testing recipe..", "");
 
-				boolean copyTrim = smithing.copiesTrim();
-				boolean copyEnchants = smithing.copiesEnchants();
-
-				ItemStack result = recipe.getResult().clone();
-				applyMetaTransformations(baseItem, result, copyEnchants, copyTrim);
-
-				preCraftedRecipes.put(player.getUniqueId(), recipe.getKey());
-				event.setResult(result);
-				break;
+			if (!passesChecks(smithing, templateItem, baseItem, additionItem)) {
+				event.setResult(null);
+				continue;
 			}
+
+			boolean copyTrim = smithing.copiesTrim();
+			boolean copyEnchants = smithing.copiesEnchants();
+
+			ItemStack result = recipe.getResult().clone();
+			applyMetaTransformations(baseItem, result, copyEnchants, copyTrim);
+
+			preCraftedRecipes.put(player.getUniqueId(), recipe.getKey());
+
+			logDebug("[SmithingManager] Found recipe..", smithing.getName());
+			event.setResult(result);
+			break;
 		}
 	}
 
@@ -168,5 +173,11 @@ public class SmithingManager implements Listener {
 
 	private RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
+	}
+
+	private void logDebug(String st, String recipe) {
+		if (Main.getInstance().debug)
+			Logger.getLogger("Minecraft").log(Level.WARNING,
+					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "][EC] " + st);
 	}
 }

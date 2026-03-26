@@ -73,8 +73,16 @@ public class MetaChecks {
 
 			// Checks displayname requirements only
 		} else {
-			if (!recipe.hasIgnoreTag() && ingredient.hasItem() && ingredient.getItem().isSimilar(item))
+			if (!recipe.hasIgnoreTag() && ingredient.hasItem() && ingredient.getItem().isSimilar(item)) {
+				logDebug("ItemStacks matched, passing checks!", recipeName);
 				return true;
+			}
+
+			if (!item.hasItemMeta() && (ingredient.hasDisplayName() || ingredient.hasLore() || ingredient.hasItemName()
+					|| ingredient.hasCustomModelData() || ingredient.hasItemModel())) {
+				logDebug("Item has no item-meta, but ingredient expects item-meta!", recipeName);
+				return false;
+			}
 
 			if (item.hasItemMeta()) {
 				ItemMeta meta = item.getItemMeta();
@@ -140,7 +148,7 @@ public class MetaChecks {
 
 		return true;
 	}
-	
+
 	private void logDebug(String st, String recipeName) {
 		if (Main.getInstance().debug)
 			Logger.getLogger("Minecraft").log(Level.WARNING,

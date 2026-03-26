@@ -21,6 +21,7 @@ import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import com.cryptomorin.xseries.XMaterial;
 
@@ -32,6 +33,7 @@ import me.mehboss.utils.RecipeUtil.Ingredient;
 import me.mehboss.utils.RecipeUtil.Recipe;
 import me.mehboss.utils.RecipeUtil.Recipe.RecipeType;
 import me.mehboss.utils.data.CraftingRecipeData;
+import me.mehboss.utils.libs.CompatibilityUtil;
 import me.mehboss.utils.libs.CooldownManager;
 import me.mehboss.utils.libs.CooldownManager.Cooldown;
 
@@ -69,8 +71,56 @@ public class AmountManager implements Listener {
 		return craftManager.hasAllIngredients(inv, recipes, recipeIngredients, id);
 	}
 
-	private boolean hasMatchingDisplayName(String recipeName, ItemStack item, Ingredient ingredient, boolean b) {
-		return craftManager.hasMatchingDisplayName(recipeName, item, ingredient, b);
+	private boolean hasMatchingData(String recipeName, ItemStack item, Ingredient ingredient) {
+		Recipe recipe = getRecipeUtil().getRecipe(recipeName);
+
+		if (recipe.getIgnoreData())
+			return true;
+
+		if (item.hasItemMeta() && (ingredient.hasItem() && !ingredient.getItem().hasItemMeta()))
+			return false;
+		if (!item.hasItemMeta() && (ingredient.hasItem() && ingredient.getItem().hasItemMeta()))
+			return false;
+		if (!item.hasItemMeta())
+			return true;
+
+		ItemMeta meta = item.getItemMeta();
+		if (!recipe.getIgnoreNames()) {
+			if (!meta.hasDisplayName() && ingredient.hasDisplayName())
+				return false;
+			if (meta.hasDisplayName() && !ingredient.hasDisplayName())
+				return false;
+			if (meta.hasDisplayName() && !meta.getDisplayName().equals(ingredient.getDisplayName()))
+				return false;
+			
+			if (CompatibilityUtil.supportsItemName()) {
+				if (meta.hasItemName() && !ingredient.hasItemName())
+					return false;
+				if (!meta.hasItemName() && ingredient.hasItemName())
+					return false;
+				if (meta.hasItemName() && !meta.getItemName().equals(ingredient.getItemName()))
+					return false;
+			}
+		}
+		
+		if (!recipe.getIgnoreItemModel() && CompatibilityUtil.supportsItemModel()) {
+			if (meta.hasItemModel() && !ingredient.hasItemModel())
+				return false;
+			if (!meta.hasItemModel() && ingredient.hasItemModel())
+				return false;
+			if (meta.hasItemModel() && !meta.getItemModel().toString().equals(ingredient.getItemModel()))
+				return false;
+		}
+		
+		if (!recipe.getIgnoreModelData() && CompatibilityUtil.supportsItemModel()) {
+			if (meta.hasCustomModelData() && !ingredient.hasCustomModelData())
+				return false;
+			if (!meta.hasCustomModelData() && ingredient.hasCustomModelData())
+				return false;
+			if (meta.hasCustomModelData() && meta.getCustomModelData() != ingredient.getCustomModelData())
+				return false;
+		}
+		return true;
 	}
 
 	// Helper method for the handleShiftClick method
@@ -158,7 +208,7 @@ public class AmountManager implements Listener {
 				|| (craftManager.tagsMatch(ingredient, item)
 						|| (ingredient.hasIdentifier() && exactMatch != null && item.isSimilar(exactMatch.getResult()))
 						|| (item.getType() == ingredient.getMaterial()
-								&& hasMatchingDisplayName(recipeName, item, ingredient, false)));
+								&& hasMatchingData(recipeName, item, ingredient)));
 	}
 
 	boolean isCraftingRecipe(RecipeType type) {

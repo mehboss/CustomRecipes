@@ -11,6 +11,7 @@ import org.bukkit.inventory.CampfireRecipe;
 import org.bukkit.inventory.FurnaceRecipe;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.RecipeChoice.MaterialChoice;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.SmithingRecipe;
@@ -29,7 +30,6 @@ import me.mehboss.utils.data.CookingRecipeData;
 import me.mehboss.utils.data.CraftingRecipeData;
 import me.mehboss.utils.data.SmithingRecipeData;
 import me.mehboss.utils.data.WorkstationRecipeData;
-import me.mehboss.utils.data.SmithingRecipeData.SmithingRecipeType;
 import me.mehboss.utils.libs.CompatibilityUtil;
 
 public class ExactChoice {
@@ -40,6 +40,10 @@ public class ExactChoice {
 
 	RecipeUtil getRecipeUtil() {
 		return Main.getInstance().recipeUtil;
+	}
+
+	MaterialChoice returnExactChoice(Material item) {
+		return new RecipeChoice.MaterialChoice(item);
 	}
 
 	RecipeChoice.ExactChoice returnExactChoice(ItemStack item) {
@@ -244,6 +248,14 @@ public class ExactChoice {
 				returnExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 	}
 
+	private RecipeChoice getChoice(ItemStack item, boolean isExactChoice) {
+		if (isExactChoice) {
+			return returnExactChoice(item);
+		} else {
+			return returnExactChoice(item);
+		}
+	}
+
 	@SuppressWarnings("deprecation")
 	SmithingRecipe createSmithingRecipe(SmithingRecipeData recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 20)) {
@@ -252,18 +264,19 @@ public class ExactChoice {
 		}
 		getRecipeBuilder().setSmithingItems(recipe);
 
+		RecipeChoice templateChoice = getChoice(recipe.getTemplate(), recipe.isExactChoice());
+		RecipeChoice baseChoice = getChoice(recipe.getBase(), recipe.isExactChoice());
+		RecipeChoice additionChoice = getChoice(recipe.getAddition(), recipe.isExactChoice());
+		NamespacedKey key = new NamespacedKey(Main.getInstance(), recipe.getKey());
+
 		if (recipe.isTrim()) {
-			if (Main.getInstance().serverVersionAtLeast(1, 21, 5))
-				return new SmithingTrimRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()),
-						returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
-						returnExactChoice(recipe.getAddition()), recipe.getTrimPattern());
-			return new SmithingTrimRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()),
-					returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
-					returnExactChoice(recipe.getAddition()));
+			if (Main.getInstance().serverVersionAtLeast(1, 21, 5)) {
+				return new SmithingTrimRecipe(key, templateChoice, baseChoice, additionChoice, recipe.getTrimPattern());
+			} else {
+				return new SmithingTrimRecipe(key, templateChoice, baseChoice, additionChoice);
+			}
 		}
-		return new SmithingTransformRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
-				returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
-				returnExactChoice(recipe.getAddition()));
+		return new SmithingTransformRecipe(key, recipe.getResult(), templateChoice, baseChoice, additionChoice);
 	}
 
 	private void logError(String st, String recipe) {

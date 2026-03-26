@@ -56,6 +56,7 @@ import org.bukkit.configuration.MemoryConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Axolotl;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TropicalFish;
 import org.bukkit.inventory.*;
@@ -124,12 +125,12 @@ public final class XItemStack {
 	private static final XMaterial DEFAULT_MATERIAL = XMaterial.BARRIER;
 	private static final boolean SUPPORTS_UNBREAKABLE, SUPPORTS_POTION_COLOR, SUPPORTS_Inventory_getStorageContents,
 			SUPPORTS_CUSTOM_MODEL_DATA, SUPPORTS_ADVANCED_CUSTOM_MODEL_DATA, SUPPORTS_ITEM_MODEL, SUPPORTS_ITEM_NAME,
-			SUPPORTS_NBTAPI;
+			SUPPORTS_NBTAPI, SUPPORTS_ITEMFRAME;
 
 	static {
 		boolean supportsPotionColor = false, supportsUnbreakable = false, supportsGetStorageContents = false,
 				supportSCustomModelData = false, supportsAdvancedCustomModelData = false, supportsItemModel = false,
-				supportsItemName = false, supportsNBTAPI = false;
+				supportsItemName = false, supportsNBTAPI = false, supportsItemframe = false;
 
 		try {
 			ItemMeta.class.getDeclaredMethod("setUnbreakable", boolean.class);
@@ -179,6 +180,12 @@ public final class XItemStack {
 		} catch (NoSuchMethodException ignored) {
 		}
 
+		try {
+			ItemFrame.class.getDeclaredMethod("setVisible");
+			supportsItemframe = true;
+		} catch (NoSuchMethodException ignored) {
+		}
+
 		SUPPORTS_POTION_COLOR = supportsPotionColor;
 		SUPPORTS_UNBREAKABLE = supportsUnbreakable;
 		SUPPORTS_Inventory_getStorageContents = supportsGetStorageContents;
@@ -187,6 +194,7 @@ public final class XItemStack {
 		SUPPORTS_ITEM_MODEL = supportsItemModel;
 		SUPPORTS_ITEM_NAME = supportsItemName;
 		SUPPORTS_NBTAPI = supportsNBTAPI;
+		SUPPORTS_ITEMFRAME = supportsItemframe;
 	}
 
 	private interface MetaHandler<M extends ItemMeta> {
@@ -609,6 +617,11 @@ public final class XItemStack {
 			if (SUPPORTS_UNBREAKABLE) {
 				if (meta.isUnbreakable())
 					config.set("unbreakable", true);
+			}
+
+			if (XMaterial.matchXMaterial(item) == XMaterial.ITEM_FRAME) {
+				ReadWriteNBT data = NBT.itemStackToNBT(item);
+				config.set("nbt", data.toString());
 			}
 
 			handleEnchants();
@@ -1156,6 +1169,7 @@ public final class XItemStack {
 
 			item.setItemMeta(meta);
 			deserializeCustomDataKeys();
+			itemFrame();
 
 			return item;
 		}
@@ -1211,6 +1225,19 @@ public final class XItemStack {
 						item.setData(data);
 					}
 				}
+			}
+		}
+
+		private void itemFrame() {
+			if (XMaterial.matchXMaterial(item) == XMaterial.ITEM_FRAME) {
+				String data = config.getString("nbt");
+				if (data == null)
+					return;
+
+				ReadWriteNBT fromNBT = NBT.parseNBT(data);
+				ItemStack itemfromNBT = NBT.itemStackFromNBT(fromNBT);
+				if (itemfromNBT != null)
+					item = itemfromNBT;
 			}
 		}
 
@@ -1310,7 +1337,7 @@ public final class XItemStack {
 		private void itemName() {
 			if (!SUPPORTS_ITEM_NAME)
 				return;
-			
+
 			String itemName = config.getString("item-name");
 			if (!Strings.isNullOrEmpty(itemName)) {
 				if (CompatibilityUtil.isPaperServer()) {

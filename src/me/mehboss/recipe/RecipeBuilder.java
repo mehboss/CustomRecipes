@@ -70,6 +70,13 @@ public class RecipeBuilder {
 		return recipeConfig;
 	}
 
+	void handleOrder(String item, Recipe recipe) {
+		if (!getConfig().isInt(item + ".Order"))
+			return;
+		int order = getConfig().getInt(item + ".Order");
+		recipe.setOrder(order);
+	}
+
 	void handleCommand(String item, Recipe recipe) {
 		String path = item + ".Commands.Run-Commands";
 		String grantItem = item + ".Commands.Give-Item";
@@ -343,7 +350,7 @@ public class RecipeBuilder {
 		return keys;
 	}
 
-	public void addRecipes(String name) {
+	public void addRecipesToAPI(String name) {
 		File recipeFolder = new File(Main.getInstance().getDataFolder(), "recipes");
 		if (!recipeFolder.exists()) {
 			recipeFolder.mkdirs();
@@ -571,22 +578,30 @@ public class RecipeBuilder {
 			logDebug("Recipe Type: " + recipe.getType(), recipe.getName());
 			logDebug("Successfully added " + item + " with the amount output of " + amount, recipe.getName());
 
+			handleOrder(item, recipe);
 			getRecipeUtil().createRecipe(recipe);
-			getRecipeUtil().registerRecipe(recipe);
 		}
 
 		if (registerAll) {
 			List<String> delayed = new ArrayList<>(delayedRecipes);
 			for (String recipe : delayed) {
-				addRecipes(recipe);
+				addRecipesToAPI(recipe);
 			}
 		}
 	}
 
-	public void addRecipesFromAPI(Recipe specificRecipe) {
-		RecipeUtil recipeUtil = Main.getInstance().recipeUtil;
-		HashMap<String, Recipe> recipeList = recipeUtil.getAllRecipes() == null ? null
-				: new HashMap<>(recipeUtil.getAllRecipes());
+	public void registerRecipesFromAPI() {
+		registerRecipesFromAPI((Recipe) null);
+	}
+	public void registerRecipesFromAPI(String name) {
+		Recipe recipe = getRecipeUtil().getRecipe(name);
+		if (recipe != null) {
+			registerRecipesFromAPI(recipe);
+		}
+	}
+	public void registerRecipesFromAPI(Recipe specificRecipe) {
+		HashMap<String, Recipe> recipeList = getRecipeUtil().getAllRecipes() == null ? null
+				: new HashMap<>(getRecipeUtil().getAllRecipes());
 
 		if (recipeList == null || recipeList.isEmpty()) {
 			logError("No recipes were found to load..", "");

@@ -113,7 +113,8 @@ public class RecipeSaver {
 		if (getRecipeUtil().getRecipe(recipeName) != null)
 			getRecipeUtil().removeRecipe(recipeName);
 
-		getRecipeBuilder().addRecipes(recipeName);
+		getRecipeBuilder().addRecipesToAPI(recipeName);
+		getRecipeBuilder().registerRecipesFromAPI(recipeName);
 	}
 
 	private Map<String, Object> convertToRecipeConfig(GuiView view, Inventory inventory, Recipe recipe, RecipeType type,
@@ -123,6 +124,7 @@ public class RecipeSaver {
 
 		int[] ingredientSlots = layout.getIngredientSlots();
 		int resultSlot = layout.getResultSlot();
+		Integer order = readIntField(view, "Order");
 
 		// ====== Result item ======
 		ItemStack resultItem = safeGet(inventory, resultSlot);
@@ -176,6 +178,8 @@ public class RecipeSaver {
 			cfg.put("Shapeless", shapeless);
 		if (isCrafting || type == RecipeType.STONECUTTER)
 			cfg.put("Group", group);
+		if (order != null)
+			cfg.put("Order", order);
 
 		cfg.put("Cooldown", -1);
 		cfg.put("Placeable", placeable);
@@ -402,7 +406,7 @@ public class RecipeSaver {
 		if (src == null)
 			return null;
 
-		src = src.replaceAll("[^0-9-]", ""); // strip non-digits
+		src = src.replaceAll("[^0-9-]", "");
 		if (src.isEmpty())
 			return null;
 

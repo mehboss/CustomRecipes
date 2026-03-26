@@ -315,7 +315,8 @@ public class Main extends JavaPlugin implements Listener {
 			@Override
 			public void run() {
 				ItemManager.loadAll();
-				recipeBuilder.addRecipes(null);
+				recipeBuilder.addRecipesToAPI(null);
+				recipeBuilder.registerRecipesFromAPI();
 				registerCommands();
 				getLogger().log(Level.INFO, "Loaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 			}
@@ -339,7 +340,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (serverVersionAtLeast(1, 21)) {
 			Bukkit.getPluginManager().registerEvents(new CrafterManager(), this);
 		}
-		
+
 		if (serverVersionAtLeast(1, 14)) {
 			Bukkit.getPluginManager().registerEvents(new GrindstoneManager(), this);
 			Bukkit.getPluginManager().registerEvents(new SmithingManager(), this);
@@ -348,7 +349,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (serverVersionAtLeast(1, 13)) {
 			Bukkit.getPluginManager().registerEvents(autoDiscover, this);
 		}
-		
+
 		if (serverVersionAtLeast(1, 9)) {
 			Bukkit.getPluginManager().registerEvents(new AnvilManager(), this);
 		} else {
@@ -404,7 +405,8 @@ public class Main extends JavaPlugin implements Listener {
 
 		// Re-add recipes immediately
 		ItemManager.reload();
-		recipeBuilder.addRecipes(null);
+		recipeBuilder.addRecipesToAPI(null);
+		getRecipeUtil().reloadRecipes();
 		getLogger().log(Level.INFO, "Reloaded " + recipeUtil.getRecipeNames().size() + " recipe(s).");
 
 		getAutoDiscover().handleAutoDiscover();

@@ -56,7 +56,6 @@ import me.mehboss.utils.libs.XItemStack.UnknownMaterialCondition;
 import me.mehboss.utils.libs.XItemStack.UnAcceptableMaterialCondition;
 import net.advancedplugins.ae.api.AEAPI;
 import valorless.havenbags.api.HavenBagsAPI;
-import valorless.havenbags.datamodels.Data;
 
 public class ItemFactory {
 
@@ -169,7 +168,7 @@ public class ItemFactory {
 				logError("Found a havenbag recipe, but no havenbags plugin found. Skipping recipe..", item);
 				return Optional.empty();
 			}
-			return Optional.of(handleBagCreation(i.getType(), 0, 0, "null", null, item));
+			return Optional.of(handleBagCreation(i.getType(), item));
 		}
 
 		// handle head textures
@@ -878,30 +877,46 @@ public class ItemFactory {
 
 		return null;
 	}
+	
+	public ItemStack handleBagCreation(Material material, String item) {
+		String bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
+				: "none";
+		Boolean canBind = getConfig().getBoolean(item + ".Can-Bind");
+		int bagSize = getConfig().isInt(item + ".Bag-Size") ? getConfig().getInt(item + ".Bag-Size") : 9;
+		int bagCMD = 0;
 
-	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, String canBind, String bagTexture,
-			String item) {
+		if (Main.getInstance().serverVersionAtLeast(1, 14) && getConfig().isSet(item + ".Custom-Model-Data")
+				&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
+			bagCMD = getConfig().getInt(item + ".Custom-Model-Data");
+		}
+		String itemModel = getConfig().contains(item + ".Item-Model", true) ? getConfig().getString(item + ".Item-Model")
+				: "none";
+		
+		return handleBagCreation(material, bagSize, bagCMD, canBind, bagTexture, itemModel);
+	
+	}
 
-		if (item != null) {
-			bagTexture = getConfig().isString(item + ".Bag-Texture") ? getConfig().getString(item + ".Bag-Texture")
-					: "none";
-			canBind = getConfig().getBoolean(item + ".Can-Bind") ? "null" : "ownerless";
-			bagSize = getConfig().isInt(item + ".Bag-Size") ? getConfig().getInt(item + ".Bag-Size") : 9;
-			bagCMD = 0;
-
-			if (Main.getInstance().serverVersionAtLeast(1, 14) && getConfig().isSet(item + ".Custom-Model-Data")
-					&& isInt(getConfig().getString(item + ".Custom-Model-Data"))) {
-				bagCMD = getConfig().getInt(item + ".Custom-Model-Data");
+	public ItemStack handleBagCreation(Material bagMaterial, int bagSize, int bagCMD, Boolean canBind, String bagTexture, String itemModel) {		
+		ItemStack bag = HavenBagsAPI.createUnusedBagItem(bagSize, canBind);
+		ItemMeta bagMeta = bag.getItemMeta();
+		if(bagCMD != 0)	bagMeta.setCustomModelData(bagCMD);
+		if(itemModel != null && !itemModel.equalsIgnoreCase("none")) {
+			if (Main.getInstance().serverVersionAtLeast(1, 21, 4)){
+				try {
+					bagMeta.setItemModel(NamespacedKey.fromString(itemModel));
+				} catch(NoSuchMethodError e) { // Backup to be safe.
+					logError("Your server version does not support item models, skipping item model application..", "");
+				} catch (Exception e) {
+					logError("Error occured while setting item model..", "");
+				}
 			}
 		}
-
-		Data bagData = new Data("null", canBind);
-		bagData.setSize(bagSize);
-		bagData.setMaterial(bagMaterial);
-		bagData.setTexture(bagTexture);
-		bagData.setModeldata(bagCMD);
-
-		ItemStack bagItem = HavenBagsAPI.generateBagItem(bagData);
-		return bagItem;
+		bag.setItemMeta(bagMeta);
+		
+		if(bagTexture != null && !bagTexture.equalsIgnoreCase("none")) {
+			HavenBagsAPI.setTexture(bag, bagTexture);
+		}
+		
+		return bag;
 	}
 }

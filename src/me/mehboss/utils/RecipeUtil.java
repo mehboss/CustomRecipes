@@ -336,7 +336,7 @@ public class RecipeUtil {
 					: null;
 			int size = !hasArgs || Integer.getInteger(split[1]) == null ? 1 : Integer.parseInt(split[1]);
 			int bagCMD = split.length < 4 || Integer.getInteger(split[3]) == null ? 0 : Integer.parseInt(split[3]);
-			String canBind = split.length >= 5 ? split[4] : "null";
+			boolean canBind = split.length >= 5 ? Boolean.valueOf(split[4]) : false;
 			String bagTexture = split.length >= 6 ? split[5] : "none";
 
 			if (!hasArgs || bagMaterial == null) {
@@ -347,7 +347,7 @@ public class RecipeUtil {
 
 			// havenbags:size:material:customModelData:canBind:texture
 			ItemStack bagItem = Main.getInstance().itemFactory.handleBagCreation(bagMaterial, size, bagCMD, canBind,
-					bagTexture, null);
+					bagTexture, null); //TODO: change null to ItemModel namespace:key -Valorless
 			return bagItem;
 
 		}

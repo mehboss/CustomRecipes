@@ -3,6 +3,7 @@ package me.mehboss.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -103,6 +104,11 @@ public class RecipeUtil {
 	public List<String> SUPPORTED_PLUGINS = Arrays.asList("itemsadder", "mythicmobs", "executableitems", "oraxen",
 			"nexo", "mmoitems", "havenbags");
 
+	private final HashMap<String, Recipe> recipesByKey = new HashMap<>();
+	private final EnumMap<RecipeType, Map<String, Recipe>> recipesByType = new EnumMap<>(RecipeType.class);
+	private static final Set<String> CUSTOM_ITEM_PLUGIN_IDS = Set.of("itemsadder", "mythicmobs", "executableitems",
+			"oraxen", "nexo", "mmoitems", "havenbags");
+
 	/**
 	 * Adds a finished Recipe object to the API
 	 * 
@@ -147,6 +153,10 @@ public class RecipeUtil {
 		recipes.put(recipe.getName(), recipe);
 		if (!keyList.contains(recipe.getKey()))
 			keyList.add(recipe.getKey());
+		if (recipe.getKey() != null)
+			recipesByKey.put(recipe.getKey().toLowerCase(), recipe);
+
+		recipesByType.computeIfAbsent(recipe.getType(), k -> new HashMap<>()).put(recipe.getName(), recipe);
 	}
 
 	/**
@@ -160,6 +170,12 @@ public class RecipeUtil {
 			clearDuplicates(recipe);
 			keyList.remove(recipe.getKey());
 			recipes.remove(recipeName);
+
+			Map<String, Recipe> typeMap = recipesByType.get(recipe.getType());
+			if (recipe.getKey() != null)
+				recipesByKey.remove(recipe.getKey().toLowerCase());
+			if (typeMap != null)
+				typeMap.remove(recipeName);
 		}
 	}
 
@@ -171,7 +187,7 @@ public class RecipeUtil {
 	 */
 	public void registerRecipe(Recipe recipe) {
 		this.clearDuplicates(recipe);
-		Main.getInstance().recipeBuilder.registerRecipesFromAPI(recipe);
+		Main.getInstance().getRecipeBuilder().registerRecipesFromAPI(recipe);
 	}
 
 	/**
@@ -180,7 +196,7 @@ public class RecipeUtil {
 	 */
 	public void reloadRecipes() {
 		this.clearDuplicates(null);
-		Main.getInstance().recipeBuilder.registerRecipesFromAPI();
+		Main.getInstance().getRecipeBuilder().registerRecipesFromAPI();
 	}
 
 	/**
@@ -219,15 +235,7 @@ public class RecipeUtil {
 	public Boolean isCustomItem(String key) {
 		if (key == null)
 			return false;
-
-		String pluginID = key.toLowerCase();
-		String[] plugins = { "mythicmobs", "itemsadder", "mmoitems", "oraxen", "nexo", "executableitems" };
-
-		for (String plugin : plugins)
-			if (plugin.equals(pluginID))
-				return true;
-
-		return false;
+		return CUSTOM_ITEM_PLUGIN_IDS.contains(key.toLowerCase());
 	}
 
 	/**
@@ -271,7 +279,7 @@ public class RecipeUtil {
 			if (Main.getInstance().hasCustomPlugin("itemsadder")) {
 				CustomStack iaItem = CustomStack.getInstance(itemId);
 				if (iaItem != null)
-					return iaItem.getItemStack();
+					return iaItem.getItemStack().clone();
 			}
 			break;
 
@@ -279,7 +287,7 @@ public class RecipeUtil {
 			if (Main.getInstance().hasCustomPlugin("mythicmobs")) {
 				ItemStack mythicItem = MythicBukkit.inst().getItemManager().getItemStack(itemId);
 				if (mythicItem != null)
-					return mythicItem;
+					return mythicItem.clone();
 			}
 			break;
 
@@ -289,11 +297,11 @@ public class RecipeUtil {
 						.getExecutableItem(itemId);
 				if (ei.isPresent()) {
 					if (custom_items.containsKey(itemId)) {
-						return custom_items.get(itemId);
+						return custom_items.get(itemId).clone();
 					} else {
 						ItemStack eiItem = ei.get().buildItem(1, Optional.empty());
 						custom_items.put(itemId, eiItem);
-						return eiItem;
+						return eiItem.clone();
 					}
 				}
 			}
@@ -301,16 +309,27 @@ public class RecipeUtil {
 
 		case "oraxen":
 			if (Main.getInstance().hasCustomPlugin("oraxen")) {
-				ItemStack oraxenItem = OraxenItems.exists(itemId) ? OraxenItems.getItemById(itemId).build() : null;
-				if (oraxenItem != null)
-					return oraxenItem;
+				if (OraxenItems.exists(itemId)) {
+					if (custom_items.containsKey(itemId)) {
+						return custom_items.get(itemId).clone();
+					} else {
+						ItemStack oraxenItem = OraxenItems.getItemById(itemId).build();
+						custom_items.put(itemId, oraxenItem);
+						return oraxenItem.clone();
+					}
+				}
 			}
 			break;
 
 		case "nexo":
 			if (Main.getInstance().hasCustomPlugin("nexo")) {
-				if (NexoItems.itemFromId(itemId) != null)
-					return NexoItems.itemFromId(itemId).build();
+				if (custom_items.containsKey(item))
+					return custom_items.get(item).clone();
+				if (NexoItems.itemFromId(itemId) != null) {
+					ItemStack nexoItem = NexoItems.itemFromId(itemId).build();
+					custom_items.put(item, nexoItem);
+					return nexoItem.clone();
+				}
 			}
 			break;
 
@@ -325,7 +344,7 @@ public class RecipeUtil {
 				ItemStack mmoitem = MMOItems.plugin.getItem(MMOItems.plugin.getTypes().get(split[2].toUpperCase()),
 						itemId.toUpperCase());
 				if (mmoitem != null)
-					return mmoitem;
+					return mmoitem.clone();
 			}
 			break;
 
@@ -346,8 +365,8 @@ public class RecipeUtil {
 			}
 
 			// havenbags:size:material:customModelData:canBind:texture
-			ItemStack bagItem = Main.getInstance().itemFactory.handleBagCreation(bagMaterial, size, bagCMD, canBind,
-					bagTexture, null); //TODO: change null to ItemModel namespace:key -Valorless
+			ItemStack bagItem = Main.getInstance().getItemFactory().handleBagCreation(bagMaterial, size, bagCMD, canBind,
+					bagTexture, null); // TODO: change null to ItemModel namespace:key -Valorless
 			return bagItem;
 
 		}
@@ -466,16 +485,9 @@ public class RecipeUtil {
 	 * @return the Recipe that is found, can be null
 	 */
 	public Recipe getRecipeFromKey(String key) {
-		for (Recipe recipe : recipes.values()) {
-			String recipeTag = recipe.getKey();
-
-			if (key == null)
-				return null;
-
-			if (key.equalsIgnoreCase(recipeTag))
-				return recipe;
-		}
-		return null;
+		if (key == null)
+			return null;
+		return recipesByKey.get(key.toLowerCase());
 	}
 
 	/**
@@ -620,19 +632,10 @@ public class RecipeUtil {
 	 * @return the hashmap of recipes found, can be null
 	 */
 	public HashMap<String, Recipe> getRecipesFromType(RecipeType type) {
-		if (recipes.isEmpty())
+		Map<String, Recipe> found = recipesByType.get(type);
+		if (found == null || found.isEmpty())
 			return null;
-
-		HashMap<String, Recipe> foundRecipes = new HashMap<String, Recipe>();
-		for (Recipe recipe : recipes.values()) {
-			if (recipe.getType() == type)
-				foundRecipes.put(recipe.getName(), recipe);
-		}
-
-		if (foundRecipes.isEmpty())
-			return null;
-
-		return foundRecipes;
+		return new HashMap<>(found);
 	}
 
 	/**

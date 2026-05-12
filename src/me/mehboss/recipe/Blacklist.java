@@ -45,13 +45,13 @@ public class Blacklist {
 		blacklistedLegacyResults.clear();
 		disableAllVanilla = false;
 
-		if (instance().customConfig == null)
+		if (instance().getCustomConfig() == null)
 			return;
 
 		boolean modern = instance().serverVersionAtLeast(1, 16);
 
-		if (instance().customConfig.isConfigurationSection("override-recipes")) {
-			ConfigurationSection sec = instance().customConfig.getConfigurationSection("override-recipes");
+		if (instance().getCustomConfig().isConfigurationSection("override-recipes")) {
+			ConfigurationSection sec = instance().getCustomConfig().getConfigurationSection("override-recipes");
 
 			if (modern) {
 				removeRecipesModern(sec);
@@ -60,7 +60,7 @@ public class Blacklist {
 			}
 		}
 
-		disableAllVanilla = instance().customConfig.getBoolean("disable-all-vanilla", false);
+		disableAllVanilla = instance().getCustomConfig().getBoolean("disable-all-vanilla", false);
 	}
 
 	// --- Modern recipe removal (1.16+) ---
@@ -189,15 +189,15 @@ public class Blacklist {
 	}
 
 	FileConfiguration getBlacklistConfig() {
-		return Main.getInstance().customConfig;
+		return Main.getInstance().getCustomConfig();
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	ArrayList<String> getDisabledRecipes() {
-		return Main.getInstance().disabledrecipe;
+		return Main.getInstance().getDisabledRecipes();
 	}
 
 	public void logError(String st) {
@@ -205,7 +205,7 @@ public class Blacklist {
 	}
 
 	public void logDebug(String st) {
-		if (instance().debug)
+		if (instance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "]" + st);
 	}
 }

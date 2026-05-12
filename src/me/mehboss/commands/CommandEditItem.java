@@ -18,7 +18,6 @@ import me.mehboss.gui.framework.chat.ChatEditManager;
 import me.mehboss.recipe.Main;
 import me.mehboss.utils.libs.CompatibilityUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class CommandEditItem {

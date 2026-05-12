@@ -47,8 +47,8 @@ public class CommandItems {
 
 		p.sendMessage(
 				ChatColor.translateAlternateColorCodes('&', "&8-------------------------------------------------"));
-		p.sendMessage(ChatColor.translateAlternateColorCodes('&',
-				"&cCurrent Items (Page " + page + "/" + totalPages + "):"));
+		p.sendMessage(
+				ChatColor.translateAlternateColorCodes('&', "&cCurrent Items (Page " + page + "/" + totalPages + "):"));
 
 		for (int i = startIndex; i < endIndex; i++) {
 			String item = items.get(i);

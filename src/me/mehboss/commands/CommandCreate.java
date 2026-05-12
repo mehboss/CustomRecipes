@@ -16,7 +16,7 @@ import me.mehboss.utils.data.WorkstationRecipeData;
 public class CommandCreate {
 
 	static RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	// Keep the method header as requested
@@ -74,7 +74,7 @@ public class CommandCreate {
 				ChatColor.translateAlternateColorCodes('&', "&c[CustomRecipes] &fPreparing to create recipe:&r "));
 		sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
 				"&fType= &a" + type.toString() + " &fID= &a" + id + " &fPermission= &a" + permission));
-		Main.getInstance().recipes.showCreationMenu((Player) sender, recipe, true, false);
+		Main.getInstance().getBookGUI().showCreationMenu((Player) sender, recipe, true, false);
 		return true;
 	}
 }

@@ -14,23 +14,22 @@ public class CommandGUI {
 		Player p = (Player) command.sender;
 
 		if (!p.hasPermission("crecipe.gui")) {
-			p.sendMessage(
-					ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Invalid-Perms")));
+			p.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("Messages.Invalid-Perms")));
 			return false;
 		}
-		
-		if (Main.getInstance().recipeBook.contains(p.getUniqueId()))
-			Main.getInstance().recipeBook.remove(p.getUniqueId());
 
-		Main.getInstance().typeGUI.open(p);
+		if (Main.getInstance().getRecipeBook().contains(p.getUniqueId()))
+			Main.getInstance().getRecipeBook().remove(p.getUniqueId());
+
+		Main.getInstance().getTypeGUI().open(p);
 		String OpenMessage = ChatColor.translateAlternateColorCodes('&', getConfig().getString("gui.Open-Message"));
 		p.sendMessage(OpenMessage);
-		p.playSound(p.getLocation(),
-				XSound.matchXSound(getConfig().getString("gui.Open-Sound")).get().parseSound(), 1, 1);
-		
+		p.playSound(p.getLocation(), XSound.matchXSound(getConfig().getString("gui.Open-Sound")).get().parseSound(), 1,
+				1);
+
 		return true;
 	}
-	
+
 	static FileConfiguration getConfig() {
 		return Main.getInstance().getConfig();
 	}

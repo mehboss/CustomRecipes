@@ -19,7 +19,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
  */
 public class MetaChecks {
 	private RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	/**
@@ -150,7 +150,7 @@ public class MetaChecks {
 	}
 
 	private void logDebug(String st, String recipeName) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][Metachecks][" + recipeName + "] " + st);
 	}

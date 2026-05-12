@@ -53,41 +53,45 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 public class Main extends JavaPlugin implements Listener {
 
-	public RecipeUtil recipeUtil;
-	public RecipeBuilder recipeBuilder;
-	public ExactChoice exactChoice;
+	private RecipeUtil recipeUtil;
+	private RecipeBuilder recipeBuilder;
+	private ExactChoice exactChoice;
 
-	public AmountManager amountManager;
-	public CraftManager craftManager;
+	private AmountManager amountManager;
+	private CraftManager craftManager;
 
-	public ShapedChecks shapedChecks;
-	public ShapelessChecks shapelessChecks;
+	private ShapedChecks shapedChecks;
+	private ShapelessChecks shapelessChecks;
 
-	public ItemFactory itemFactory;
-	public MetaChecks metaChecks;
+	private ItemFactory itemFactory;
+	private MetaChecks metaChecks;
 
-	public BookGUI recipes;
-	public RecipeTypeGUI typeGUI;
-	public CooldownManager cooldownManager;
+	private BookGUI recipes;
+	private RecipeTypeGUI typeGUI;
+	private CooldownManager cooldownManager;
 
 	private AutoDiscover autoDiscover;
+	private Blacklist handleBlacklist;
+	private EffectsManager effectsManager;
+
+	public EffectsManager getEffectsManager() {
+		return effectsManager;
+	}
 
 	public AutoDiscover getAutoDiscover() {
 		return autoDiscover;
 	}
 
-	private Blacklist handleBlacklist;
-
 	public Blacklist getBlacklistHandler() {
 		return handleBlacklist;
 	}
 
-	public RecipeGUI editItem;
+	private RecipeGUI editItem;
 
-	public Map<UUID, Long> debounceMap = new HashMap<>();
-	public ArrayList<UUID> inInventory = new ArrayList<UUID>();
-	public ArrayList<UUID> recipeBook = new ArrayList<UUID>();
-	public ArrayList<String> disabledrecipe = new ArrayList<String>();
+	private Map<UUID, Long> debounceMap = new HashMap<>();
+	private ArrayList<UUID> inInventory = new ArrayList<UUID>();
+	private ArrayList<UUID> recipeBook = new ArrayList<UUID>();
+	private ArrayList<String> disabledrecipe = new ArrayList<String>();
 
 	// add three more shapelessname, amount, and ID specifically for config.
 
@@ -103,13 +107,13 @@ public class Main extends JavaPlugin implements Listener {
 	File bagYml = new File(getDataFolder() + "/recipes/HavenBag.yml");
 	File sandYml = new File(getDataFolder() + "/recipes/WheatSand.yml");
 
-	public Boolean debug = false;
-	public Boolean crafterdebug = false;
+	private Boolean debug = false;
+	private Boolean crafterdebug = false;
 
-	public Boolean hasAE = false;
-	public Boolean hasEE = false;
-	public Boolean hasHavenBags = false;
-	public Boolean hasEEnchants = false;
+	private Boolean hasAE = false;
+	private Boolean hasEE = false;
+	private Boolean hasHavenBags = false;
+	private Boolean hasEEnchants = false;
 
 	Boolean uptodate = true;
 	Boolean isFirstLoad = true;
@@ -123,6 +127,106 @@ public class Main extends JavaPlugin implements Listener {
 
 	public RecipeUtil getRecipeUtil() {
 		return recipeUtil;
+	}
+
+	public RecipeBuilder getRecipeBuilder() {
+		return recipeBuilder;
+	}
+
+	public ExactChoice getExactChoice() {
+		return exactChoice;
+	}
+
+	public AmountManager getAmountManager() {
+		return amountManager;
+	}
+
+	public CraftManager getCraftManager() {
+		return craftManager;
+	}
+
+	public ShapedChecks getShapedChecks() {
+		return shapedChecks;
+	}
+
+	public ShapelessChecks getShapelessChecks() {
+		return shapelessChecks;
+	}
+
+	public ItemFactory getItemFactory() {
+		return itemFactory;
+	}
+
+	public MetaChecks getMetaChecks() {
+		return metaChecks;
+	}
+
+	public BookGUI getBookGUI() {
+		return recipes;
+	}
+
+	public RecipeTypeGUI getTypeGUI() {
+		return typeGUI;
+	}
+
+	public CooldownManager getCooldownManager() {
+		return cooldownManager;
+	}
+
+	public RecipeGUI getEditItem() {
+		return editItem;
+	}
+
+	public Map<UUID, Long> getDebounceMap() {
+		return debounceMap;
+	}
+
+	public ArrayList<UUID> getInInventory() {
+		return inInventory;
+	}
+
+	public ArrayList<UUID> getRecipeBook() {
+		return recipeBook;
+	}
+
+	public ArrayList<String> getDisabledRecipes() {
+		return disabledrecipe;
+	}
+
+	public FileConfiguration getCustomConfig() {
+		return customConfig;
+	}
+
+	public boolean isDebug() {
+		return debug;
+	}
+
+	public void setDebug(boolean value) {
+		debug = value;
+	}
+
+	public boolean isCrafterDebug() {
+		return crafterdebug;
+	}
+
+	public void setCrafterDebug(boolean value) {
+		crafterdebug = value;
+	}
+
+	public boolean isHasEEnchants() {
+		return hasEEnchants;
+	}
+
+	public boolean isHasEE() {
+		return hasEE;
+	}
+
+	public boolean isHasAE() {
+		return hasAE;
+	}
+
+	public boolean isHasHavenBags() {
+		return hasHavenBags;
 	}
 
 	public boolean hasCustomPlugin(String plugin) {
@@ -329,7 +433,10 @@ public class Main extends JavaPlugin implements Listener {
 		Bukkit.getPluginManager().registerEvents(new GuiListener(), this);
 		Bukkit.getPluginManager().registerEvents(recipes, this);
 		Bukkit.getPluginManager().registerEvents(typeGUI, this);
-		Bukkit.getPluginManager().registerEvents(new EffectsManager(), this);
+
+		effectsManager = new EffectsManager();
+		Bukkit.getPluginManager().registerEvents(effectsManager, this);
+
 		Bukkit.getPluginManager().registerEvents(craftManager, this);
 		Bukkit.getPluginManager().registerEvents(amountManager, this);
 		Bukkit.getPluginManager().registerEvents(new BlockManager(), this);

@@ -26,7 +26,7 @@ public class ItemManager {
 	}
 
 	static ItemFactory getItemFactory() {
-		return Main.getInstance().itemFactory;
+		return Main.getInstance().getItemFactory();
 	}
 	
 	/** Load all items from items folder */
@@ -105,14 +105,14 @@ public class ItemManager {
 
 		itemConfig = cfg;
 		String resultPath = cfg.isConfigurationSection(section + ".Result") ? section + ".Result" : section;
-		Optional<ItemStack> built = Main.getInstance().itemFactory.buildItem(resultPath, itemConfig);
+		Optional<ItemStack> built = Main.getInstance().getItemFactory().buildItem(resultPath, itemConfig);
 		if (!built.isPresent()) {
 			Main.getInstance().getLogger().warning("[CustomItemAPI] buildItem failed for section " + section);
 			return;
 		}
 
 		ItemStack it = built.get();
-		it = Main.getInstance().itemFactory.handleDurability(it, resultPath);
+		it = Main.getInstance().getItemFactory().handleDurability(it, resultPath);
 		int amount = cfg.isInt(resultPath + ".Amount") ? cfg.getInt(resultPath + ".Amount") : 1;
 		it.setAmount(amount);
 
@@ -120,10 +120,10 @@ public class ItemManager {
 		String id = cfg.getString(section + ".Identifier");
 		if (id != null && !id.isEmpty()) {
 			BY_IDENTIFIER.put(id, it.clone());
-			if (Main.getInstance().debug) {
+			if (Main.getInstance().isDebug()) {
 				Main.getInstance().getLogger().info("[CustomItemAPI] Loaded '" + section + "' (Identifier=" + id + ")");
 			}
-		} else if (Main.getInstance().debug) {
+		} else if (Main.getInstance().isDebug()) {
 			Main.getInstance().getLogger()
 					.info("[CustomItemAPI] Section '" + section + "' missing Identifier, skipping.");
 		}

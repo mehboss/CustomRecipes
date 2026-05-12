@@ -35,15 +35,11 @@ import me.mehboss.utils.libs.CompatibilityUtil;
 public class ExactChoice {
 
 	RecipeBuilder getRecipeBuilder() {
-		return Main.getInstance().recipeBuilder;
+		return Main.getInstance().getRecipeBuilder();
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
-	}
-
-	MaterialChoice returnExactChoice(Material item) {
-		return new RecipeChoice.MaterialChoice(item);
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	RecipeChoice.ExactChoice returnExactChoice(ItemStack item) {
@@ -248,14 +244,6 @@ public class ExactChoice {
 				returnExactChoice(recipe, null), recipe.getExperience(), recipe.getCookTime());
 	}
 
-	private RecipeChoice getChoice(ItemStack item, boolean isExactChoice) {
-		if (isExactChoice) {
-			return returnExactChoice(item);
-		} else {
-			return returnExactChoice(item);
-		}
-	}
-
 	@SuppressWarnings("deprecation")
 	SmithingRecipe createSmithingRecipe(SmithingRecipeData recipe) {
 		if (!Main.getInstance().serverVersionAtLeast(1, 20)) {
@@ -264,19 +252,30 @@ public class ExactChoice {
 		}
 		getRecipeBuilder().setSmithingItems(recipe);
 
-		RecipeChoice templateChoice = getChoice(recipe.getTemplate(), recipe.isExactChoice());
-		RecipeChoice baseChoice = getChoice(recipe.getBase(), recipe.isExactChoice());
-		RecipeChoice additionChoice = getChoice(recipe.getAddition(), recipe.isExactChoice());
-		NamespacedKey key = new NamespacedKey(Main.getInstance(), recipe.getKey());
-
 		if (recipe.isTrim()) {
-			if (Main.getInstance().serverVersionAtLeast(1, 21, 5)) {
-				return new SmithingTrimRecipe(key, templateChoice, baseChoice, additionChoice, recipe.getTrimPattern());
-			} else {
-				return new SmithingTrimRecipe(key, templateChoice, baseChoice, additionChoice);
-			}
+			if (Main.getInstance().serverVersionAtLeast(1, 21, 5))
+				return new SmithingTrimRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()),
+						returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
+						returnExactChoice(recipe.getAddition()), recipe.getTrimPattern());
+			return new SmithingTrimRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()),
+					returnExactChoice(recipe.getTemplate()), returnExactChoice(recipe.getBase()),
+					returnExactChoice(recipe.getAddition()));
 		}
-		return new SmithingTransformRecipe(key, recipe.getResult(), templateChoice, baseChoice, additionChoice);
+		return new SmithingTransformRecipe(new NamespacedKey(Main.getInstance(), recipe.getKey()), recipe.getResult(),
+				getSmithingIngredientChoice(recipe.getTemplateIngredient(), recipe.getTemplate()),
+				getSmithingIngredientChoice(recipe.getBaseIngredient(), recipe.getBase()),
+				getSmithingIngredientChoice(recipe.getAdditionIngredient(), recipe.getAddition()));
+	}
+
+	/**
+	 * Always returns a MaterialChoice so Bukkit only filters by material type. Full
+	 * ingredient verification (identifier, name, CMD, lore, itemModel, Nexo/MM/EI
+	 * keys) is delegated to passesChecks() → MetaChecks.itemsMatch(), which runs
+	 * after the Bukkit test passes. This allows enchanted/reforged bases and custom
+	 * items (Nexo, etc.) to pass the Bukkit layer correctly.
+	 */
+	private RecipeChoice getSmithingIngredientChoice(Ingredient ingredient, ItemStack item) {
+		return new RecipeChoice.MaterialChoice(item.getType());
 	}
 
 	private void logError(String st, String recipe) {
@@ -285,7 +284,7 @@ public class ExactChoice {
 	}
 
 	private void logDebug(String st, String recipe) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe + "][EC] " + st);
 	}

@@ -947,7 +947,7 @@ public final class XItemStack {
 				config.set("stored-enchants." + name, enchant.getValue());
 			}
 
-			if (Main.getInstance().hasAE) {
+			if (Main.getInstance().isHasAE()) {
 				String book = AEAPI.getBookEnchantment(item);
 				int level = AEAPI.getBookEnchantmentLevel(item);
 
@@ -1021,7 +1021,7 @@ public final class XItemStack {
 
 				config.set(entry, enchant.getValue());
 			}
-			if (Main.getInstance().hasAE) {
+			if (Main.getInstance().isHasAE()) {
 				Map<String, Integer> ae = AEAPI.getEnchantmentsOnItem(item);
 				if (ae != null) {
 					for (Map.Entry<String, Integer> e : ae.entrySet()) {
@@ -1407,7 +1407,7 @@ public final class XItemStack {
 						continue;
 					}
 
-					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(ench)) {
+					if (Main.getInstance().isHasAE() && AEAPI.isAnEnchantment(ench)) {
 						ItemStack book = AEAPI.createEnchantmentBook(ench, level, 100, 0, null);
 						item = book;
 					}
@@ -1422,7 +1422,7 @@ public final class XItemStack {
 					Optional<XEnchantment> enchant = XEnchantment.of(ench);
 					enchant.ifPresent(xEnchantment -> meta.addEnchant(xEnchantment.get(), enchants.getInt(ench), true));
 
-					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(ench)) {
+					if (Main.getInstance().isHasAE() && AEAPI.isAnEnchantment(ench)) {
 						item = AEAPI.applyEnchant(ench, enchants.getInt(ench), item);
 					}
 				}

@@ -11,7 +11,7 @@ import me.mehboss.utils.RecipeUtil.Recipe;
 public class CommandRemove {
 
 	static RecipeUtil getRecipeUtil() {
-	    return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	public static boolean Run(CRCommand command) {
@@ -22,14 +22,14 @@ public class CommandRemove {
 			sender.sendMessage(ChatColor.RED + "[CustomRecipes] Usage: /crecipe remove <id>");
 			return true;
 		}
-		
+
 		String id = args[1].toLowerCase();
 		Recipe existing = getRecipeUtil().getRecipeFromKey(id);
 		if (existing == null) {
 			sender.sendMessage(ChatColor.RED + "[CustomRecipes] A recipe with the ID '" + id + "' could not be found.");
 			return true;
 		}
-		
+
 		File recipeFile = new File(Main.getInstance().getDataFolder(), "recipes/" + existing.getName() + ".yml");
 		if (recipeFile.exists()) {
 			if (recipeFile.delete()) {
@@ -41,9 +41,9 @@ public class CommandRemove {
 		}
 		return true;
 	}
-	
+
 	public static void removeRecipe(String name) {
 		getRecipeUtil().removeRecipe(name);
 	}
-	
+
 }

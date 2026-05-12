@@ -118,5 +118,5 @@ public class RecipeTypeGUI implements Listener {
 		BookGUI.openType(p, type); // send to BookGUI to show recipes of this type
 	}
 
-	BookGUI BookGUI = Main.getInstance().recipes;
+	BookGUI BookGUI = Main.getInstance().getBookGUI();
 }

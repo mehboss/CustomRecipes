@@ -67,8 +67,8 @@ public class BookGUI implements Listener {
 
 	public List<RecipeUtil.Recipe> buildRecipesFor(Player p, RecipeType type, Boolean isViewing) {
 		HashMap<String, RecipeUtil.Recipe> recipesMap = (type != null)
-				? Main.getInstance().recipeUtil.getRecipesFromType(type)
-				: Main.getInstance().recipeUtil.getAllRecipes();
+				? Main.getInstance().getRecipeUtil().getRecipesFromType(type)
+				: Main.getInstance().getRecipeUtil().getAllRecipes();
 
 		if (recipesMap == null || recipesMap.isEmpty())
 			return new ArrayList<>();
@@ -162,7 +162,7 @@ public class BookGUI implements Listener {
 
 	public void showCreationMenu(Player player, Recipe rawRecipe, boolean creating, boolean viewing) {
 
-		RecipeGUI gui = Main.getInstance().editItem;
+		RecipeGUI gui = Main.getInstance().getEditItem();
 		Recipe recipe = rawRecipe;
 
 		if (creating) {
@@ -236,7 +236,7 @@ public class BookGUI implements Listener {
 				if (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)
 					return;
 
-				boolean isViewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
+				boolean isViewing = Main.getInstance().getRecipeBook().contains(p.getUniqueId());
 
 				ItemStack stained = createItem("stainedG", XMaterial.BLACK_STAINED_GLASS_PANE, " ");
 				if (!e.getCurrentItem().equals(stained) && (e.getRawSlot() == 3 || e.getRawSlot() == 5)) {
@@ -247,7 +247,7 @@ public class BookGUI implements Listener {
 				}
 
 				if (e.getRawSlot() == 49) {
-					Main.getInstance().typeGUI.open(p);
+					Main.getInstance().getTypeGUI().open(p);
 					return;
 				}
 
@@ -360,7 +360,7 @@ public class BookGUI implements Listener {
 				getParsedValue("Buttons.Main-Menu", "&eMain Menu"));
 		ItemStack limestained = null;
 
-		if (!Main.getInstance().recipeBook.contains(p.getUniqueId()))
+		if (!Main.getInstance().getRecipeBook().contains(p.getUniqueId()))
 			limestained = createItem("stainedG", XMaterial.LIME_STAINED_GLASS_PANE,
 					getParsedValue("Buttons.Create", "&2Create Recipe"));
 
@@ -416,7 +416,7 @@ public class BookGUI implements Listener {
 	}
 
 	public void openType(Player p, RecipeType type) {
-		boolean isViewing = Main.getInstance().recipeBook.contains(p.getUniqueId());
+		boolean isViewing = Main.getInstance().getRecipeBook().contains(p.getUniqueId());
 		List<RecipeUtil.Recipe> recipes = buildRecipesFor(p, type, isViewing);
 
 		if (recipes.isEmpty()) {
@@ -446,7 +446,7 @@ public class BookGUI implements Listener {
 	}
 
 	void logDebug(String st) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING, "[DEBUG][" + Main.getInstance().getName() + "] " + st);
 	}
 

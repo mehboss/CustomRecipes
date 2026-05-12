@@ -70,7 +70,7 @@ public class ItemFactory {
 	}
 
 	RecipeUtil getRecipeUtil() {
-		return Main.getInstance().recipeUtil;
+		return Main.getInstance().getRecipeUtil();
 	}
 
 	private void logError(String st, String recipe) {
@@ -79,7 +79,7 @@ public class ItemFactory {
 	}
 
 	private void logDebug(String st, String recipe) {
-		if (Main.getInstance().debug)
+		if (Main.getInstance().isDebug())
 			Logger.getLogger("Minecraft").log(Level.WARNING,
 					"[DEBUG][" + Main.getInstance().getName() + "][" + recipe.replaceAll(".Result", "") + "] " + st);
 	}
@@ -93,7 +93,7 @@ public class ItemFactory {
 	}
 
 	boolean hasHavenBag() {
-		if (Main.getInstance().hasHavenBags)
+		if (Main.getInstance().isHasHavenBags())
 			return true;
 		return false;
 	}
@@ -368,13 +368,13 @@ public class ItemFactory {
 					String enchantment = breakdown[1].toLowerCase();
 					int lvl = Integer.parseInt(breakdown[2]);
 
-					if (Main.getInstance().hasAE && AEAPI.isAnEnchantment(enchantment)) {
+					if (Main.getInstance().isHasAE() && AEAPI.isAnEnchantment(enchantment)) {
 						i = AEAPI.applyEnchant(enchantment, lvl, i);
 						applied = true;
 						continue;
 					}
 
-					if (Main.getInstance().hasEE) {
+					if (Main.getInstance().isHasEE()) {
 						NamespacedKey enchantKey = NamespacedKey.fromString("minecraft:" + enchantment);
 						if (Enchantment.getByKey(enchantKey) != null) {
 							Enchantment enchant = Enchantment.getByKey(enchantKey);

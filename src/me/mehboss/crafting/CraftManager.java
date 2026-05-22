@@ -573,8 +573,17 @@ public class CraftManager implements Listener {
 			return;
 		}
 
-		if (hasVanillaIngredients(inv, inv.getResult()))
+		if (hasVanillaIngredients(inv, inv.getResult())) {
+			org.bukkit.inventory.Recipe bukkit = e.getRecipe();
+			if (bukkit instanceof Keyed) {
+				NamespacedKey key = ((Keyed) bukkit).getKey();
+				if (key.getNamespace().equalsIgnoreCase(Main.getInstance().getName().toLowerCase())) {
+					logDebug("[hasVanillaIngredients] Blocking vanilla craft of CustomRecipes recipe: " + key.getKey(), "");
+					inv.setResult(new ItemStack(Material.AIR));
+				}
+			}
 			return;
+		}
 
 		logDebug("[handleCrafting] Fired craft event, beginning checks..", "", p.getUniqueId());
 		handleCraftingChecks(inv, p);
